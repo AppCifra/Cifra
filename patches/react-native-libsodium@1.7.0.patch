@@ -1,0 +1,724 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 49282df744daa7ba04f3ae97d14731818a47e772..ea1be3943c3cf05d6cc2c55f4f4f7b14c23ab080 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -66,7 +66,7 @@ android {
+         // correctly.
+         // see https://developer.android.com/ndk/guides/cpp-support#selecting_a_c_runtime
+         arguments "-DANDROID_STL=c++_shared",
+-                  "-DNODE_MODULES_DIR=${nodeModules}"
++                  "-DNODE_MODULES_DIR=${nodeModules.replace('\\', '/')}"
+       }
+     }
+   }
+diff --git a/cpp/react-native-libsodium.cpp b/cpp/react-native-libsodium.cpp
+index a97e74b23936377c8279bf99defe4389d8e0ff8e..ad2813baa42223becc00791b6bc259287517de10 100644
+--- a/cpp/react-native-libsodium.cpp
++++ b/cpp/react-native-libsodium.cpp
+@@ -183,6 +183,265 @@ namespace ReactNativeLibsodium
+         }
+     }
+ 
++    // Bindings added for X25519 (crypto_scalarmult), Ed25519 -> X25519 secret key conversion,
++    // crypto_secretstream_xchacha20poly1305 and SHA-256 (crypto_hash_sha256). Every function checks
++    // the argument count and the buffer lengths before touching memory, and only calls libsodium.
++    namespace
++    {
++        jsi::ArrayBuffer requireArrayBuffer(jsi::Runtime &runtime, const std::string &functionName, const jsi::Value *arguments, size_t count, size_t position, const char *argumentName)
++        {
++            if (position >= count || !arguments[position].isObject() || !arguments[position].asObject(runtime).isArrayBuffer(runtime))
++            {
++                throw jsi::JSError(runtime, "[react-native-libsodium][" + functionName + "] " + argumentName + " must be an ArrayBuffer");
++            }
++            return arguments[position].asObject(runtime).getArrayBuffer(runtime);
++        }
++
++        void requireLength(jsi::Runtime &runtime, const std::string &functionName, jsi::ArrayBuffer &buffer, size_t length, const char *argumentName)
++        {
++            if (buffer.size(runtime) != length)
++            {
++                throw jsi::JSError(runtime, "[react-native-libsodium][" + functionName + "] invalid " + std::string(argumentName) + " length");
++            }
++        }
++
++        // Additional data for the AEAD functions: a string (as before), an ArrayBuffer, or null/undefined for none.
++        std::string additionalDataBytes(jsi::Runtime &runtime, const std::string &functionName, const jsi::Value *arguments, size_t count, size_t position)
++        {
++            if (position >= count || arguments[position].isNull() || arguments[position].isUndefined())
++            {
++                return std::string();
++            }
++            if (arguments[position].isString())
++            {
++                return arguments[position].asString(runtime).utf8(runtime);
++            }
++            if (arguments[position].isObject() && arguments[position].asObject(runtime).isArrayBuffer(runtime))
++            {
++                auto buffer = arguments[position].asObject(runtime).getArrayBuffer(runtime);
++                return std::string(reinterpret_cast<const char *>(buffer.data(runtime)), buffer.size(runtime));
++            }
++            throw jsi::JSError(runtime, "[react-native-libsodium][" + functionName + "] additionalData must be a string, an ArrayBuffer or null");
++        }
++
++        // Optional additional data: null or undefined means no additional data.
++        std::vector<uint8_t> optionalBytes(jsi::Runtime &runtime, const std::string &functionName, const jsi::Value *arguments, size_t count, size_t position, const char *argumentName)
++        {
++            if (position >= count || arguments[position].isNull() || arguments[position].isUndefined())
++            {
++                return {};
++            }
++            auto buffer = requireArrayBuffer(runtime, functionName, arguments, count, position, argumentName);
++            return std::vector<uint8_t>(buffer.data(runtime), buffer.data(runtime) + buffer.size(runtime));
++        }
++    }
++
++    void installCifraExtensions(jsi::Runtime &jsiRuntime)
++    {
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_sign_PUBLICKEYBYTES", static_cast<int>(crypto_sign_PUBLICKEYBYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_sign_SECRETKEYBYTES", static_cast<int>(crypto_sign_SECRETKEYBYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_sign_BYTES", static_cast<int>(crypto_sign_BYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_scalarmult_BYTES", static_cast<int>(crypto_scalarmult_BYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_scalarmult_SCALARBYTES", static_cast<int>(crypto_scalarmult_SCALARBYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_aead_xchacha20poly1305_ietf_ABYTES", static_cast<int>(crypto_aead_xchacha20poly1305_ietf_ABYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_box_SEALBYTES", static_cast<int>(crypto_box_SEALBYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_pwhash_OPSLIMIT_MODERATE", static_cast<int>(crypto_pwhash_OPSLIMIT_MODERATE));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_pwhash_MEMLIMIT_MODERATE", static_cast<int>(crypto_pwhash_MEMLIMIT_MODERATE));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_KEYBYTES", static_cast<int>(crypto_secretstream_xchacha20poly1305_KEYBYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_HEADERBYTES", static_cast<int>(crypto_secretstream_xchacha20poly1305_HEADERBYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_ABYTES", static_cast<int>(crypto_secretstream_xchacha20poly1305_ABYTES));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_TAG_MESSAGE", static_cast<int>(crypto_secretstream_xchacha20poly1305_TAG_MESSAGE));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_TAG_FINAL", static_cast<int>(crypto_secretstream_xchacha20poly1305_TAG_FINAL));
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_hash_sha256_BYTES", static_cast<int>(crypto_hash_sha256_BYTES));
++
++        auto jsi_crypto_hash_sha256 = jsi::Function::createFromHostFunction(
++            jsiRuntime,
++            jsi::PropNameID::forUtf8(jsiRuntime, "jsi_crypto_hash_sha256"),
++            1,
++            [](jsi::Runtime &runtime, const jsi::Value &thisValue, const jsi::Value *arguments, size_t count) -> jsi::Value
++            {
++                const std::string functionName = "crypto_hash_sha256";
++                auto message = requireArrayBuffer(runtime, functionName, arguments, count, 0, "message");
++
++                std::vector<uint8_t> hash(crypto_hash_sha256_BYTES);
++                int result = crypto_hash_sha256(hash.data(), message.data(runtime), message.size(runtime));
++                throwOnBadResult(functionName, runtime, result);
++                return arrayBufferAsObject(runtime, hash);
++            });
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_hash_sha256", std::move(jsi_crypto_hash_sha256));
++
++        auto jsi_crypto_scalarmult = jsi::Function::createFromHostFunction(
++            jsiRuntime,
++            jsi::PropNameID::forUtf8(jsiRuntime, "jsi_crypto_scalarmult"),
++            2,
++            [](jsi::Runtime &runtime, const jsi::Value &thisValue, const jsi::Value *arguments, size_t count) -> jsi::Value
++            {
++                const std::string functionName = "crypto_scalarmult";
++                auto privateKey = requireArrayBuffer(runtime, functionName, arguments, count, 0, "privateKey");
++                auto publicKey = requireArrayBuffer(runtime, functionName, arguments, count, 1, "publicKey");
++                requireLength(runtime, functionName, privateKey, crypto_scalarmult_SCALARBYTES, "privateKey");
++                requireLength(runtime, functionName, publicKey, crypto_scalarmult_BYTES, "publicKey");
++
++                std::vector<uint8_t> shared(crypto_scalarmult_BYTES);
++                int result = crypto_scalarmult(shared.data(), privateKey.data(runtime), publicKey.data(runtime));
++                if (result != 0)
++                {
++                    sodium_memzero(shared.data(), shared.size());
++                }
++                throwOnBadResult(functionName, runtime, result);
++                jsi::Object output = arrayBufferAsObject(runtime, shared);
++                sodium_memzero(shared.data(), shared.size());
++                return output;
++            });
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_scalarmult", std::move(jsi_crypto_scalarmult));
++
++        auto jsi_crypto_sign_ed25519_sk_to_curve25519 = jsi::Function::createFromHostFunction(
++            jsiRuntime,
++            jsi::PropNameID::forUtf8(jsiRuntime, "jsi_crypto_sign_ed25519_sk_to_curve25519"),
++            1,
++            [](jsi::Runtime &runtime, const jsi::Value &thisValue, const jsi::Value *arguments, size_t count) -> jsi::Value
++            {
++                const std::string functionName = "crypto_sign_ed25519_sk_to_curve25519";
++                auto secretKey = requireArrayBuffer(runtime, functionName, arguments, count, 0, "privateKey");
++                requireLength(runtime, functionName, secretKey, crypto_sign_SECRETKEYBYTES, "privateKey");
++
++                std::vector<uint8_t> curveKey(crypto_scalarmult_curve25519_BYTES);
++                int result = crypto_sign_ed25519_sk_to_curve25519(curveKey.data(), secretKey.data(runtime));
++                throwOnBadResult(functionName, runtime, result);
++                jsi::Object output = arrayBufferAsObject(runtime, curveKey);
++                sodium_memzero(curveKey.data(), curveKey.size());
++                return output;
++            });
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_sign_ed25519_sk_to_curve25519", std::move(jsi_crypto_sign_ed25519_sk_to_curve25519));
++
++        // The stream state lives in an ArrayBuffer owned by JavaScript and is updated in place.
++        auto jsi_crypto_secretstream_xchacha20poly1305_init_push = jsi::Function::createFromHostFunction(
++            jsiRuntime,
++            jsi::PropNameID::forUtf8(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_init_push"),
++            1,
++            [](jsi::Runtime &runtime, const jsi::Value &thisValue, const jsi::Value *arguments, size_t count) -> jsi::Value
++            {
++                const std::string functionName = "crypto_secretstream_xchacha20poly1305_init_push";
++                auto key = requireArrayBuffer(runtime, functionName, arguments, count, 0, "key");
++                requireLength(runtime, functionName, key, crypto_secretstream_xchacha20poly1305_KEYBYTES, "key");
++
++                std::vector<uint8_t> state(crypto_secretstream_xchacha20poly1305_statebytes());
++                std::vector<uint8_t> header(crypto_secretstream_xchacha20poly1305_HEADERBYTES);
++                int result = crypto_secretstream_xchacha20poly1305_init_push(
++                    reinterpret_cast<crypto_secretstream_xchacha20poly1305_state *>(state.data()),
++                    header.data(),
++                    key.data(runtime));
++                throwOnBadResult(functionName, runtime, result);
++
++                jsi::Object output(runtime);
++                output.setProperty(runtime, "state", arrayBufferAsObject(runtime, state));
++                output.setProperty(runtime, "header", arrayBufferAsObject(runtime, header));
++                sodium_memzero(state.data(), state.size());
++                return output;
++            });
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_init_push", std::move(jsi_crypto_secretstream_xchacha20poly1305_init_push));
++
++        auto jsi_crypto_secretstream_xchacha20poly1305_push = jsi::Function::createFromHostFunction(
++            jsiRuntime,
++            jsi::PropNameID::forUtf8(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_push"),
++            4,
++            [](jsi::Runtime &runtime, const jsi::Value &thisValue, const jsi::Value *arguments, size_t count) -> jsi::Value
++            {
++                const std::string functionName = "crypto_secretstream_xchacha20poly1305_push";
++                auto state = requireArrayBuffer(runtime, functionName, arguments, count, 0, "state");
++                requireLength(runtime, functionName, state, crypto_secretstream_xchacha20poly1305_statebytes(), "state");
++                auto message = requireArrayBuffer(runtime, functionName, arguments, count, 1, "message");
++                std::vector<uint8_t> additionalData = optionalBytes(runtime, functionName, arguments, count, 2, "additionalData");
++                if (count < 4 || !arguments[3].isNumber())
++                {
++                    throw jsi::JSError(runtime, "[react-native-libsodium][" + functionName + "] tag must be a number");
++                }
++                unsigned char tag = static_cast<unsigned char>(arguments[3].asNumber());
++
++                std::vector<uint8_t> ciphertext(message.size(runtime) + crypto_secretstream_xchacha20poly1305_ABYTES);
++                unsigned long long ciphertextLength = 0;
++                int result = crypto_secretstream_xchacha20poly1305_push(
++                    reinterpret_cast<crypto_secretstream_xchacha20poly1305_state *>(state.data(runtime)),
++                    ciphertext.data(),
++                    &ciphertextLength,
++                    message.data(runtime),
++                    message.size(runtime),
++                    additionalData.empty() ? nullptr : additionalData.data(),
++                    additionalData.size(),
++                    tag);
++                throwOnBadResult(functionName, runtime, result);
++                ciphertext.resize(ciphertextLength);
++                return arrayBufferAsObject(runtime, ciphertext);
++            });
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_push", std::move(jsi_crypto_secretstream_xchacha20poly1305_push));
++
++        auto jsi_crypto_secretstream_xchacha20poly1305_init_pull = jsi::Function::createFromHostFunction(
++            jsiRuntime,
++            jsi::PropNameID::forUtf8(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_init_pull"),
++            2,
++            [](jsi::Runtime &runtime, const jsi::Value &thisValue, const jsi::Value *arguments, size_t count) -> jsi::Value
++            {
++                const std::string functionName = "crypto_secretstream_xchacha20poly1305_init_pull";
++                auto header = requireArrayBuffer(runtime, functionName, arguments, count, 0, "header");
++                auto key = requireArrayBuffer(runtime, functionName, arguments, count, 1, "key");
++                requireLength(runtime, functionName, header, crypto_secretstream_xchacha20poly1305_HEADERBYTES, "header");
++                requireLength(runtime, functionName, key, crypto_secretstream_xchacha20poly1305_KEYBYTES, "key");
++
++                std::vector<uint8_t> state(crypto_secretstream_xchacha20poly1305_statebytes());
++                int result = crypto_secretstream_xchacha20poly1305_init_pull(
++                    reinterpret_cast<crypto_secretstream_xchacha20poly1305_state *>(state.data()),
++                    header.data(runtime),
++                    key.data(runtime));
++                throwOnBadResult(functionName, runtime, result);
++                jsi::Object output = arrayBufferAsObject(runtime, state);
++                sodium_memzero(state.data(), state.size());
++                return output;
++            });
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_init_pull", std::move(jsi_crypto_secretstream_xchacha20poly1305_init_pull));
++
++        // Returns false when the chunk is forged, out of order or the stream is broken, as libsodium.js does.
++        auto jsi_crypto_secretstream_xchacha20poly1305_pull = jsi::Function::createFromHostFunction(
++            jsiRuntime,
++            jsi::PropNameID::forUtf8(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_pull"),
++            3,
++            [](jsi::Runtime &runtime, const jsi::Value &thisValue, const jsi::Value *arguments, size_t count) -> jsi::Value
++            {
++                const std::string functionName = "crypto_secretstream_xchacha20poly1305_pull";
++                auto state = requireArrayBuffer(runtime, functionName, arguments, count, 0, "state");
++                requireLength(runtime, functionName, state, crypto_secretstream_xchacha20poly1305_statebytes(), "state");
++                auto ciphertext = requireArrayBuffer(runtime, functionName, arguments, count, 1, "ciphertext");
++                std::vector<uint8_t> additionalData = optionalBytes(runtime, functionName, arguments, count, 2, "additionalData");
++                if (ciphertext.size(runtime) < crypto_secretstream_xchacha20poly1305_ABYTES)
++                {
++                    return jsi::Value(false);
++                }
++
++                std::vector<uint8_t> message(ciphertext.size(runtime) - crypto_secretstream_xchacha20poly1305_ABYTES);
++                unsigned long long messageLength = 0;
++                unsigned char tag = 0;
++                int result = crypto_secretstream_xchacha20poly1305_pull(
++                    reinterpret_cast<crypto_secretstream_xchacha20poly1305_state *>(state.data(runtime)),
++                    message.data(),
++                    &messageLength,
++                    &tag,
++                    ciphertext.data(runtime),
++                    ciphertext.size(runtime),
++                    additionalData.empty() ? nullptr : additionalData.data(),
++                    additionalData.size());
++                if (result != 0)
++                {
++                    return jsi::Value(false);
++                }
++                message.resize(messageLength);
++                jsi::Object output(runtime);
++                output.setProperty(runtime, "message", arrayBufferAsObject(runtime, message));
++                output.setProperty(runtime, "tag", static_cast<int>(tag));
++                sodium_memzero(message.data(), message.size());
++                return output;
++            });
++        jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretstream_xchacha20poly1305_pull", std::move(jsi_crypto_secretstream_xchacha20poly1305_pull));
++    }
++
+     void installLibsodium(jsi::Runtime &jsiRuntime)
+     {
+         jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_secretbox_KEYBYTES", static_cast<int>(crypto_secretbox_KEYBYTES));
+@@ -1096,6 +1355,10 @@ namespace ReactNativeLibsodium
+                 if (ciphertextArgType == JsiArgType::string)
+                 {
+                     std::string ciphertextString = arguments[ciphertextArgumentPosition].asString(runtime).utf8(runtime);
++                    if (ciphertextString.length() < crypto_box_SEALBYTES)
++                    {
++                        throw jsi::JSError(runtime, "invalid ciphertext length");
++                    }
+                     message.resize(ciphertextString.length() - crypto_box_SEALBYTES);
+                     result = crypto_box_seal_open(
+                         message.data(),
+@@ -1107,6 +1370,10 @@ namespace ReactNativeLibsodium
+                 else
+                 {
+                     auto ciphertextArrayBuffer = arguments[ciphertextArgumentPosition].asObject(runtime).getArrayBuffer(runtime);
++                    if (ciphertextArrayBuffer.length(runtime) < crypto_box_SEALBYTES)
++                    {
++                        throw jsi::JSError(runtime, "invalid ciphertext length");
++                    }
+                     message.resize(ciphertextArrayBuffer.length(runtime) - crypto_box_SEALBYTES);
+                     result = crypto_box_seal_open(
+                         message.data(),
+@@ -1210,6 +1477,10 @@ namespace ReactNativeLibsodium
+                 validateIsArrayBuffer(functionName, runtime, arguments[publicKeyArgumentPosition], publicKeyArgumentName, true);
+ 
+                 auto publicKeyArrayBuffer = arguments[publicKeyArgumentPosition].asObject(runtime).getArrayBuffer(runtime);
++                if (publicKeyArrayBuffer.length(runtime) != crypto_sign_PUBLICKEYBYTES)
++                {
++                    throw jsi::JSError(runtime, "invalid publicKey length");
++                }
+ 
+                 std::vector<uint8_t> publicKey(crypto_sign_PUBLICKEYBYTES);
+                 int result = -1;
+@@ -1295,7 +1566,6 @@ namespace ReactNativeLibsodium
+ 
+                 std::string additionalDataArgumentName = "additionalData";
+                 unsigned int additionalDataArgumentPosition = 1;
+-                validateIsString(functionName, runtime, arguments[additionalDataArgumentPosition], additionalDataArgumentName, true);
+ 
+                 std::string publicNonceArgumentName = "public_nonce";
+                 unsigned int publicNonceArgumentPosition = 2;
+@@ -1305,7 +1575,7 @@ namespace ReactNativeLibsodium
+                 unsigned int keyArgumentPosition = 3;
+                 validateIsArrayBuffer(functionName, runtime, arguments[keyArgumentPosition], keyArgumentName, true);
+ 
+-                std::string additionalData = arguments[additionalDataArgumentPosition].asString(runtime).utf8(runtime);
++                std::string additionalData = additionalDataBytes(runtime, functionName, arguments, count, additionalDataArgumentPosition);
+                 auto publicNonceArrayBuffer =
+                     arguments[publicNonceArgumentPosition].asObject(runtime).getArrayBuffer(runtime);
+                 auto keyArrayBuffer =
+@@ -1377,7 +1647,6 @@ namespace ReactNativeLibsodium
+ 
+                 std::string additionalDataArgumentName = "additionalData";
+                 unsigned int additionalDataArgumentPosition = 1;
+-                validateIsString(functionName, runtime, arguments[additionalDataArgumentPosition], additionalDataArgumentName, true);
+ 
+                 std::string publicNonceArgumentName = "public_nonce";
+                 unsigned int publicNonceArgumentPosition = 2;
+@@ -1387,7 +1656,7 @@ namespace ReactNativeLibsodium
+                 unsigned int keyArgumentPosition = 3;
+                 validateIsArrayBuffer(functionName, runtime, arguments[keyArgumentPosition], keyArgumentName, true);
+ 
+-                std::string additionalData = arguments[additionalDataArgumentPosition].asString(runtime).utf8(runtime);
++                std::string additionalData = additionalDataBytes(runtime, functionName, arguments, count, additionalDataArgumentPosition);
+                 auto publicNonceArrayBuffer =
+                     arguments[publicNonceArgumentPosition].asObject(runtime).getArrayBuffer(runtime);
+                 auto keyArrayBuffer =
+@@ -1408,6 +1677,10 @@ namespace ReactNativeLibsodium
+                 if (ciphertextArgType == JsiArgType::string)
+                 {
+                     std::string ciphertextString = arguments[ciphertextArgumentPosition].asString(runtime).utf8(runtime);
++                    if (ciphertextString.length() < crypto_aead_xchacha20poly1305_ietf_ABYTES)
++                    {
++                        throw jsi::JSError(runtime, "invalid ciphertext length");
++                    }
+                     unsigned long long messageLength = ciphertextString.length() - crypto_aead_xchacha20poly1305_ietf_ABYTES;
+                     message.resize(messageLength);
+                     result = crypto_aead_xchacha20poly1305_ietf_decrypt(
+@@ -1425,6 +1698,10 @@ namespace ReactNativeLibsodium
+                 {
+                     auto ciphertextArrayBuffer =
+                         arguments[ciphertextArgumentPosition].asObject(runtime).getArrayBuffer(runtime);
++                    if (ciphertextArrayBuffer.length(runtime) < crypto_aead_xchacha20poly1305_ietf_ABYTES)
++                    {
++                        throw jsi::JSError(runtime, "invalid ciphertext length");
++                    }
+                     unsigned long long messageLength = ciphertextArrayBuffer.length(runtime) - crypto_aead_xchacha20poly1305_ietf_ABYTES;
+                     message.resize(messageLength);
+                     result = crypto_aead_xchacha20poly1305_ietf_decrypt(
+@@ -1600,5 +1877,7 @@ namespace ReactNativeLibsodium
+             });
+ 
+         jsiRuntime.global().setProperty(jsiRuntime, "jsi_crypto_kdf_hkdf_sha256_expand", std::move(jsi_crypto_kdf_hkdf_sha256_expand));
++
++        installCifraExtensions(jsiRuntime);
+     }
+ } // namespace ReactNativeLibsodium
+diff --git a/lib/typescript/lib.native.d.ts b/lib/typescript/lib.native.d.ts
+index dca093170ca8fbda158aaeb357bd6f82f6e506a6..c90d6fd36c27d5eef884ad8606421c7d0b012c0e 100644
+--- a/lib/typescript/lib.native.d.ts
++++ b/lib/typescript/lib.native.d.ts
+@@ -150,7 +150,7 @@ export declare function crypto_generichash(hash_length: number, message: string
+ export declare function crypto_generichash(hash_length: number, message: string | Uint8Array, key: Uint8Array | null | undefined, outputFormat: StringOutputFormat): string;
+ export declare function crypto_pwhash(keyLength: number, password: string | Uint8Array, salt: Uint8Array, opsLimit: number, memLimit: number, algorithm: number, outputFormat?: Uint8ArrayOutputFormat | null): Uint8Array;
+ export declare function crypto_pwhash(keyLength: number, password: string | Uint8Array, salt: Uint8Array, opsLimit: number, memLimit: number, algorithm: number, outputFormat: StringOutputFormat): string;
+-export declare function crypto_sign_ed25519_pk_to_curve25519(publicKey: Uint8Array, outputFormat?: Uint8ArrayOutputFormat | null): string | Uint8Array<ArrayBuffer>;
++export declare function crypto_sign_ed25519_pk_to_curve25519(publicKey: Uint8Array, outputFormat?: Uint8ArrayOutputFormat | null): Uint8Array;
+ export declare function crypto_kdf_derive_from_key(subkey_len: number, subkey_id: number, ctx: string, key: Uint8Array, outputFormat?: Uint8ArrayOutputFormat | null): Uint8Array;
+ export declare function crypto_kdf_derive_from_key(subkey_len: number, subkey_id: number, ctx: string, key: Uint8Array, outputFormat: StringOutputFormat): string;
+ export declare function crypto_aead_xchacha20poly1305_ietf_encrypt(message: string | Uint8Array, additional_data: string | Uint8Array | null, secret_nonce: string | Uint8Array | null, public_nonce: Uint8Array, key: Uint8Array, outputFormat?: Uint8ArrayOutputFormat | null): Uint8Array;
+@@ -221,4 +221,36 @@ declare const _default: {
+     _unstable_crypto_kdf_hkdf_sha256_expand: typeof _unstable_crypto_kdf_hkdf_sha256_expand;
+ };
+ export default _default;
++export declare const crypto_sign_PUBLICKEYBYTES: number;
++export declare const crypto_sign_SECRETKEYBYTES: number;
++export declare const crypto_sign_BYTES: number;
++export declare const crypto_scalarmult_BYTES: number;
++export declare const crypto_scalarmult_SCALARBYTES: number;
++export declare const crypto_aead_xchacha20poly1305_ietf_ABYTES: number;
++export declare const crypto_box_SEALBYTES: number;
++export declare const crypto_pwhash_OPSLIMIT_MODERATE: number;
++export declare const crypto_pwhash_MEMLIMIT_MODERATE: number;
++export declare const crypto_secretstream_xchacha20poly1305_KEYBYTES: number;
++export declare const crypto_secretstream_xchacha20poly1305_HEADERBYTES: number;
++export declare const crypto_secretstream_xchacha20poly1305_ABYTES: number;
++export declare const crypto_secretstream_xchacha20poly1305_TAG_MESSAGE: number;
++export declare const crypto_secretstream_xchacha20poly1305_TAG_FINAL: number;
++export declare function crypto_scalarmult(privateKey: Uint8Array, publicKey: Uint8Array): Uint8Array;
++export declare function crypto_sign_ed25519_sk_to_curve25519(privateKey: Uint8Array): Uint8Array;
++export declare const crypto_hash_sha256_BYTES: number;
++export declare function crypto_hash_sha256(message: Uint8Array): Uint8Array;
++export type SecretStreamState = {
++    readonly buffer: ArrayBuffer;
++};
++export declare function crypto_secretstream_xchacha20poly1305_init_push(key: Uint8Array): {
++    state: SecretStreamState;
++    header: Uint8Array;
++};
++export declare function crypto_secretstream_xchacha20poly1305_push(state: SecretStreamState, message: Uint8Array, additionalData: Uint8Array | null, tag: number): Uint8Array;
++export declare function crypto_secretstream_xchacha20poly1305_init_pull(header: Uint8Array, key: Uint8Array): SecretStreamState;
++export declare function crypto_secretstream_xchacha20poly1305_pull(state: SecretStreamState, ciphertext: Uint8Array, additionalData: Uint8Array | null): {
++    message: Uint8Array;
++    tag: number;
++} | false;
++export declare function memzero(bytes: Uint8Array): void;
+ //# sourceMappingURL=lib.native.d.ts.map
+diff --git a/src/lib.native.ts b/src/lib.native.ts
+index bfa7ea8ba73ed71b544b5c6de90296e4b9055321..9087991c7ee556562b293ab6511ce7a6ddb40a9a 100644
+--- a/src/lib.native.ts
++++ b/src/lib.native.ts
+@@ -24,13 +24,9 @@ const toArrayBuffer = (input: Uint8Array): ArrayBuffer => {
+ 
+ const Libsodium = NativeModules.Libsodium;
+ 
++// Installs the JSI bindings. No logging: apps using this library may forbid any log output.
+ if (Libsodium && typeof Libsodium.install === 'function') {
+-  console.log('calling Libsodium.install');
+   Libsodium.install();
+-} else if (!Libsodium) {
+-  console.warn('Libsodium module not defined');
+-} else {
+-  console.warn('Libsodium.install not a function');
+ }
+ 
+ declare global {
+@@ -63,6 +59,48 @@ declare global {
+   var jsi_crypto_kdf_hkdf_sha256_BYTES_MIN: number;
+   var jsi_crypto_kdf_hkdf_sha256_KEYBYTES: number;
+   var jsi_crypto_pwhash_ALG_ARGON2ID13: number;
++  var jsi_crypto_sign_PUBLICKEYBYTES: number;
++  var jsi_crypto_sign_SECRETKEYBYTES: number;
++  var jsi_crypto_sign_BYTES: number;
++  var jsi_crypto_scalarmult_BYTES: number;
++  var jsi_crypto_scalarmult_SCALARBYTES: number;
++  var jsi_crypto_aead_xchacha20poly1305_ietf_ABYTES: number;
++  var jsi_crypto_box_SEALBYTES: number;
++  var jsi_crypto_pwhash_OPSLIMIT_MODERATE: number;
++  var jsi_crypto_pwhash_MEMLIMIT_MODERATE: number;
++  var jsi_crypto_secretstream_xchacha20poly1305_KEYBYTES: number;
++  var jsi_crypto_secretstream_xchacha20poly1305_HEADERBYTES: number;
++  var jsi_crypto_secretstream_xchacha20poly1305_ABYTES: number;
++  var jsi_crypto_secretstream_xchacha20poly1305_TAG_MESSAGE: number;
++  var jsi_crypto_secretstream_xchacha20poly1305_TAG_FINAL: number;
++  var jsi_crypto_hash_sha256_BYTES: number;
++
++  function jsi_crypto_hash_sha256(message: ArrayBuffer): ArrayBuffer;
++  function jsi_crypto_scalarmult(
++    privateKey: ArrayBuffer,
++    publicKey: ArrayBuffer
++  ): ArrayBuffer;
++  function jsi_crypto_sign_ed25519_sk_to_curve25519(
++    privateKey: ArrayBuffer
++  ): ArrayBuffer;
++  function jsi_crypto_secretstream_xchacha20poly1305_init_push(
++    key: ArrayBuffer
++  ): { state: ArrayBuffer; header: ArrayBuffer };
++  function jsi_crypto_secretstream_xchacha20poly1305_push(
++    state: ArrayBuffer,
++    message: ArrayBuffer,
++    additionalData: ArrayBuffer | null,
++    tag: number
++  ): ArrayBuffer;
++  function jsi_crypto_secretstream_xchacha20poly1305_init_pull(
++    header: ArrayBuffer,
++    key: ArrayBuffer
++  ): ArrayBuffer;
++  function jsi_crypto_secretstream_xchacha20poly1305_pull(
++    state: ArrayBuffer,
++    ciphertext: ArrayBuffer,
++    additionalData: ArrayBuffer | null
++  ): { message: ArrayBuffer; tag: number } | false;
+ 
+   function jsi_crypto_auth(
+     message: string | ArrayBuffer,
+@@ -168,19 +206,19 @@ declare global {
+   ): ArrayBuffer;
+   function jsi_crypto_aead_xchacha20poly1305_ietf_encrypt(
+     message: string | ArrayBuffer,
+-    additionalData: string,
++    additionalData: string | ArrayBuffer | null,
+     public_nonce: ArrayBuffer,
+     key: ArrayBuffer
+   ): ArrayBuffer;
+   function jsi_crypto_aead_xchacha20poly1305_ietf_decrypt(
+     ciphertext: string | ArrayBuffer,
+-    additionalData: string,
++    additionalData: string | ArrayBuffer | null,
+     public_nonce: ArrayBuffer,
+     key: ArrayBuffer
+   ): ArrayBuffer;
+   function jsi_crypto_aead_xchacha20poly1305_ietf_decrypt(
+     ciphertext: string | ArrayBuffer,
+-    additionalData: string,
++    additionalData: string | ArrayBuffer | null,
+     public_nonce: ArrayBuffer,
+     key: ArrayBuffer
+   ): ArrayBuffer;
+@@ -722,11 +760,11 @@ export function crypto_pwhash(
+ export function crypto_sign_ed25519_pk_to_curve25519(
+   publicKey: Uint8Array,
+   outputFormat?: Uint8ArrayOutputFormat | null
+-) {
++): Uint8Array {
+   const result = global.jsi_crypto_sign_ed25519_pk_to_curve25519(
+     toArrayBuffer(publicKey)
+   );
+-  return convertToOutputFormat(result, outputFormat);
++  return convertToOutputFormat(result, outputFormat) as Uint8Array;
+ }
+ 
+ export function crypto_kdf_derive_from_key(
+@@ -786,14 +824,11 @@ export function crypto_aead_xchacha20poly1305_ietf_encrypt(
+   let result: ArrayBuffer;
+   const messageParam =
+     typeof message === 'string' ? message : toArrayBuffer(message);
+-  if (typeof additional_data !== 'string') {
+-    throw new Error(
+-      'crypto_aead_xchacha20poly1305_ietf_encrypt: input type not yet implemented'
+-    );
+-  }
+   result = global.jsi_crypto_aead_xchacha20poly1305_ietf_encrypt(
+     messageParam,
+-    additional_data,
++    additional_data === null || typeof additional_data === 'string'
++      ? additional_data
++      : toArrayBuffer(additional_data),
+     toArrayBuffer(public_nonce),
+     toArrayBuffer(key)
+   );
+@@ -830,16 +865,13 @@ export function crypto_aead_xchacha20poly1305_ietf_decrypt(
+       'crypto_aead_xchacha20poly1305_ietf_decrypt: input type not yet implemented'
+     );
+   }
+-  if (typeof additional_data !== 'string') {
+-    throw new Error(
+-      'crypto_aead_xchacha20poly1305_ietf_decrypt: input type not yet implemented'
+-    );
+-  }
+   const ciphertextParam =
+     typeof ciphertext === 'string' ? ciphertext : toArrayBuffer(ciphertext);
+   result = global.jsi_crypto_aead_xchacha20poly1305_ietf_decrypt(
+     ciphertextParam,
+-    additional_data,
++    additional_data === null || typeof additional_data === 'string'
++      ? additional_data
++      : toArrayBuffer(additional_data),
+     toArrayBuffer(public_nonce),
+     toArrayBuffer(key)
+   );
+@@ -868,6 +900,120 @@ export function _unstable_crypto_kdf_hkdf_sha256_expand(
+   );
+ }
+ 
++export const crypto_sign_PUBLICKEYBYTES = global.jsi_crypto_sign_PUBLICKEYBYTES;
++export const crypto_sign_SECRETKEYBYTES = global.jsi_crypto_sign_SECRETKEYBYTES;
++export const crypto_sign_BYTES = global.jsi_crypto_sign_BYTES;
++export const crypto_scalarmult_BYTES = global.jsi_crypto_scalarmult_BYTES;
++export const crypto_scalarmult_SCALARBYTES =
++  global.jsi_crypto_scalarmult_SCALARBYTES;
++export const crypto_aead_xchacha20poly1305_ietf_ABYTES =
++  global.jsi_crypto_aead_xchacha20poly1305_ietf_ABYTES;
++export const crypto_box_SEALBYTES = global.jsi_crypto_box_SEALBYTES;
++export const crypto_pwhash_OPSLIMIT_MODERATE =
++  global.jsi_crypto_pwhash_OPSLIMIT_MODERATE;
++export const crypto_pwhash_MEMLIMIT_MODERATE =
++  global.jsi_crypto_pwhash_MEMLIMIT_MODERATE;
++export const crypto_secretstream_xchacha20poly1305_KEYBYTES =
++  global.jsi_crypto_secretstream_xchacha20poly1305_KEYBYTES;
++export const crypto_secretstream_xchacha20poly1305_HEADERBYTES =
++  global.jsi_crypto_secretstream_xchacha20poly1305_HEADERBYTES;
++export const crypto_secretstream_xchacha20poly1305_ABYTES =
++  global.jsi_crypto_secretstream_xchacha20poly1305_ABYTES;
++export const crypto_secretstream_xchacha20poly1305_TAG_MESSAGE =
++  global.jsi_crypto_secretstream_xchacha20poly1305_TAG_MESSAGE;
++export const crypto_secretstream_xchacha20poly1305_TAG_FINAL =
++  global.jsi_crypto_secretstream_xchacha20poly1305_TAG_FINAL;
++
++export const crypto_hash_sha256_BYTES = global.jsi_crypto_hash_sha256_BYTES;
++
++export function crypto_hash_sha256(message: Uint8Array): Uint8Array {
++  return new Uint8Array(global.jsi_crypto_hash_sha256(toArrayBuffer(message)));
++}
++
++export function crypto_scalarmult(
++  privateKey: Uint8Array,
++  publicKey: Uint8Array
++): Uint8Array {
++  return new Uint8Array(
++    global.jsi_crypto_scalarmult(
++      toArrayBuffer(privateKey),
++      toArrayBuffer(publicKey)
++    )
++  );
++}
++
++export function crypto_sign_ed25519_sk_to_curve25519(
++  privateKey: Uint8Array
++): Uint8Array {
++  return new Uint8Array(
++    global.jsi_crypto_sign_ed25519_sk_to_curve25519(toArrayBuffer(privateKey))
++  );
++}
++
++// Opaque stream state, kept by reference so the native side can update it in place.
++export type SecretStreamState = { readonly buffer: ArrayBuffer };
++
++export function crypto_secretstream_xchacha20poly1305_init_push(
++  key: Uint8Array
++): { state: SecretStreamState; header: Uint8Array } {
++  const result = global.jsi_crypto_secretstream_xchacha20poly1305_init_push(
++    toArrayBuffer(key)
++  );
++  return { state: { buffer: result.state }, header: new Uint8Array(result.header) };
++}
++
++export function crypto_secretstream_xchacha20poly1305_push(
++  state: SecretStreamState,
++  message: Uint8Array,
++  additionalData: Uint8Array | null,
++  tag: number
++): Uint8Array {
++  return new Uint8Array(
++    global.jsi_crypto_secretstream_xchacha20poly1305_push(
++      state.buffer,
++      toArrayBuffer(message),
++      additionalData ? toArrayBuffer(additionalData) : null,
++      tag
++    )
++  );
++}
++
++export function crypto_secretstream_xchacha20poly1305_init_pull(
++  header: Uint8Array,
++  key: Uint8Array
++): SecretStreamState {
++  return {
++    buffer: global.jsi_crypto_secretstream_xchacha20poly1305_init_pull(
++      toArrayBuffer(header),
++      toArrayBuffer(key)
++    ),
++  };
++}
++
++export function crypto_secretstream_xchacha20poly1305_pull(
++  state: SecretStreamState,
++  ciphertext: Uint8Array,
++  additionalData: Uint8Array | null
++): { message: Uint8Array; tag: number } | false {
++  const result = global.jsi_crypto_secretstream_xchacha20poly1305_pull(
++    state.buffer,
++    toArrayBuffer(ciphertext),
++    additionalData ? toArrayBuffer(additionalData) : null
++  );
++  if (result === false) {
++    return false;
++  }
++  return { message: new Uint8Array(result.message), tag: result.tag };
++}
++
++// Same behavior as libsodium.js: wipes the bytes in place, including a view into a larger buffer.
++export function memzero(bytes: Uint8Array): void {
++  if (!(bytes instanceof Uint8Array)) {
++    throw new TypeError('Only Uint8Array instances can be wiped');
++  }
++  bytes.fill(0);
++}
++
+ // add no-op ready to match the libsodium-wrappers API
+ export const ready: Promise<void> = new Promise((resolve) => resolve());
+ 
+@@ -875,6 +1021,29 @@ export const ready: Promise<void> = new Promise((resolve) => resolve());
+ export const loadSumoVersion = () => undefined;
+ 
+ export default {
++  crypto_sign_PUBLICKEYBYTES,
++  crypto_sign_SECRETKEYBYTES,
++  crypto_sign_BYTES,
++  crypto_scalarmult_BYTES,
++  crypto_scalarmult_SCALARBYTES,
++  crypto_aead_xchacha20poly1305_ietf_ABYTES,
++  crypto_box_SEALBYTES,
++  crypto_pwhash_OPSLIMIT_MODERATE,
++  crypto_pwhash_MEMLIMIT_MODERATE,
++  crypto_secretstream_xchacha20poly1305_KEYBYTES,
++  crypto_secretstream_xchacha20poly1305_HEADERBYTES,
++  crypto_secretstream_xchacha20poly1305_ABYTES,
++  crypto_secretstream_xchacha20poly1305_TAG_MESSAGE,
++  crypto_secretstream_xchacha20poly1305_TAG_FINAL,
++  crypto_hash_sha256_BYTES,
++  crypto_hash_sha256,
++  crypto_scalarmult,
++  crypto_sign_ed25519_sk_to_curve25519,
++  crypto_secretstream_xchacha20poly1305_init_push,
++  crypto_secretstream_xchacha20poly1305_push,
++  crypto_secretstream_xchacha20poly1305_init_pull,
++  crypto_secretstream_xchacha20poly1305_pull,
++  memzero,
+   crypto_auth,
+   crypto_auth_verify,
+   crypto_auth_BYTES,

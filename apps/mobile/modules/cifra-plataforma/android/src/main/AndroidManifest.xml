@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Notificações cegas (RF-42): o aviso de mensagem nova e o serviço em primeiro plano que
+       mantém o app vivo fora da frente, sem Google. -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+  <application>
+    <service
+      android:name="org.cifra.plataforma.ServicoDeAvisos"
+      android:exported="false"
+      android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="Keeps the app process alive to receive messages from the relay over Tor and show a notification without sender or content, without Google services." />
+    </service>
+  </application>
+</manifest>

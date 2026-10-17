@@ -1,0 +1,11 @@
+# O contexto do build do relay é a raiz do repositório, mas só entra o que a imagem usa.
+*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!patches
+!packages/protocol/package.json
+!packages/protocol/src
+!apps/relay/package.json
+!apps/relay/src
+!apps/relay/scripts

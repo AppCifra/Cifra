@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+# Pastas de ferramentas locais (começam com ponto); o .github continua formatado.
+.*/
+!.github/
+# Documentos escritos à mão: a formatação automática reescreveria tabelas inteiras.
+*.md
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/modules/*/android/build/
+apps/mobile/modules/*/android/.gradle/
+.expo/

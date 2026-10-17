@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "jsx": "react-jsx",
+    // Como o Metro: `./lib` resolve primeiro para `lib.native`.
+    "moduleSuffixes": [".android", ".native", ""],
+    "customConditions": ["react-native"]
+  },
+  "include": ["index.ts", "src", "modules"]
+}

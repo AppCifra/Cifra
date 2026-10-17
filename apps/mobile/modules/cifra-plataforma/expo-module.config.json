@@ -1,0 +1,16 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": [
+      "org.cifra.plataforma.TransporteTorModule",
+      "org.cifra.plataforma.TelaSeguraModule",
+      "org.cifra.plataforma.CofreModule",
+      "org.cifra.plataforma.AnexosModule",
+      "org.cifra.plataforma.VideoModule",
+      "org.cifra.plataforma.AreaDeTransferenciaModule",
+      "org.cifra.plataforma.RelogioModule",
+      "org.cifra.plataforma.AvisosModule",
+      "org.cifra.plataforma.TecladoModule"
+    ]
+  }
+}

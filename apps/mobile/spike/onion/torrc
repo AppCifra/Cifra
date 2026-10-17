@@ -1,0 +1,6 @@
+# Tor do servidor de teste: só publica o eco como onion service, sem cliente SOCKS.
+SocksPort 0
+DataDirectory /var/lib/tor
+HiddenServiceDir /var/lib/tor/cifra-eco/
+HiddenServicePort 80 127.0.0.1:8080
+Log notice stdout

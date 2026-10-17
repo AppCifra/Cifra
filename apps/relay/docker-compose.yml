@@ -1,0 +1,39 @@
+# Relay oficial: o relay e o Tor no mesmo namespace de rede (SPEC, "Implantação"). O Tor publica o
+# relay como onion service; o endereço sai de
+#   docker compose exec tor cat /var/lib/tor/cifra-relay/hostname
+# O relay é só onion (RF-44); a porta 127.0.0.1:8080 é só para quem opera, no próprio host (testes e
+# a sonda). Guarde o volume `onion`: é a chave do endereço .onion. O relay não escreve nada, e o
+# Docker não guarda log dele; o Tor só escreve avisos, sem endereços (RNF-05).
+name: cifra-relay
+
+services:
+  tor:
+    build: tor
+    ports:
+      - '127.0.0.1:8080:8080'
+    volumes:
+      - onion:/var/lib/tor
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    restart: unless-stopped
+
+  relay:
+    build:
+      context: ../..
+      dockerfile: apps/relay/Dockerfile
+    network_mode: service:tor
+    depends_on: [tor]
+    volumes:
+      - dados:/dados
+    read_only: true
+    init: true
+    logging:
+      driver: none
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    restart: unless-stopped
+
+volumes:
+  onion:
+  dados:

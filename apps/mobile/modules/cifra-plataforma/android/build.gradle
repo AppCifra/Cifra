@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'org.cifra'
+version = '0.1.0'
+
+android {
+  namespace "org.cifra.plataforma"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  // OkHttp vem do próprio React Native (api do react-android): nenhuma dependência nova.
+  implementation "com.facebook.react:react-android"
+}

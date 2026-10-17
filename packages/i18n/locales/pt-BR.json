@@ -1,0 +1,519 @@
+{
+  "app": {
+    "nome": "cifra"
+  },
+  "idiomas": {
+    "pt-BR": "Português",
+    "en": "English"
+  },
+  "abertura": {
+    "titulo": "Fale sem deixar rastro.",
+    "descricao": "Sem número. Sem e-mail. Sua identidade é um par de chaves gerado neste aparelho — e só volta com as suas palavras.",
+    "gerar": "Gerar identidade",
+    "gerando": "Gerando…",
+    "continuar": "Continuar",
+    "restaurar": "Restaurar com palavras",
+    "rodape": "código aberto · X25519 · double ratchet",
+    "apagado": "tudo apagado."
+  },
+  "identidade": {
+    "nenhuma": "nenhuma identidade",
+    "gerando": "gerando chaves…",
+    "sua": "seu id público"
+  },
+  "palavras": {
+    "rotulo": "palavras de recuperação",
+    "titulo": "Anote as 12 palavras",
+    "descricao": "No papel, na ordem. Com elas, a sua identidade volta em outro aparelho. Quem tiver estas palavras também assume a sua identidade.",
+    "anotei": "Anotei",
+    "pular": "Pular",
+    "aviso": {
+      "titulo": "Pular as palavras?",
+      "descricao": "Sem elas, perder o celular é perder a identidade. Elas não aparecem de novo.",
+      "confirmar": "Pular mesmo assim",
+      "voltar": "Ver as palavras"
+    }
+  },
+  "restaurar": {
+    "titulo": "Restaurar identidade",
+    "descricao": "Digite as 12 palavras, na ordem, em português ou em inglês.",
+    "campo": "palavras de recuperação",
+    "contagem": "{{n}} de 12 palavras",
+    "restaurar": "Restaurar",
+    "voltar": "Voltar",
+    "problemas": {
+      "quantidade": "são 12 palavras. aqui há {{n}}.",
+      "desconhecida": "a palavra {{posicao}} não está na lista.",
+      "checksum": "as palavras não conferem. confira a ordem e a grafia."
+    },
+    "restaurada": {
+      "titulo": "Identidade restaurada",
+      "descricao": "Este é o ID que as suas palavras guardam. Confira antes de entrar.",
+      "entrar": "Entrar",
+      "usarBackup": "Usar um backup",
+      "dicaBackup": "se você salvou um backup, seus contatos e ajustes voltam com ele.",
+      "backup": "backup de {{data}} · {{n}} contatos",
+      "backupUm": "backup de {{data}} · 1 contato",
+      "backupRecusado": "este arquivo não abre com estas palavras."
+    }
+  },
+  "guardar": {
+    "erro": "a identidade não foi guardada. o aparelho precisa de um bloqueio de tela (PIN, padrão ou senha) e da sua confirmação."
+  },
+  "bloqueado": {
+    "titulo": "Bloqueado",
+    "descricao": "Os seus dados ficam protegidos até você desbloquear com a biometria ou a senha do celular.",
+    "desbloquear": "Desbloquear",
+    "falhou": "não foi possível abrir. tente de novo."
+  },
+  "perdidos": {
+    "titulo": "Não dá para abrir os seus dados",
+    "chave": "Isso acontece quando o bloqueio de tela do celular é removido. As mensagens e os contatos que estavam aqui foram perdidos.",
+    "arquivo": "Os dados guardados neste celular foram danificados. As mensagens e os contatos que estavam aqui foram perdidos.",
+    "palavras": "Se você anotou as 12 palavras, pode recuperar a sua identidade.",
+    "continuar": "Continuar"
+  },
+  "cofre": {
+    "guardar": "Proteger a sua identidade",
+    "ler": "Desbloquear o cifra",
+    "cancelar": "Cancelar"
+  },
+  "conversas": {
+    "titulo": "Conversas",
+    "buscar": "Buscar — só neste aparelho",
+    "nota": "nota pessoal",
+    "semMensagens": "sem mensagens",
+    "voce": "você: {{texto}}",
+    "anonimo": "anon·{{inicio}}",
+    "rodape": "conversas ficam cifradas no aparelho. o servidor só guarda, cifrado, o que ainda não foi entregue.",
+    "pedidos": "Pedidos de conversa",
+    "nova": "Nova conversa",
+    "resultados": {
+      "conversas": "Conversas",
+      "mensagens": "Mensagens",
+      "nada": "nada encontrado neste aparelho."
+    },
+    "ajustes": "Ajustes",
+    "previa": {
+      "imagem": "foto",
+      "video": "vídeo",
+      "documento": "documento"
+    },
+    "temaClaro": "Tema claro",
+    "temaEscuro": "Tema escuro",
+    "apoiar": "Apoiar o Cifra",
+    "previaPrints": "prints bloqueados",
+    "ocultas": {
+      "rotulo": "ocultas",
+      "vazia": "nenhuma conversa oculta. para ocultar, abra a segurança do contato.",
+      "fechar": "Fechar ocultas"
+    }
+  },
+  "rede": {
+    "conectado": "tor · conectado",
+    "conectando": "tor · conectando…",
+    "semConexao": "sem conexão",
+    "semTor": "tor · indisponível. abra o orbot"
+  },
+  "nova": {
+    "titulo": "Nova conversa",
+    "descricao": "Cole o ID de quem você quer contatar. Sem agenda, sem descoberta automática.",
+    "campo": "XXXX-XXXX-XXXX-XXXX",
+    "iniciar": "Iniciar conversa cifrada",
+    "procurando": "Procurando…",
+    "seuId": "Seu ID",
+    "erros": {
+      "idInvalido": "isso não é um ID. confira os 16 caracteres.",
+      "inexistente": "ninguém usa este ID agora.",
+      "invalido": "não foi possível confirmar quem é este ID. tente de novo mais tarde.",
+      "semConexao": "não foi possível falar com o servidor agora. tente de novo em instantes.",
+      "recusou": "o servidor não respondeu agora. tente de novo em instantes.",
+      "bloqueado": "você bloqueou este ID. desbloqueie na tela de pedidos para conversar."
+    }
+  },
+  "doacao": {
+    "titulo": "Apoiar o Cifra",
+    "descricao": "O Cifra é feito sem anúncio e sem coleta de dados. Se quiser ajudar, doe em Monero: ele não liga quem doou a quem recebeu.",
+    "rotulo": "endereço monero",
+    "copiar": "Copiar endereço",
+    "copiado": "endereço copiado"
+  },
+  "conversa": {
+    "mensagem": "Mensagem",
+    "enviar": "Enviar",
+    "voltar": "Voltar",
+    "abrirSeguranca": "Ver a segurança do contato",
+    "cifrada": "cifrado de ponta a ponta. ninguém fora desta conversa pode ler — nem nós.",
+    "nota": "só neste aparelho. nada daqui sai do celular.",
+    "status": {
+      "pendente": "pendente",
+      "enviada": "enviada",
+      "lida": "lida"
+    },
+    "longa": "mensagem longa demais.",
+    "falhou": "não foi possível enviar. tente de novo.",
+    "bloqueado": "você bloqueou este contato.",
+    "desbloquear": "Desbloquear",
+    "pedido": {
+      "descricao": "Esta pessoa não está nos seus contatos. Ela não fica sabendo que você leu.",
+      "aceitar": "Aceitar",
+      "recusar": "Recusar",
+      "bloquear": "Bloquear"
+    },
+    "timerInvalido": "esse tempo passa do timer da conversa.",
+    "apagar": {
+      "titulo": "Apagar a mensagem?",
+      "descricao": "Para todos, ela some dos dois celulares. Só neste celular, a outra pessoa continua com ela.",
+      "descricaoSoAqui": "Ela some deste celular. A outra pessoa continua com ela.",
+      "descricaoDaNota": "A nota some deste celular.",
+      "paraTodos": "Apagar para todos",
+      "soAqui": "Apagar só neste celular",
+      "nota": "Apagar",
+      "cancelar": "Cancelar",
+      "acao": "Apagar",
+      "tituloVarias": "Apagar as mensagens?",
+      "descricaoVarias": "Para todos, elas somem dos dois celulares. Só neste celular, a outra pessoa continua com elas.",
+      "descricaoSoAquiVarias": "Elas somem deste celular. A outra pessoa continua com elas.",
+      "descricaoDaNotaVarias": "As notas somem deste celular."
+    },
+    "apagada": "mensagem apagada",
+    "notaApagada": "nota apagada",
+    "desfazer": "desfazer",
+    "apagadas": "mensagens apagadas",
+    "notasApagadas": "notas apagadas",
+    "digitando": "digitando…"
+  },
+  "seguranca": {
+    "titulo": "Segurança",
+    "verificado": "verificado",
+    "naoVerificado": "não verificado",
+    "numero": "Número de segurança",
+    "comparar": "Compare com {{nome}} pessoalmente ou por outro canal confiável. Se os números coincidirem, ninguém está no meio.",
+    "verificar": "Marcar como verificado",
+    "removerVerificacao": "Remover verificação",
+    "apelido": "Apelido",
+    "bloquear": "Bloquear",
+    "desbloquear": "Desbloquear",
+    "painelApelido": {
+      "titulo": "Apelido",
+      "descricao": "Só aparece neste celular. A outra pessoa não fica sabendo.",
+      "campo": "apelido",
+      "salvar": "Salvar",
+      "invalido": "use até 40 caracteres, numa linha só."
+    },
+    "painelBloquear": {
+      "titulo": "Bloquear {{nome}}?",
+      "descricao": "Você deixa de receber as mensagens desta pessoa. Ela não fica sabendo.",
+      "confirmar": "Bloquear",
+      "cancelar": "Cancelar"
+    },
+    "temporarias": "Mensagens temporárias",
+    "apagarConversa": "Apagar conversa",
+    "painelApagar": {
+      "titulo": "Apagar a conversa?",
+      "descricao": "Para os dois, ela some também do celular da outra pessoa. Só neste celular, a outra pessoa continua com as mensagens dela.",
+      "confirmar": "Apagar só neste celular",
+      "cancelar": "Cancelar",
+      "paraOsDois": "Apagar para os dois",
+      "falhou": "não foi possível apagar para os dois agora. tente de novo."
+    },
+    "copiarNumero": "Copiar o número",
+    "numeroCopiado": "número copiado",
+    "colar": {
+      "descricao": "Peça o número por outro caminho, fora do Cifra, e cole aqui. Pelo próprio Cifra não vale: quem estivesse no meio trocaria o número também.",
+      "campo": "número da outra pessoa",
+      "confere": "os números batem.",
+      "diferente": "os números não batem."
+    },
+    "prints": "Bloquear prints nesta conversa",
+    "printsDescricao": "Vale nos dois celulares: nenhum dos dois tira print nem grava a tela desta conversa. Não impede uma foto da tela com outro aparelho.",
+    "printsFalhou": "não foi possível mudar agora. tente de novo.",
+    "ocultar": "Ocultar conversa",
+    "reexibir": "Reexibir conversa",
+    "ocultando": "ocultando…",
+    "reexibindo": "reexibindo…",
+    "painelOcultasFechadas": {
+      "titulo": "Ocultar conversa",
+      "descricao": "Primeiro, digite seu código secreto na busca. Se ainda não tem um, crie em Ajustes.",
+      "entendi": "Entendi"
+    },
+    "painelOcultar": {
+      "titulo": "Ocultar a conversa com {{nome}}?",
+      "descricao": "Ela sai da lista e da busca e só aparece quando você digita seu código secreto na busca. Avisos de mensagem dela também param.",
+      "confirmar": "Ocultar",
+      "cancelar": "Cancelar"
+    },
+    "painelReexibir": {
+      "titulo": "Reexibir a conversa com {{nome}}?",
+      "descricao": "Ela volta para a lista e para a busca.",
+      "confirmar": "Reexibir",
+      "cancelar": "Cancelar"
+    },
+    "ocultarFalhou": "não foi possível agora. tente de novo em instantes."
+  },
+  "pedidos": {
+    "titulo": "Pedidos de conversa",
+    "descricao": "Mensagens de quem não está nos seus contatos. Quem escreveu não fica sabendo se você leu.",
+    "nenhum": "nenhum pedido.",
+    "bloqueados": "Bloqueados"
+  },
+  "substituido": {
+    "titulo": "Sua identidade foi aberta em outro celular",
+    "descricao": "Alguém usou as suas 12 palavras em outro celular. As mensagens agora vão para lá, e este celular não envia nem recebe mais.",
+    "seNaoFoi": "Se não foi você, crie uma identidade nova.",
+    "continuar": "Continuar"
+  },
+  "tempo": {
+    "ontem": "ontem",
+    "dias": {
+      "dom": "dom",
+      "seg": "seg",
+      "ter": "ter",
+      "qua": "qua",
+      "qui": "qui",
+      "sex": "sex",
+      "sab": "sáb"
+    },
+    "data": "{{dia}}/{{mes}}",
+    "dataComAno": "{{dia}}/{{mes}}/{{ano}}"
+  },
+  "ajustes": {
+    "titulo": "Ajustes",
+    "temporarias": "Mensagens temporárias",
+    "timerPadrao": "Timer padrão",
+    "timerPadraoDescricao": "Vale para as conversas que começarem daqui em diante. As que já existem não mudam.",
+    "idioma": {
+      "titulo": "Idioma",
+      "descricao": "Muda a interface na hora, sem reiniciar."
+    },
+    "anexos": "Fotos, vídeos e arquivos",
+    "baixarSozinho": "Baixar sozinho",
+    "baixarSozinhoDescricao": "O que chega já fica neste celular. Desligado, cada um só baixa quando você tocar.",
+    "seuId": "seu id",
+    "tocarParaCopiar": "toque para copiar",
+    "idCopiado": "id copiado",
+    "aparencia": "Aparência",
+    "escuro": "Escuro",
+    "claro": "Claro",
+    "privacidade": "Privacidade",
+    "bloquearSozinho": "Bloquear sozinho",
+    "bloqueio": {
+      "titulo": "Bloquear sozinho",
+      "descricao": "Depois desse tempo sem usar o Cifra, ele pede a sua digital ou a senha do celular.",
+      "aoSair": "Ao sair do app"
+    },
+    "notificacoes": "Notificações cegas",
+    "notificacoesDescricao": "Mostram só “nova mensagem”, sem remetente.",
+    "capturas": "Bloquear capturas de tela",
+    "capturasDescricao": "Prints e gravações saem em branco. Também oculta o app no multitarefa.",
+    "leitura": "Confirmações de leitura",
+    "leituraDescricao": "Revelam quando você está online. Desligadas, você também não vê as dos outros.",
+    "digitacao": "Indicador de digitação",
+    "digitacaoDescricao": "Mostra quando você está escrevendo. Desligado, você também não vê o dos outros.",
+    "versao": "cifra {{versao}} · GPLv3",
+    "notificacoesNegadas": "permita as notificações do cifra nas configurações do celular.",
+    "codigoSecreto": "Código secreto",
+    "backup": {
+      "titulo": "Backup",
+      "exportar": "Exportar backup",
+      "descricao": "Um arquivo com seus contatos, bloqueados, timers e ajustes. Só abre com as suas 12 palavras. As mensagens não vão.",
+      "arquivo": "Cifra backup {{data}}",
+      "salvo": "backup salvo.",
+      "falhou": "não foi possível salvar o backup."
+    },
+    "panico": {
+      "titulo": "Pânico",
+      "segure": "Segure para apagar tudo",
+      "segurando": "continue segurando…",
+      "descricao": "Apaga contatos, conversas e ajustes deste celular. Sua identidade só volta com as suas palavras de recuperação. O que você salvou na galeria ou em Download continua lá."
+    }
+  },
+  "spike": {
+    "titulo": "Verificação técnica",
+    "descricao": "Roda neste aparelho as verificações das bibliotecas do app. Só existe no build de desenvolvimento.",
+    "secoes": {
+      "cripto": "Criptografia",
+      "protocolo": "Protocolo",
+      "banco": "Banco cifrado",
+      "exclusao": "Exclusão real",
+      "cofre": "Cofre de chaves",
+      "tela": "Tela segura",
+      "tor": "Tor",
+      "relay": "Relay",
+      "anexos": "Anexos",
+      "privacidade": "Ajustes e privacidade",
+      "ocultas": "Conversas ocultas"
+    },
+    "acoes": {
+      "rodar": "Rodar",
+      "guardar": "Guardar chave",
+      "guardarSemAutenticacao": "Guardar sem desbloqueio",
+      "ler": "Ler chave",
+      "destruir": "Destruir chave",
+      "conectar": "Conectar",
+      "abrirPainel": "Abrir painel",
+      "fecharPainel": "Fechar painel",
+      "permitirPrint": "Permitir print",
+      "bloquearPrint": "Bloquear print",
+      "conversa": "Conversa de teste"
+    },
+    "estado": {
+      "ok": "ok",
+      "falhou": "falhou",
+      "rodando": "rodando"
+    },
+    "tempo": "{{ms}} ms",
+    "enderecoOnion": "endereço .onion de teste",
+    "enderecoRelay": "endereço do relay (.onion)",
+    "painel": "Painel de teste, aberto por cima da tela.",
+    "pedido": {
+      "titulo": "Liberar a chave de teste",
+      "cancelar": "Cancelar"
+    }
+  },
+  "timer": {
+    "curto": {
+      "desligado": "off",
+      "segundos": "{{n}}s",
+      "minutos": "{{n}}m",
+      "horas": "{{n}}h",
+      "dias": "{{n}}d"
+    },
+    "longo": {
+      "desligado": "Desligado",
+      "semana": "1 semana",
+      "segundos": "{{n}} segundos",
+      "minuto": "1 minuto",
+      "minutos": "{{n}} minutos",
+      "hora": "1 hora",
+      "horas": "{{n}} horas",
+      "dia": "1 dia",
+      "dias": "{{n}} dias"
+    },
+    "personalizado": "Personalizado",
+    "quantidade": "Quanto tempo",
+    "unidades": {
+      "segundos": "segundos",
+      "minutos": "minutos",
+      "horas": "horas",
+      "dias": "dias"
+    },
+    "usar": "Usar",
+    "foraDoLimite": "use um número inteiro, de 10 segundos a {{maximo}}.",
+    "soAberta": "Só chega se a outra pessoa estiver com a conversa aberta.",
+    "conversa": {
+      "titulo": "Mensagens temporárias",
+      "descricao": "Novas mensagens somem para os dois lados depois do tempo escolhido.",
+      "descricaoDaNota": "Novas notas somem deste celular depois do tempo escolhido.",
+      "rotulo": "Mensagens temporárias: {{tempo}}"
+    },
+    "anteriores": {
+      "titulo": "E as mensagens anteriores?",
+      "descricao": "Elas podem ficar como estão ou sumir dos dois celulares daqui a {{tempo}}.",
+      "descricaoDaNota": "Elas podem ficar como estão ou sumir daqui a {{tempo}}.",
+      "soNovas": "Só para as novas",
+      "tambem": "Também para as anteriores"
+    },
+    "mensagem": {
+      "titulo": "Timer desta mensagem",
+      "descricao": "Vale só para a próxima mensagem. Nunca passa do timer da conversa.",
+      "rotulo": "Timer da próxima mensagem: {{tempo}}"
+    },
+    "padrao": {
+      "titulo": "Timer padrão",
+      "descricao": "Toda conversa nova começa com este timer. Em cada conversa, dá para mudar ou desligar."
+    }
+  },
+  "notas": {
+    "timer": "mensagens temporárias: {{tempo}}",
+    "timerComAnteriores": "mensagens temporárias: {{tempo}}, inclusive as anteriores",
+    "timerDesligado": "mensagens temporárias desativadas",
+    "expirou": "uma mensagem expirou antes de você abrir",
+    "expiraram": "{{n}} mensagens expiraram antes de você abrir",
+    "printsBloqueados": "prints bloqueados nesta conversa",
+    "printsLiberados": "prints liberados nesta conversa"
+  },
+  "anexo": {
+    "anexar": "Anexar",
+    "painel": {
+      "titulo": "Anexar",
+      "descricao": "A localização e o modelo do celular saem das fotos e dos vídeos antes do envio.",
+      "midia": "Foto ou vídeo",
+      "arquivo": "Arquivo",
+      "arquivoAviso": "Documentos podem conter informações do autor."
+    },
+    "documento": "documento.{{ext}}",
+    "documentoSemExtensao": "documento",
+    "sha256": "sha256 {{hash}}",
+    "baixar": "Baixar",
+    "cancelar": "Cancelar",
+    "progresso": "{{porcento}}% · {{tamanho}}",
+    "indisponivel": "não está mais disponível",
+    "invalido": "chegou com defeito",
+    "pedido": "aceite o pedido para ver",
+    "abrirFoto": "Abrir a foto",
+    "tocarVideo": "Tocar o vídeo",
+    "pausar": "Pausar",
+    "fechar": "Fechar",
+    "salvar": "Salvar no celular",
+    "salvarDescricao": "O arquivo vai para a pasta Download do celular. Outros apps podem ver o que está lá.",
+    "salvo": "salvo no celular",
+    "salvos": "{{n}} salvos no celular",
+    "naoSalvou": "não foi possível salvar."
+  },
+  "previa": {
+    "legenda": "Legenda",
+    "enviar": "Enviar",
+    "tirar": "Tirar da lista",
+    "preparando": "preparando…",
+    "umDeFora": "1 arquivo ficou de fora: passa de 25 MB ou não abre.",
+    "variosDeFora": "{{n}} arquivos ficaram de fora: passam de 25 MB ou não abrem.",
+    "legendaLonga": "legenda longa demais."
+  },
+  "selecao": {
+    "fechar": "Sair da seleção",
+    "selecionadas": "{{n}} selecionadas",
+    "selecionar": "Selecionar",
+    "responder": "Responder",
+    "copiar": "Copiar",
+    "encaminhar": "Encaminhar",
+    "salvar": "Salvar",
+    "apagar": "Apagar",
+    "copiado": "copiado"
+  },
+  "resposta": {
+    "voce": "você",
+    "apagada": "mensagem apagada",
+    "cancelar": "Cancelar resposta"
+  },
+  "encaminhar": {
+    "titulo": "Encaminhar",
+    "descricao": "Escolha até 5 conversas. Vai como mensagem nova, com o timer de cada conversa.",
+    "enviar": "Encaminhar",
+    "enviada": "encaminhada",
+    "falhou": "não foi possível encaminhar.",
+    "nenhuma": "nenhuma conversa."
+  },
+  "avisos": {
+    "canalDeMensagens": "Mensagens",
+    "canalDoServico": "Conexão",
+    "servico": "Pronto para avisar de mensagem nova.",
+    "novaMensagem": "Nova mensagem"
+  },
+  "codigo": {
+    "titulo": "Código secreto",
+    "descricaoFechadas": "Com um código secreto, você pode ocultar conversas. Elas somem da lista e da busca e só aparecem quando você digita o código na busca.",
+    "aviso": "Se você já tinha um código, as conversas ocultas dele são apagadas.",
+    "descricaoAbertas": "As conversas ocultas continuam aqui. Depois de trocar, use o código novo na busca.",
+    "campo": "Código",
+    "repita": "Repita o código",
+    "curto": "Use pelo menos 6 caracteres.",
+    "diferentes": "Os dois códigos não são iguais.",
+    "definir": "Definir código",
+    "trocar": "Trocar código",
+    "dica": "Para ocultar uma conversa, abra a segurança do contato.",
+    "definido": "código definido",
+    "trocado": "código trocado",
+    "falhou": "não foi possível agora. tente de novo em instantes."
+  }
+}

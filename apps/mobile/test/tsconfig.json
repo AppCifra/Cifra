@@ -1,0 +1,22 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": [
+    ".",
+    "../src/adaptadores/formato.ts",
+    "../src/adaptadores/relogio-por-espera.ts",
+    "../src/sessao.ts",
+    "../src/controle.ts",
+    "../src/conversas.ts",
+    "../src/doacao.ts",
+    "../src/navegacao.ts",
+    "../src/formato-da-conversa.ts",
+    "../src/formato-do-timer.ts",
+    "../src/gesto.ts",
+    "../src/onboarding/fluxo.ts",
+    "../spike"
+  ]
+}

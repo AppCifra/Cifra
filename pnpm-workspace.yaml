@@ -1,0 +1,19 @@
+packages:
+  - packages/*
+  - apps/*
+
+# RNF-16: `pnpm add` grava a versão exata, nunca uma faixa.
+saveExact: true
+
+# Só resolve versões publicadas há pelo menos 7 dias (valor em minutos).
+# Dá tempo de a comunidade detectar um pacote comprometido antes de ele chegar aqui.
+minimumReleaseAge: 10080
+
+# Scripts de instalação ficam bloqueados; cada liberação é revisada como dependência nova.
+allowBuilds:
+  # postinstall só extrai a libsodium pré-compilada que vem no pacote (libsodium/build.tgz).
+  react-native-libsodium: true
+
+# Patches revisados, aplicados na instalação. Cada um tem o motivo em docs/DEPENDENCIAS.md.
+patchedDependencies:
+  react-native-libsodium@1.7.0: patches/react-native-libsodium@1.7.0.patch

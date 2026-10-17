@@ -1,0 +1,18 @@
+node_modules/
+coverage/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+.DS_Store
+Thumbs.db
+# Projetos nativos gerados pelo `expo prebuild` (as mudanças nativas ficam nos config plugins).
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/modules/*/android/build/
+apps/mobile/modules/*/android/.cxx/
+apps/mobile/modules/*/android/.gradle/
+.expo/
+apps/mobile/release/saida/
+# O OpenSSL compilado pela imagem do release, para o build de desenvolvimento.
+apps/mobile/openssl/

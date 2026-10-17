@@ -1,0 +1,519 @@
+{
+  "app": {
+    "nome": "cifra"
+  },
+  "idiomas": {
+    "pt-BR": "Português",
+    "en": "English"
+  },
+  "abertura": {
+    "titulo": "Talk without leaving a trace.",
+    "descricao": "No phone number. No e-mail. Your identity is a key pair generated on this device — and it only comes back with your words.",
+    "gerar": "Generate identity",
+    "gerando": "Generating…",
+    "continuar": "Continue",
+    "restaurar": "Restore with words",
+    "rodape": "open source · X25519 · double ratchet",
+    "apagado": "everything erased."
+  },
+  "identidade": {
+    "nenhuma": "no identity",
+    "gerando": "generating keys…",
+    "sua": "your public id"
+  },
+  "palavras": {
+    "rotulo": "recovery words",
+    "titulo": "Write down the 12 words",
+    "descricao": "On paper, in order. With them, your identity comes back on another device. Anyone who has these words can also take over your identity.",
+    "anotei": "I wrote them down",
+    "pular": "Skip",
+    "aviso": {
+      "titulo": "Skip the words?",
+      "descricao": "Without them, losing your phone means losing your identity. They are not shown again.",
+      "confirmar": "Skip anyway",
+      "voltar": "See the words"
+    }
+  },
+  "restaurar": {
+    "titulo": "Restore identity",
+    "descricao": "Type the 12 words, in order, in Portuguese or English.",
+    "campo": "recovery words",
+    "contagem": "{{n}} of 12 words",
+    "restaurar": "Restore",
+    "voltar": "Back",
+    "problemas": {
+      "quantidade": "there are 12 words. this has {{n}}.",
+      "desconhecida": "word {{posicao}} is not on the list.",
+      "checksum": "the words do not match. check the order and spelling."
+    },
+    "restaurada": {
+      "titulo": "Identity restored",
+      "descricao": "This is the ID your words hold. Check it before entering.",
+      "entrar": "Enter",
+      "usarBackup": "Use a backup",
+      "dicaBackup": "if you saved a backup, your contacts and settings come back with it.",
+      "backup": "backup from {{data}} · {{n}} contacts",
+      "backupUm": "backup from {{data}} · 1 contact",
+      "backupRecusado": "this file does not open with these words."
+    }
+  },
+  "guardar": {
+    "erro": "the identity was not saved. the device needs a screen lock (PIN, pattern or password) and your confirmation."
+  },
+  "bloqueado": {
+    "titulo": "Locked",
+    "descricao": "Your data stays protected until you unlock with your phone's biometrics or password.",
+    "desbloquear": "Unlock",
+    "falhou": "could not open. try again."
+  },
+  "perdidos": {
+    "titulo": "Your data can't be opened",
+    "chave": "This happens when the phone's screen lock is removed. The messages and contacts that were here are lost.",
+    "arquivo": "The data saved on this phone was damaged. The messages and contacts that were here are lost.",
+    "palavras": "If you wrote down the 12 words, you can recover your identity.",
+    "continuar": "Continue"
+  },
+  "cofre": {
+    "guardar": "Protect your identity",
+    "ler": "Unlock cifra",
+    "cancelar": "Cancel"
+  },
+  "conversas": {
+    "titulo": "Chats",
+    "buscar": "Search — only on this device",
+    "nota": "note to self",
+    "semMensagens": "no messages",
+    "voce": "you: {{texto}}",
+    "anonimo": "anon·{{inicio}}",
+    "rodape": "chats stay encrypted on the device. the server only keeps, encrypted, what has not been delivered yet.",
+    "pedidos": "Chat requests",
+    "nova": "New chat",
+    "resultados": {
+      "conversas": "Chats",
+      "mensagens": "Messages",
+      "nada": "nothing found on this device."
+    },
+    "ajustes": "Settings",
+    "previa": {
+      "imagem": "photo",
+      "video": "video",
+      "documento": "document"
+    },
+    "temaClaro": "Light theme",
+    "temaEscuro": "Dark theme",
+    "apoiar": "Support Cifra",
+    "previaPrints": "screenshots blocked",
+    "ocultas": {
+      "rotulo": "hidden",
+      "vazia": "no hidden chats. to hide one, open the contact's security screen.",
+      "fechar": "Close hidden chats"
+    }
+  },
+  "rede": {
+    "conectado": "tor · connected",
+    "conectando": "tor · connecting…",
+    "semConexao": "offline",
+    "semTor": "tor · unavailable. open orbot"
+  },
+  "nova": {
+    "titulo": "New chat",
+    "descricao": "Paste the ID of the person you want to reach. No address book, no automatic discovery.",
+    "campo": "XXXX-XXXX-XXXX-XXXX",
+    "iniciar": "Start encrypted chat",
+    "procurando": "Looking it up…",
+    "seuId": "Your ID",
+    "erros": {
+      "idInvalido": "this is not an ID. check the 16 characters.",
+      "inexistente": "no one uses this ID right now.",
+      "invalido": "could not confirm who this ID is. try again later.",
+      "semConexao": "could not reach the server right now. try again in a moment.",
+      "recusou": "the server did not answer right now. try again in a moment.",
+      "bloqueado": "you blocked this ID. unblock it on the requests screen to chat."
+    }
+  },
+  "doacao": {
+    "titulo": "Support Cifra",
+    "descricao": "Cifra is made with no ads and no data collection. If you want to help, donate in Monero: it does not link the donor to the recipient.",
+    "rotulo": "monero address",
+    "copiar": "Copy address",
+    "copiado": "address copied"
+  },
+  "conversa": {
+    "mensagem": "Message",
+    "enviar": "Send",
+    "voltar": "Back",
+    "abrirSeguranca": "See the security of this contact",
+    "cifrada": "end-to-end encrypted. no one outside this chat can read it — not even us.",
+    "nota": "only on this device. nothing here leaves the phone.",
+    "status": {
+      "pendente": "pending",
+      "enviada": "sent",
+      "lida": "read"
+    },
+    "longa": "message too long.",
+    "falhou": "could not send. try again.",
+    "bloqueado": "you blocked this contact.",
+    "desbloquear": "Unblock",
+    "pedido": {
+      "descricao": "This person is not in your contacts. They will not know you read it.",
+      "aceitar": "Accept",
+      "recusar": "Decline",
+      "bloquear": "Block"
+    },
+    "timerInvalido": "this time is longer than the chat timer.",
+    "apagar": {
+      "titulo": "Delete the message?",
+      "descricao": "For everyone, it disappears from both phones. Only on this phone, the other person keeps it.",
+      "descricaoSoAqui": "It disappears from this phone. The other person keeps it.",
+      "descricaoDaNota": "The note disappears from this phone.",
+      "paraTodos": "Delete for everyone",
+      "soAqui": "Delete only on this phone",
+      "nota": "Delete",
+      "cancelar": "Cancel",
+      "acao": "Delete",
+      "tituloVarias": "Delete the messages?",
+      "descricaoVarias": "For everyone, they disappear from both phones. Only on this phone, the other person keeps them.",
+      "descricaoSoAquiVarias": "They disappear from this phone. The other person keeps them.",
+      "descricaoDaNotaVarias": "The notes disappear from this phone."
+    },
+    "apagada": "message deleted",
+    "notaApagada": "note deleted",
+    "desfazer": "undo",
+    "apagadas": "messages deleted",
+    "notasApagadas": "notes deleted",
+    "digitando": "typing…"
+  },
+  "seguranca": {
+    "titulo": "Security",
+    "verificado": "verified",
+    "naoVerificado": "not verified",
+    "numero": "Safety number",
+    "comparar": "Compare with {{nome}} in person or through another trusted channel. If the numbers match, no one is in the middle.",
+    "verificar": "Mark as verified",
+    "removerVerificacao": "Remove verification",
+    "apelido": "Nickname",
+    "bloquear": "Block",
+    "desbloquear": "Unblock",
+    "painelApelido": {
+      "titulo": "Nickname",
+      "descricao": "It only shows on this phone. The other person does not know.",
+      "campo": "nickname",
+      "salvar": "Save",
+      "invalido": "use up to 40 characters, on a single line."
+    },
+    "painelBloquear": {
+      "titulo": "Block {{nome}}?",
+      "descricao": "You stop receiving messages from this person. They will not know.",
+      "confirmar": "Block",
+      "cancelar": "Cancel"
+    },
+    "temporarias": "Disappearing messages",
+    "apagarConversa": "Delete chat",
+    "painelApagar": {
+      "titulo": "Delete the chat?",
+      "descricao": "For both, it also disappears from the other person’s phone. Only on this phone, the other person keeps their messages.",
+      "confirmar": "Delete only on this phone",
+      "cancelar": "Cancel",
+      "paraOsDois": "Delete for both",
+      "falhou": "could not delete for both now. try again."
+    },
+    "copiarNumero": "Copy the number",
+    "numeroCopiado": "number copied",
+    "colar": {
+      "descricao": "Get the number another way, outside Cifra, and paste it here. Not through Cifra itself: someone in the middle would swap the number too.",
+      "campo": "the other person's number",
+      "confere": "the numbers match.",
+      "diferente": "the numbers do not match."
+    },
+    "prints": "Block screenshots in this chat",
+    "printsDescricao": "Applies to both phones: neither of you can take screenshots or record this chat. It can't stop a photo of the screen taken with another device.",
+    "printsFalhou": "could not change it now. try again.",
+    "ocultar": "Hide chat",
+    "reexibir": "Unhide chat",
+    "ocultando": "hiding…",
+    "reexibindo": "unhiding…",
+    "painelOcultasFechadas": {
+      "titulo": "Hide chat",
+      "descricao": "First, type your secret code in the search. If you don't have one yet, create it in Settings.",
+      "entendi": "Got it"
+    },
+    "painelOcultar": {
+      "titulo": "Hide the chat with {{nome}}?",
+      "descricao": "It leaves the list and the search and only shows up when you type your secret code in the search. Message alerts from it stop too.",
+      "confirmar": "Hide",
+      "cancelar": "Cancel"
+    },
+    "painelReexibir": {
+      "titulo": "Unhide the chat with {{nome}}?",
+      "descricao": "It goes back to the list and the search.",
+      "confirmar": "Unhide",
+      "cancelar": "Cancel"
+    },
+    "ocultarFalhou": "couldn't do it now. try again in a moment."
+  },
+  "pedidos": {
+    "titulo": "Chat requests",
+    "descricao": "Messages from people who are not in your contacts. They do not know whether you read them.",
+    "nenhum": "no requests.",
+    "bloqueados": "Blocked"
+  },
+  "substituido": {
+    "titulo": "Your identity was opened on another phone",
+    "descricao": "Someone used your 12 words on another phone. Messages now go there, and this phone no longer sends or receives.",
+    "seNaoFoi": "If it was not you, create a new identity.",
+    "continuar": "Continue"
+  },
+  "tempo": {
+    "ontem": "yesterday",
+    "dias": {
+      "dom": "sun",
+      "seg": "mon",
+      "ter": "tue",
+      "qua": "wed",
+      "qui": "thu",
+      "sex": "fri",
+      "sab": "sat"
+    },
+    "data": "{{mes}}/{{dia}}",
+    "dataComAno": "{{mes}}/{{dia}}/{{ano}}"
+  },
+  "ajustes": {
+    "titulo": "Settings",
+    "temporarias": "Disappearing messages",
+    "timerPadrao": "Default timer",
+    "timerPadraoDescricao": "Applies to chats that start from now on. Existing chats do not change.",
+    "idioma": {
+      "titulo": "Language",
+      "descricao": "Changes the interface right away, without restarting."
+    },
+    "anexos": "Photos, videos and files",
+    "baixarSozinho": "Download automatically",
+    "baixarSozinhoDescricao": "What arrives stays on this phone right away. Off, each one downloads only when you tap it.",
+    "seuId": "your id",
+    "tocarParaCopiar": "tap to copy",
+    "idCopiado": "id copied",
+    "aparencia": "Appearance",
+    "escuro": "Dark",
+    "claro": "Light",
+    "privacidade": "Privacy",
+    "bloquearSozinho": "Lock automatically",
+    "bloqueio": {
+      "titulo": "Lock automatically",
+      "descricao": "After this long without using Cifra, it asks for your fingerprint or your phone passcode.",
+      "aoSair": "When leaving the app"
+    },
+    "notificacoes": "Blind notifications",
+    "notificacoesDescricao": "They only show “new message”, with no sender.",
+    "capturas": "Block screenshots",
+    "capturasDescricao": "Screenshots and recordings come out blank. Also hides the app in recent apps.",
+    "leitura": "Read receipts",
+    "leituraDescricao": "They reveal when you are online. Off, you also do not see other people's.",
+    "digitacao": "Typing indicator",
+    "digitacaoDescricao": "Shows when you are writing. Off, you also do not see other people's.",
+    "versao": "cifra {{versao}} · GPLv3",
+    "notificacoesNegadas": "allow cifra notifications in the phone settings.",
+    "codigoSecreto": "Secret code",
+    "backup": {
+      "titulo": "Backup",
+      "exportar": "Export backup",
+      "descricao": "A file with your contacts, blocked IDs, timers and settings. It only opens with your 12 words. Messages are not included.",
+      "arquivo": "Cifra backup {{data}}",
+      "salvo": "backup saved.",
+      "falhou": "could not save the backup."
+    },
+    "panico": {
+      "titulo": "Panic",
+      "segure": "Hold to erase everything",
+      "segurando": "keep holding…",
+      "descricao": "Erases contacts, chats and settings from this phone. Your identity only comes back with your recovery words. What you saved to the gallery or to Download stays there."
+    }
+  },
+  "spike": {
+    "titulo": "Technical check",
+    "descricao": "Runs the checks of the app libraries on this device. Only in development builds.",
+    "secoes": {
+      "cripto": "Cryptography",
+      "protocolo": "Protocol",
+      "banco": "Encrypted database",
+      "exclusao": "Real deletion",
+      "cofre": "Key vault",
+      "tela": "Secure screen",
+      "tor": "Tor",
+      "relay": "Relay",
+      "anexos": "Attachments",
+      "privacidade": "Settings and privacy",
+      "ocultas": "Hidden chats"
+    },
+    "acoes": {
+      "rodar": "Run",
+      "guardar": "Store key",
+      "guardarSemAutenticacao": "Store without unlock",
+      "ler": "Read key",
+      "destruir": "Destroy key",
+      "conectar": "Connect",
+      "abrirPainel": "Open panel",
+      "fecharPainel": "Close panel",
+      "permitirPrint": "Allow screenshots",
+      "bloquearPrint": "Block screenshots",
+      "conversa": "Test conversation"
+    },
+    "estado": {
+      "ok": "ok",
+      "falhou": "failed",
+      "rodando": "running"
+    },
+    "tempo": "{{ms}} ms",
+    "enderecoOnion": "test .onion address",
+    "enderecoRelay": "relay address (.onion)",
+    "painel": "Test panel, open over the screen.",
+    "pedido": {
+      "titulo": "Unlock the test key",
+      "cancelar": "Cancel"
+    }
+  },
+  "timer": {
+    "curto": {
+      "desligado": "off",
+      "segundos": "{{n}}s",
+      "minutos": "{{n}}m",
+      "horas": "{{n}}h",
+      "dias": "{{n}}d"
+    },
+    "longo": {
+      "desligado": "Off",
+      "semana": "1 week",
+      "segundos": "{{n}} seconds",
+      "minuto": "1 minute",
+      "minutos": "{{n}} minutes",
+      "hora": "1 hour",
+      "horas": "{{n}} hours",
+      "dia": "1 day",
+      "dias": "{{n}} days"
+    },
+    "personalizado": "Custom",
+    "quantidade": "How long",
+    "unidades": {
+      "segundos": "seconds",
+      "minutos": "minutes",
+      "horas": "hours",
+      "dias": "days"
+    },
+    "usar": "Use",
+    "foraDoLimite": "use a whole number, from 10 seconds to {{maximo}}.",
+    "soAberta": "Only arrives if the other person has the chat open.",
+    "conversa": {
+      "titulo": "Disappearing messages",
+      "descricao": "New messages disappear for both sides after the chosen time.",
+      "descricaoDaNota": "New notes disappear from this phone after the chosen time.",
+      "rotulo": "Disappearing messages: {{tempo}}"
+    },
+    "anteriores": {
+      "titulo": "And the earlier messages?",
+      "descricao": "They can stay as they are or disappear from both phones in {{tempo}}.",
+      "descricaoDaNota": "They can stay as they are or disappear in {{tempo}}.",
+      "soNovas": "Only for new ones",
+      "tambem": "Also for earlier ones"
+    },
+    "mensagem": {
+      "titulo": "Timer for this message",
+      "descricao": "Only for the next message. Never longer than the chat timer.",
+      "rotulo": "Timer for the next message: {{tempo}}"
+    },
+    "padrao": {
+      "titulo": "Default timer",
+      "descricao": "Every new chat starts with this timer. In each chat, you can change it or turn it off."
+    }
+  },
+  "notas": {
+    "timer": "disappearing messages: {{tempo}}",
+    "timerComAnteriores": "disappearing messages: {{tempo}}, earlier ones included",
+    "timerDesligado": "disappearing messages off",
+    "expirou": "a message expired before you opened it",
+    "expiraram": "{{n}} messages expired before you opened them",
+    "printsBloqueados": "screenshots blocked in this chat",
+    "printsLiberados": "screenshots allowed in this chat"
+  },
+  "anexo": {
+    "anexar": "Attach",
+    "painel": {
+      "titulo": "Attach",
+      "descricao": "Location and phone model are removed from photos and videos before sending.",
+      "midia": "Photo or video",
+      "arquivo": "File",
+      "arquivoAviso": "Documents may contain information about the author."
+    },
+    "documento": "document.{{ext}}",
+    "documentoSemExtensao": "document",
+    "sha256": "sha256 {{hash}}",
+    "baixar": "Download",
+    "cancelar": "Cancel",
+    "progresso": "{{porcento}}% · {{tamanho}}",
+    "indisponivel": "no longer available",
+    "invalido": "arrived damaged",
+    "pedido": "accept the request to see it",
+    "abrirFoto": "Open photo",
+    "tocarVideo": "Play video",
+    "pausar": "Pause",
+    "fechar": "Close",
+    "salvar": "Save to phone",
+    "salvarDescricao": "The file goes to the phone's Download folder. Other apps can see what is there.",
+    "salvo": "saved to phone",
+    "salvos": "{{n}} saved to phone",
+    "naoSalvou": "could not save."
+  },
+  "previa": {
+    "legenda": "Caption",
+    "enviar": "Send",
+    "tirar": "Remove from list",
+    "preparando": "preparing…",
+    "umDeFora": "1 file was left out: it is larger than 25 MB or does not open.",
+    "variosDeFora": "{{n}} files were left out: they are larger than 25 MB or do not open.",
+    "legendaLonga": "caption too long."
+  },
+  "selecao": {
+    "fechar": "Exit selection",
+    "selecionadas": "{{n}} selected",
+    "selecionar": "Select",
+    "responder": "Reply",
+    "copiar": "Copy",
+    "encaminhar": "Forward",
+    "salvar": "Save",
+    "apagar": "Delete",
+    "copiado": "copied"
+  },
+  "resposta": {
+    "voce": "you",
+    "apagada": "deleted message",
+    "cancelar": "Cancel reply"
+  },
+  "encaminhar": {
+    "titulo": "Forward",
+    "descricao": "Choose up to 5 chats. It goes as a new message, with each chat's timer.",
+    "enviar": "Forward",
+    "enviada": "forwarded",
+    "falhou": "could not forward.",
+    "nenhuma": "no chats."
+  },
+  "avisos": {
+    "canalDeMensagens": "Messages",
+    "canalDoServico": "Connection",
+    "servico": "Ready to tell you about new messages.",
+    "novaMensagem": "New message"
+  },
+  "codigo": {
+    "titulo": "Secret code",
+    "descricaoFechadas": "With a secret code, you can hide chats. They leave the list and the search and only show up when you type the code in the search.",
+    "aviso": "If you already had a code, its hidden chats are deleted.",
+    "descricaoAbertas": "Your hidden chats stay here. After changing it, use the new code in the search.",
+    "campo": "Code",
+    "repita": "Repeat the code",
+    "curto": "Use at least 6 characters.",
+    "diferentes": "The two codes don't match.",
+    "definir": "Set code",
+    "trocar": "Change code",
+    "dica": "To hide a chat, open the contact's security screen.",
+    "definido": "code set",
+    "trocado": "code changed",
+    "falhou": "couldn't do it now. try again in a moment."
+  }
+}

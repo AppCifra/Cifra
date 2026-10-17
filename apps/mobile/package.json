@@ -1,0 +1,32 @@
+{
+  "name": "@cifra/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "main": "index.ts",
+  "scripts": {
+    "android": "expo run:android",
+    "start": "expo start",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json && tsc -p spike/tsconfig.json"
+  },
+  "dependencies": {
+    "@cifra/core": "workspace:*",
+    "@cifra/i18n": "workspace:*",
+    "@cifra/protocol": "workspace:*",
+    "@op-engineering/op-sqlite": "18.2.5",
+    "expo": "57.0.24",
+    "expo-file-system": "57.0.7",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-keychain": "10.0.0",
+    "react-native-libsodium": "1.7.0",
+    "react-native-safe-area-context": "5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18"
+  },
+  "op-sqlite": {
+    "sqlcipher": true,
+    "fts5": true
+  }
+}
