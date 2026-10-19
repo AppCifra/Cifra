@@ -48,6 +48,7 @@ import { exportarBackup, type PreferenciasDoBackup } from '../backup/backup.ts';
 import type { Identidade } from '../identidade/identidade.ts';
 import { consultaDaBusca } from '../mensagens/busca.ts';
 import { apagarDeVerdade, desfazerApagar, esconderParaApagar } from '../mensagens/exclusao.ts';
+import { esvaziarFilaDe } from '../mensagens/fila.ts';
 import { guardarNota, itensDa, type ItemDaConversa } from '../mensagens/notas.ts';
 import {
   COLUNAS_DA_MENSAGEM,
@@ -56,6 +57,7 @@ import {
   lerRecebidas,
   mensagemDaLinha,
   mensagensDa,
+  pendentesDa,
   textoAceito,
   visivel,
   type Mensagem,
@@ -433,8 +435,9 @@ export class Agenda {
   }
 
   /**
-   * Bloqueia o ID (RF-08). O que ele mandar depois é descartado, sem aviso a ele. Num pedido, as
-   * mensagens saem de verdade; num contato, o histórico fica.
+   * Bloqueia o ID (RF-08). O que ele mandar depois é descartado, sem aviso a ele, e nada mais sai
+   * para ele: a fila dele se esvazia, e as minhas mensagens que o relay ainda não tinha aceitado
+   * saem de verdade. Num pedido, as mensagens saem de verdade; num contato, o histórico fica.
    */
   bloquear(id: string): Promise<void> {
     const contato = this.#contato(id);
@@ -442,6 +445,8 @@ export class Agenda {
       banco.transacao(async (t) => {
         const atual = await contatoDe(t, contato);
         if (!atual?.aceito) await apagarDeVerdade(t, { conversa: contato });
+        else await apagarDeVerdade(t, { mensagens: await pendentesDa(t, contato) });
+        await esvaziarFilaDe(t, contato);
         await bloquearContato(t, contato, this.#o.relogio.agora());
       }),
     );

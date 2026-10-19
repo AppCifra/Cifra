@@ -184,7 +184,7 @@ Os contatos só existem no banco cifrado do app (RF-10): ID, apelido, aceito, bl
 
 - **Adicionar (RF-06):** pelo ID colado ou digitado. O cartão é buscado e conferido (hash e assinaturas) antes da primeira mensagem; sem conexão, nada é adicionado.
 - **Pedido de conversa (RF-07):** a mensagem de quem não é contato abre uma sessão e fica numa área separada. Para responder, é preciso aceitar; até lá, nenhuma confirmação de leitura sai. Recusar apaga as mensagens com `apagarDeVerdade()`; se a pessoa escrever de novo, é outro pedido. A busca não mostra pedidos.
-- **Bloqueio (RF-08):** o que chega de um ID bloqueado é decifrado só para a sessão continuar em dia e é descartado: nada é guardado e nada volta para quem enviou, que vê a mensagem como enviada. Nada sai para um ID bloqueado. Bloquear um pedido apaga as mensagens dele; um contato bloqueado fica na lista, com o histórico. Os IDs bloqueados que vieram de pedidos ficam na tela de pedidos, para desbloquear.
+- **Bloqueio (RF-08):** o que chega de um ID bloqueado é decifrado só para a sessão continuar em dia e é descartado: nada é guardado e nada volta para quem enviou, que vê a mensagem como enviada. Nada sai para um ID bloqueado: bloquear tira da fila o que esperava para ele, e as mensagens para ele que ainda não tinham saído são apagadas de verdade. Bloquear um pedido apaga as mensagens dele; um contato bloqueado fica na lista, com o histórico. Os IDs bloqueados que vieram de pedidos ficam na tela de pedidos, para desbloquear.
 - **Apelido (RF-09):** até 40 caracteres, só no banco deste aparelho. Sem apelido, o nome é "anon·" e o primeiro grupo do ID.
 - **Nota pessoal (RF-19):** a conversa com o próprio ID. Fica só no banco: nada entra na fila de saída.
 - **Busca (RF-12):** pelo nome que a lista mostra (o apelido; sem apelido, "anon·" e o começo do ID; a nota pessoal pelo nome dela), sem diferença de acento, espaço ou pontuação; pelo ID (a partir de 4 caracteres); e pelo conteúdo, no índice de busca do banco, sem rede. Só nos contatos aceitos e na nota pessoal.
@@ -692,7 +692,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e oitenta e cinco riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e oitenta e quatro riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -769,7 +769,6 @@ Quatro decisões ainda abertas e oitenta e cinco riscos com mitigação. O maior
 | Depois do pânico, ficam na pasta do app o arquivo do keychain com 0 byte, o marcador de perfil do Android e o estado dos pedidos de permissão do Expo | nenhum tem dado da pessoa; mostram só que o app está instalado, o que já se vê |
 | Alguém divulgar fora do app um endereço de doação falso | o app assinado e o código mostram o endereço certo (RF-60) |
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
-| Bloquear um contato não cancela o que já estava na fila de saída para ele: mensagens e confirmações de leitura saem quando a conexão volta | correção: a fila do contato sai junto com o bloqueio, e a entrega confere o bloqueio (RF-08) |
 | A limpeza da área de transferência depois de 60 s pode falhar ao voltar ao app, porque o Android 10 ou mais novo só deixa ler com a janela em foco, e o texto fica | correção: conferir quando a janela ganha foco e só desistir depois de conseguir ler (RF-52) |
 | Mais de 1000 mensagens seguidas sem leitura numa cadeia do Double Ratchet (caixa sem leitura por mais de 14 dias, como a de uma conversa oculta com o cofre fechado) fazem as seguintes não abrirem até o próximo passo DH | correção: teto de saltos maior, como os 25 mil do Signal, com teto de memória para as chaves puladas |
 | Se o app fecha entre a cópia da conversa para o cofre e a exclusão no banco principal, a conversa continua no principal, e o cofre apaga depois o que chegou nesse meio-tempo | correção: a mudança fica marcada também no principal, e a retomada não apaga o que é mais novo que a cópia |

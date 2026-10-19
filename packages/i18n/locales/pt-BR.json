@@ -203,7 +203,7 @@
     },
     "painelBloquear": {
       "titulo": "Bloquear {{nome}}?",
-      "descricao": "Você deixa de receber as mensagens desta pessoa. Ela não fica sabendo.",
+      "descricao": "Você deixa de receber as mensagens desta pessoa. Ela não fica sabendo. O que ainda não foi enviado não vai mais.",
       "confirmar": "Bloquear",
       "cancelar": "Cancelar"
     },

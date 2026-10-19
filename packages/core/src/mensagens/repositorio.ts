@@ -164,6 +164,18 @@ export async function idsDaConversa(
   return daConversa;
 }
 
+/** As minhas mensagens da conversa que o relay ainda não aceitou. */
+export async function pendentesDa(
+  banco: Armazenamento,
+  conversa: Uint8Array,
+): Promise<Uint8Array[]> {
+  const linhas = await banco.consultar(
+    "SELECT id FROM mensagens WHERE conversa = ? AND de_mim = 1 AND status = 'pendente'",
+    [conversa],
+  );
+  return linhas.map((linha) => bytesDe(linha, 'id'));
+}
+
 function statusDe(texto: string): StatusDaMensagem {
   const status = STATUS.find((s) => s === texto);
   if (!status) throw new Error('status ilegível no banco');

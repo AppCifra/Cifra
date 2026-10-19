@@ -98,6 +98,26 @@ export async function tirarDaFila(
   ]);
 }
 
+/** O item ainda espera na fila com o mesmo pacote: não foi entregue nem apagado no meio. */
+export async function naFila(
+  banco: Armazenamento,
+  item: Pick<ItemDaFila, 'ordem' | 'pacote'>,
+): Promise<boolean> {
+  const linhas = await banco.consultar(
+    'SELECT 1 AS existe FROM fila WHERE ordem = ? AND pacote = ?',
+    [item.ordem, item.pacote],
+  );
+  return linhas.length > 0;
+}
+
+/**
+ * Tira da fila tudo o que esperava para sair para o contato, como a confirmação de leitura. As
+ * mensagens saem antes, por `apagarDeVerdade`, junto com o pacote delas.
+ */
+export async function esvaziarFilaDe(banco: Armazenamento, contato: Uint8Array): Promise<void> {
+  await banco.executar('DELETE FROM fila WHERE contato = ?', [contato]);
+}
+
 /** A mensagem já chegou (o contato até leu): o pacote dela não precisa mais sair. */
 export async function tirarMensagemDaFila(
   banco: Armazenamento,

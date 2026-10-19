@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { idDaChave, lerId, utf8 } from '@cifra/protocol';
+import { idDaChave, lerId, lerPedido, utf8 } from '@cifra/protocol';
 import { describe, expect, it } from 'vitest';
 import {
   ErroDaAgenda,
@@ -7,8 +7,10 @@ import {
   LIMITE_DO_APELIDO,
   type ResumoDaConversa,
 } from '../src/index.ts';
+import { MAIOR_INTERVALO } from '../src/mensagens/fila.ts';
 import { cripto } from './adaptadores/sodium-node.ts';
 import {
+  andarAte,
   ate,
   avancarAte,
   conversa,
@@ -37,6 +39,10 @@ const codigo = (promessa: Promise<unknown>) =>
 const tipos = (p: Pessoa) => pedidos(p).map(({ pedido }) => pedido.tipo);
 const pacotesNoRelay = () => relay.consultar('SELECT count(*) AS n FROM pacotes')[0]?.['n'];
 const idsDe = (lista: readonly { readonly id: string }[]) => lista.map(({ id }) => id);
+const depositos = (p: Pessoa) =>
+  pedidos(p).filter(({ pedido }) => pedido.tipo === 'depositar').length;
+const contar = async (p: Pessoa, tabela: 'fila' | 'anexos') =>
+  Number((await p.banco.banco.consultar(`SELECT count(*) AS n FROM ${tabela}`))[0]?.['n']);
 
 /** A Alice adiciona o Bob e escreve; o Bob recebe um pedido de conversa. */
 async function pedidoDaAlice(texto = 'oi, sou a alice'): Promise<[Pessoa, Pessoa]> {
@@ -200,6 +206,92 @@ describe('bloquear e desbloquear (RF-08)', () => {
     await ate(async () => (await textos(bob, alice)).includes('de volta'), 'bob recebe');
     await bob.correio.enviarTexto(alice.id, 'voltei');
     await avancarAte(async () => (await textos(alice, bob)).includes('voltei'), 'alice recebe');
+  });
+
+  it('nada da fila sai depois do bloqueio; as minhas que não saíram somem de verdade', async () => {
+    const [alice, bob] = await conversa();
+    await alice.correio.enviarTexto(bob.id, 'lida antes do bloqueio');
+    await ate(async () => (await textos(bob, alice)).length === 3, 'bob recebe');
+    // Os depósitos do Bob se perdem no caminho: tudo espera na fila.
+    let perder = true;
+    bob.transporte.perderAoEnviar = (dados) => {
+      const leitura = lerPedido(dados);
+      return perder && leitura.ok && leitura.pedido.tipo === 'depositar';
+    };
+    await bob.correio.marcarLidas(alice.id, true);
+    await bob.correio.enviarTexto(alice.id, 'não sai');
+    await bob.correio.enviarAnexo(alice.id, {
+      arquivo: 'documento',
+      formato: 'application/pdf',
+      bytes: cripto.randombytes_buf(3_000),
+    });
+    expect(await contar(bob, 'fila')).toBe(3);
+
+    await bob.agenda.bloquear(alice.id);
+    expect(await contar(bob, 'fila')).toBe(0);
+    expect(await contar(bob, 'anexos')).toBe(0);
+    expect(await textos(bob, alice)).toEqual(['oi', 'oi, alice', 'lida antes do bloqueio']);
+
+    perder = false;
+    const antes = depositos(bob);
+    await andarAte(relogio.agora() + MAIOR_INTERVALO + 5_000);
+    expect(depositos(bob)).toBe(antes);
+    expect(await textos(alice, bob)).toEqual(['oi', 'oi, alice', 'lida antes do bloqueio']);
+    expect((await alice.correio.mensagens(bob.id)).at(-1)?.status).toBe('enviada');
+  });
+
+  it('bloquear no meio de uma entrega segura os pacotes seguintes', async () => {
+    const [alice, bob] = await conversa();
+    let perder = true;
+    // Atribuído dentro do gancho: sem o `as`, o TypeScript acharia que continua nulo.
+    let bloqueio = null as Promise<void> | null;
+    bob.transporte.perderAoEnviar = (dados) => {
+      const leitura = lerPedido(dados);
+      if (!leitura.ok || leitura.pedido.tipo !== 'depositar') return false;
+      if (perder) return true;
+      // O primeiro pacote vai, e o bloqueio chega enquanto ele está a caminho.
+      bloqueio ??= bob.agenda.bloquear(alice.id);
+      return false;
+    };
+    for (const texto of ['primeira', 'segunda', 'terceira']) {
+      await bob.correio.enviarTexto(alice.id, texto);
+    }
+    expect(await contar(bob, 'fila')).toBe(3);
+
+    perder = false;
+    const antes = depositos(bob);
+    await avancarAte(() => bloqueio !== null, 'a entrega recomeça');
+    await bloqueio;
+    await andarAte(relogio.agora() + MAIOR_INTERVALO + 5_000);
+    expect(depositos(bob) - antes).toBe(1);
+    expect(await textos(alice, bob)).toEqual(['oi', 'oi, alice', 'primeira']);
+  });
+
+  it('depois que o bloqueio termina, nenhum depósito começa', async () => {
+    const [alice, bob] = await conversa();
+    let perder = true;
+    bob.transporte.perderAoEnviar = (dados) => {
+      const leitura = lerPedido(dados);
+      return perder && leitura.ok && leitura.pedido.tipo === 'depositar';
+    };
+    await bob.correio.enviarTexto(alice.id, 'a caminho');
+    // O bloqueio é pedido enquanto a entrega confere o item, logo antes de depositar: o depósito
+    // sai antes de o bloqueio começar, ou não sai.
+    let depositosAoBloquear = null as Promise<number> | null;
+    const { banco } = bob.banco;
+    const consultar = banco.consultar.bind(banco);
+    banco.consultar = (sql, parametros) => {
+      if (!perder && !depositosAoBloquear && sql.startsWith('SELECT 1 AS existe FROM fila')) {
+        depositosAoBloquear = bob.agenda.bloquear(alice.id).then(() => depositos(bob));
+      }
+      return consultar(sql, parametros);
+    };
+
+    perder = false;
+    await avancarAte(() => depositosAoBloquear !== null, 'a entrega recomeça');
+    const aoBloquear = await depositosAoBloquear;
+    await andarAte(relogio.agora() + MAIOR_INTERVALO + 5_000);
+    expect(depositos(bob)).toBe(aoBloquear);
   });
 });
 

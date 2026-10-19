@@ -108,6 +108,7 @@ import {
   adiar,
   intervaloDeReenvio,
   itensDaFila,
+  naFila,
   proximaTentativa,
   tentarDeNovo,
   tentarTudoAgora,
@@ -1672,6 +1673,16 @@ export class Correio {
       if (this.#parado) return;
       // O blob do anexo sobe antes da mensagem que o abre; os pacotes de depois esperam.
       if (item.mensagem && (await this.#esperaSubir(item, item.mensagem))) return;
+      // A lista foi lida antes: o item pode ter saído no meio (o contato foi bloqueado, a mensagem
+      // foi apagada), e a próxima rodada lê a fila de novo. Confere logo antes de depositar, sem
+      // espera no meio. Nada sai para um ID bloqueado (RF-08): o bloqueio esvazia a fila dele, e o
+      // que entrasse depois só espera.
+      const situacao = await this.#situacaoDoItem(item);
+      if (situacao !== 'sai') {
+        if (situacao === 'bloqueado') await falhou(item);
+        else this.#entregarDeNovo = true;
+        return;
+      }
       let resposta: Resposta;
       try {
         resposta = await conexao.pedir({
@@ -1700,6 +1711,15 @@ export class Correio {
         return;
       }
     }
+  }
+
+  /** Se o item ainda sai: ele pode ter saído da fila, ou o contato pode estar bloqueado. */
+  #situacaoDoItem(item: ItemDaFila): Promise<'sai' | 'saiu' | 'bloqueado'> {
+    const { banco } = this.#o;
+    return this.#exclusivo(async () => {
+      if (!(await naFila(banco, item))) return 'saiu';
+      return (await contatoDe(banco, item.contato))?.bloqueado ? 'bloqueado' : 'sai';
+    });
   }
 
   /**
