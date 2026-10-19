@@ -17,6 +17,7 @@ import {
   prepararBanco,
   prepararCofre,
   Temporarias,
+  type Armazenamento,
   type EventoDoCorreio,
   type Exclusivo,
   type Identidade,
@@ -167,7 +168,32 @@ export interface OcultasDeTeste {
 
 const todasAsOcultas: { readonly ocultas: OcultasDeTeste; readonly pasta: string }[] = [];
 
-export function ocultasDe(p: Pessoa, bloco = BLOCO_DE_TESTE): OcultasDeTeste {
+/**
+ * O banco sem espaço para crescer enquanto `cheio` valer: completar o bloco do cofre falha, como
+ * com o disco cheio.
+ */
+export function semEspacoParaOBloco(
+  banco: Armazenamento,
+  cheio: () => boolean = () => true,
+): Armazenamento {
+  return {
+    executar(sql, parametros) {
+      if (cheio() && sql.startsWith('INSERT INTO reserva')) {
+        return Promise.reject(new Error('database or disk is full'));
+      }
+      return banco.executar(sql, parametros);
+    },
+    consultar: (sql, parametros) => banco.consultar(sql, parametros),
+    transacao: (operacao) => banco.transacao((t) => operacao(semEspacoParaOBloco(t, cheio))),
+  };
+}
+
+/** `embrulhar` passa o banco do cofre por outro, como `semEspacoParaOBloco`. */
+export function ocultasDe(
+  p: Pessoa,
+  bloco = BLOCO_DE_TESTE,
+  embrulhar: (banco: Armazenamento) => Armazenamento = (banco) => banco,
+): OcultasDeTeste {
   const pasta = pastaTemporaria();
   const caminho = join(pasta, 'cofre.sqlite');
   let arquivo: BancoNoArquivo | null = null;
@@ -187,7 +213,7 @@ export function ocultasDe(p: Pessoa, bloco = BLOCO_DE_TESTE): OcultasDeTeste {
         cripto,
         relogio,
         identidade: p.identidade,
-        banco: arquivo.banco,
+        banco: embrulhar(arquivo.banco),
         bloco,
         transporte: p.transporte,
         relay: RELAY,

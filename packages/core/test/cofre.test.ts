@@ -32,6 +32,7 @@ import {
   redeParada,
   relay,
   relogio,
+  semEspacoParaOBloco,
   textos,
   type OcultasDeTeste,
   type Pessoa,
@@ -153,6 +154,30 @@ describe('o arquivo do cofre em blocos (RNF-11)', () => {
       expect(tamanho()).toBe(antes);
       expect(existsSync(`${temporario.caminho}-journal`)).toBe(true);
       expect(statSync(`${temporario.caminho}-journal`).size).toBe(0);
+    } finally {
+      arquivo.fechar();
+      temporario.apagar();
+    }
+  });
+
+  it('sem espaço para completar o bloco, nada entra, e o arquivo fica como estava', async () => {
+    const temporario = arquivoTemporario();
+    const arquivo = abrirBancoNoArquivo(temporario.caminho, 'TRUNCATE');
+    try {
+      await prepararCofre(arquivo.banco);
+      await completarBloco(arquivo.banco, BLOCO);
+      await arquivo.banco.executar('CREATE TABLE dados (x BLOB)');
+      await completarBloco(arquivo.banco, BLOCO);
+      const tamanho = statSync(temporario.caminho).size;
+      const banco = cofreEmBlocos(semEspacoParaOBloco(arquivo.banco), BLOCO);
+      const grande = 'INSERT INTO dados (x) VALUES (randomblob(?))';
+
+      await expect(banco.transacao((t) => t.executar(grande, [2 * BLOCO]))).rejects.toThrow(
+        'disk is full',
+      );
+      await expect(banco.executar(grande, [2 * BLOCO])).rejects.toThrow('disk is full');
+      expect(await arquivo.banco.consultar('SELECT count(*) AS n FROM dados')).toEqual([{ n: 0 }]);
+      expect(statSync(temporario.caminho).size).toBe(tamanho);
     } finally {
       arquivo.fechar();
       temporario.apagar();

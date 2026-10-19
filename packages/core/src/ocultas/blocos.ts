@@ -2,9 +2,11 @@
 // instalação, com um bloco, e só cresce de bloco em bloco: o tamanho do arquivo não diz quanto
 // está em uso, e um cofre vazio fica igual a um em uso. Sem `auto_vacuum`, o arquivo nunca encolhe.
 //
-// Completar o bloco é SQL comum, numa transação: linhas de zeros entram até o arquivo chegar ao
-// tamanho do bloco, e saem logo depois. As páginas que elas ocupavam ficam livres, zeradas pelo
-// `secure_delete`; o SQLCipher cifra cada página, então elas parecem aleatórias como as outras.
+// Completar o bloco é SQL comum, na mesma transação da gravação: linhas de zeros entram até o
+// arquivo chegar ao tamanho do bloco, e saem logo depois. As páginas que elas ocupavam ficam livres,
+// zeradas pelo `secure_delete`; o SQLCipher cifra cada página, então elas parecem aleatórias como
+// as outras. Sem espaço para o bloco, a transação inteira se desfaz: a gravação não entra, e o
+// arquivo volta ao tamanho de antes.
 //
 // - Primeiro, linhas grandes, na tabela `reserva`, até faltarem poucas páginas. Cada linha nunca
 //   passa do alvo: o tamanho dela deixa folga para as páginas que a árvore da tabela pode pedir.
@@ -48,61 +50,58 @@ export async function tamanhoDoBanco(banco: Armazenamento): Promise<number> {
 }
 
 /**
- * Deixa o arquivo do banco num múltiplo exato do bloco, com no mínimo um bloco. Quando ele já está,
- * custa duas pragmas. Fora de transação: abre a sua.
+ * Deixa o arquivo do banco num múltiplo exato do bloco, com no mínimo um bloco, dentro da transação
+ * `t`. Quando ele já está, custa duas pragmas. Sem espaço, lança, e quem abriu a transação a desfaz.
  */
-export async function completarBloco(banco: Armazenamento, bloco = BLOCO_DO_COFRE): Promise<void> {
-  const tamanhoDaPagina = await pragma(banco, 'page_size');
+async function completarNaTransacao(t: Armazenamento, bloco: number): Promise<void> {
+  const tamanhoDaPagina = await pragma(t, 'page_size');
   if (bloco % tamanhoDaPagina !== 0) throw new Error('bloco fora do tamanho das páginas');
   const porBloco = bloco / tamanhoDaPagina;
-  const paginas = await pragma(banco, 'page_count');
+  const paginas = await pragma(t, 'page_count');
   if (paginas >= porBloco && paginas % porBloco === 0) return;
 
-  await banco.transacao(async (t) => {
-    await t.executar('CREATE TABLE IF NOT EXISTS reserva (x BLOB)');
-    await t.executar('CREATE TABLE IF NOT EXISTS reserva_exata (x BLOB)');
-    const alvo = alvoDe(await pragma(t, 'page_count'), porBloco);
-    // As páginas livres são ocupadas antes de o arquivo crescer: contam no que falta.
-    const resto = async () =>
-      alvo - (await pragma(t, 'page_count')) + (await pragma(t, 'freelist_count'));
+  await t.executar('CREATE TABLE IF NOT EXISTS reserva (x BLOB)');
+  await t.executar('CREATE TABLE IF NOT EXISTS reserva_exata (x BLOB)');
+  const alvo = alvoDe(await pragma(t, 'page_count'), porBloco);
+  // As páginas livres são ocupadas antes de o arquivo crescer: contam no que falta.
+  const resto = async () =>
+    alvo - (await pragma(t, 'page_count')) + (await pragma(t, 'freelist_count'));
 
-    for (let falta = await resto(); falta > FOLGA; falta = await resto()) {
-      await t.executar('INSERT INTO reserva (x) VALUES (zeroblob(?))', [
-        (falta - FOLGA) * (tamanhoDaPagina - BYTES_POR_PAGINA_SEGUROS),
-      ]);
-    }
-    for (let linhas = 0; ; linhas++) {
-      const atual = await pragma(t, 'page_count');
-      if (atual === alvo) break;
-      // Não acontece com páginas de 4 KiB e reserva de até 255 bytes. Se acontecer, nada fica.
-      if (atual > alvo || linhas > FOLGA) throw new Error('o bloco não fechou no tamanho');
-      await t.executar('INSERT INTO reserva_exata (x) VALUES (zeroblob(?))', [
-        tamanhoDaPagina + 100,
-      ]);
-    }
-    await t.executar('DELETE FROM reserva');
-    await t.executar('DELETE FROM reserva_exata');
-  });
+  for (let falta = await resto(); falta > FOLGA; falta = await resto()) {
+    await t.executar('INSERT INTO reserva (x) VALUES (zeroblob(?))', [
+      (falta - FOLGA) * (tamanhoDaPagina - BYTES_POR_PAGINA_SEGUROS),
+    ]);
+  }
+  for (let linhas = 0; ; linhas++) {
+    const atual = await pragma(t, 'page_count');
+    if (atual === alvo) break;
+    // Não acontece com páginas de 4 KiB e reserva de até 255 bytes. Se acontecer, nada fica.
+    if (atual > alvo || linhas > FOLGA) throw new Error('o bloco não fechou no tamanho');
+    await t.executar('INSERT INTO reserva_exata (x) VALUES (zeroblob(?))', [tamanhoDaPagina + 100]);
+  }
+  await t.executar('DELETE FROM reserva');
+  await t.executar('DELETE FROM reserva_exata');
+}
+
+/** Completa o bloco numa transação própria. Fora de transação. */
+export async function completarBloco(banco: Armazenamento, bloco = BLOCO_DO_COFRE): Promise<void> {
+  await banco.transacao((t) => completarNaTransacao(t, bloco));
 }
 
 /**
- * O banco do cofre, que completa o bloco depois de cada transação e de cada comando fora de uma:
- * o arquivo nunca fica fora de um múltiplo do bloco.
+ * O banco do cofre, que completa o bloco dentro de cada transação e de cada comando fora de uma:
+ * o arquivo nunca fica fora de um múltiplo do bloco, e o que não cabe nele não entra.
  */
 export function cofreEmBlocos(banco: Armazenamento, bloco = BLOCO_DO_COFRE): Armazenamento {
+  const transacao = <T>(operacao: (t: Armazenamento) => Promise<T>): Promise<T> =>
+    banco.transacao(async (t) => {
+      const resultado = await operacao(t);
+      await completarNaTransacao(t, bloco);
+      return resultado;
+    });
   return {
-    async executar(sql, parametros) {
-      const resultado = await banco.executar(sql, parametros);
-      await completarBloco(banco, bloco);
-      return resultado;
-    },
-    consultar(sql, parametros) {
-      return banco.consultar(sql, parametros);
-    },
-    async transacao(operacao) {
-      const resultado = await banco.transacao(operacao);
-      await completarBloco(banco, bloco);
-      return resultado;
-    },
+    executar: (sql, parametros) => transacao((t) => t.executar(sql, parametros)),
+    consultar: (sql, parametros) => banco.consultar(sql, parametros),
+    transacao,
   };
 }

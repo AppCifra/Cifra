@@ -85,7 +85,7 @@ export interface OpcoesDoCofre {
 
 export class Cofre {
   readonly #o: OpcoesDoCofre;
-  /** O banco do cofre, que completa o bloco depois de cada escrita. */
+  /** O banco do cofre, que completa o bloco em cada escrita. */
   readonly #banco: Armazenamento;
   readonly #contexto: Contexto;
   readonly #meuId: Uint8Array;
@@ -216,10 +216,11 @@ export class Cofre {
             await copiarConversa(principal.banco, this.#banco, contato, (t) =>
               marcarCopiada(t, contato),
             );
-          } catch {
-            // A cópia não entrou: a conversa fica no principal, e o contato volta para lá.
+          } catch (erro) {
+            // A cópia não entrou (sem espaço para o cofre crescer, por exemplo): a conversa fica
+            // no principal, e o contato volta para lá.
             await this.#desfazerOcultar(contato);
-            throw new ErroDasOcultas('duplicada');
+            throw erro;
           }
           await apagarConversaDoBanco(principal.banco, contato);
           await encolherBanco(principal.banco);
@@ -267,9 +268,9 @@ export class Cofre {
             await copiarConversa(this.#banco, principal.banco, contato, (t) =>
               marcarMudanca(t, contato, 'reexibir', true),
             );
-          } catch {
+          } catch (erro) {
             await this.#desfazerReexibir(contato);
-            throw new ErroDasOcultas('duplicada');
+            throw erro;
           }
           await this.#apagarDoCofre(contato);
           await principal.banco.transacao((t) => tirarMudanca(t, contato));

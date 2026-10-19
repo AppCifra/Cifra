@@ -5,6 +5,7 @@ import { CIRCUITO_DA_CAIXA, ErroDasOcultas } from '../src/index.ts';
 import {
   ate,
   avancarAte,
+  BLOCO_DE_TESTE,
   conversa,
   ocultasDe,
   online,
@@ -13,6 +14,7 @@ import {
   redeParada,
   relay,
   relogio,
+  semEspacoParaOBloco,
   status,
   textos,
   type OcultasDeTeste,
@@ -412,5 +414,38 @@ describe('o cofre em blocos (RNF-11)', () => {
     for (const { caminho } of [vazio, ocultas]) {
       expect(statSync(`${caminho}-journal`).size).toBe(0);
     }
+  });
+
+  it('sem espaço para o cofre crescer, ocultar falha sem mudar nada, e depois funciona', async () => {
+    const [alice, bob] = await conversa();
+    let cheio = false;
+    const ocultas = ocultasDe(alice, BLOCO_DE_TESTE, (banco) =>
+      semEspacoParaOBloco(banco, () => cheio),
+    );
+    const cofre = await ocultas.abrir();
+    // Um documento grande: a cópia faz o cofre crescer.
+    await alice.correio.enviarAnexo(bob.id, {
+      arquivo: 'documento',
+      formato: 'application/pdf',
+      bytes: new Uint8Array(200_000).fill(7),
+    });
+    await redeParada();
+    const tamanho = statSync(ocultas.caminho).size;
+
+    cheio = true;
+    expect(await codigo(cofre.ocultar(bob.id))).toBe('outro');
+    cheio = false;
+    expect(statSync(ocultas.caminho).size).toBe(tamanho);
+    expect(await cofre.agenda.conversas()).toEqual([]);
+    // A conversa segue no principal: o Bob volta para a caixa do cartão pela fila.
+    await bob.correio.enviarTexto(alice.id, 'depois da falha');
+    await avancarAte(
+      async () => (await textos(alice, bob)).includes('depois da falha'),
+      'chega ao principal',
+    );
+
+    await cofre.ocultar(bob.id);
+    expect(await alice.agenda.conversa(bob.id)).toBeNull();
+    expect(await textosNoCofre(ocultas, bob)).toContain('depois da falha');
   });
 });
