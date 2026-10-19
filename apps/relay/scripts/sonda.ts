@@ -18,6 +18,7 @@ import {
   idDaChave,
   idDoCartao,
   mensagemDaAbertura,
+  mensagemDoApagarCaixa,
   mensagemDoApagarTudo,
   TAMANHO_DO_PACOTE,
   type Assinar,
@@ -154,10 +155,17 @@ export async function sondar(
 
     // Pela conexão sem caixa: a que estava com a caixa aberta cai quando ela some.
     const apagar = identidade.assinar(mensagemDoApagarTudo(a.desafio, identidade.publicKey));
+    const daCaixa = caixa.assinar(mensagemDoApagarCaixa(a.desafio, caixa.publicKey));
     exigir(
       ok(
         await medir('apagar tudo', () =>
-          a.pedir({ tipo: 'apagar-tudo', chave: identidade.publicKey, assinatura: apagar }),
+          a.pedir({
+            tipo: 'apagar-tudo',
+            chave: identidade.publicKey,
+            assinatura: apagar,
+            caixa: caixa.publicKey,
+            assinaturaDaCaixa: daCaixa,
+          }),
         ),
       ),
       'apagar tudo',

@@ -54,6 +54,7 @@ describe('apagar tudo no relay (pânico, RF-48)', () => {
       relogio,
       relay: RELAY,
       assinatura: alice.identidade.assinatura,
+      sementeDaCaixa: alice.sementeDaCaixa,
     });
     expect(apagou).toBe(true);
 
@@ -83,8 +84,30 @@ describe('apagar tudo no relay (pânico, RF-48)', () => {
         relogio,
         relay: RELAY,
         assinatura: alice.identidade.assinatura,
+        sementeDaCaixa: alice.sementeDaCaixa,
       }),
     ).toBe(true);
+  });
+
+  it('com o cartão já vencido, a caixa principal e o que esperava nela também somem', async () => {
+    const [alice, bob] = await conversa();
+    await alice.correio.parar();
+    const id = await bob.correio.enviarTexto(alice.id, 'esperando a alice');
+    await ate(async () => (await status(bob, alice, id)) === 'enviada', 'no relay');
+    // O cartão venceu antes da caixa: o vigia do app bloqueado abria a caixa, sem publicar o cartão.
+    relay.adulterar('DELETE FROM cartoes WHERE id = ?', idDe(alice));
+
+    const apagou = await apagarTudoNoRelay({
+      cripto,
+      transporte: transporte(),
+      relogio,
+      relay: RELAY,
+      assinatura: alice.identidade.assinatura,
+      sementeDaCaixa: alice.sementeDaCaixa,
+    });
+    expect(apagou).toBe(true);
+    expect(contar('SELECT count(*) AS n FROM caixas WHERE chave = ?', alice.caixa)).toBe(0);
+    expect(contar('SELECT count(*) AS n FROM pacotes WHERE caixa = ?', alice.caixa)).toBe(0);
   });
 
   it('sem conexão, desiste depois das tentativas, e nada muda no relay', async () => {
@@ -101,6 +124,7 @@ describe('apagar tudo no relay (pânico, RF-48)', () => {
       relogio,
       relay: RELAY,
       assinatura: alice.identidade.assinatura,
+      sementeDaCaixa: alice.sementeDaCaixa,
     }).then((apagou) => {
       resultado = apagou;
     });

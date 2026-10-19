@@ -88,9 +88,13 @@ export interface OpcoesDoControle<U extends EmUso> {
   readonly vigiar?: () => Promise<EmUso | null>;
   /**
    * Pânico: pede ao relay para apagar o cartão e a caixa desta identidade, com uma cópia do par de
-   * assinatura, que o controle zera quando o pedido termina. Sem ela, nada sai para o relay.
+   * assinatura e da semente da caixa, que o controle zera quando o pedido termina. Sem ela, nada
+   * sai para o relay.
    */
-  readonly apagarNoRelay?: (assinatura: ParDeChaves) => Promise<unknown>;
+  readonly apagarNoRelay?: (
+    assinatura: ParDeChaves,
+    sementeDaCaixa: Uint8Array,
+  ) => Promise<unknown>;
   /** Pânico: o app esquece o que fica fora do banco (tema, idioma, avisos), na hora. */
   readonly aoApagar?: () => void;
 }
@@ -206,6 +210,7 @@ export class ControleDoApp<U extends EmUso = EmUso> {
         publicKey: assinatura.publicKey.slice(),
         privateKey: assinatura.privateKey.slice(),
       };
+      const sementeDaCaixa = estado.sessao.sementeDaCaixa.slice();
       try {
         await estado.uso.parar();
       } catch {
@@ -215,11 +220,12 @@ export class ControleDoApp<U extends EmUso = EmUso> {
       }
       await plataforma.apagarArquivos().catch(() => undefined);
       const { apagarNoRelay } = this.#o;
-      this.#noRelay = (apagarNoRelay ? apagarNoRelay(par) : Promise.resolve())
+      this.#noRelay = (apagarNoRelay ? apagarNoRelay(par, sementeDaCaixa) : Promise.resolve())
         .then(() => undefined)
         .catch(() => undefined)
         .finally(() => {
           cripto.memzero(par.privateKey);
+          cripto.memzero(sementeDaCaixa);
         });
     });
   }

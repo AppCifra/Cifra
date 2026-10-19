@@ -164,10 +164,10 @@ export interface Banco {
    */
   buscarCartao(id: Uint8Array, comPrekey: () => boolean): CartaoGuardado | null;
   /**
-   * Pânico: apaga o cartão do ID, as prekeys, a caixa principal do cartão e os pacotes dela, numa
-   * transação. Devolve a caixa apagada, ou `null` se o ID não tinha cartão.
+   * Pânico: apaga o cartão do ID, as prekeys e a caixa principal do cartão, e também a caixa
+   * nomeada, que o dono provou ter, com os pacotes delas, numa transação. Devolve as caixas apagadas.
    */
-  apagarTudo(id: Uint8Array): Uint8Array | null;
+  apagarTudo(id: Uint8Array, caixa: Uint8Array): Uint8Array[];
   /**
    * Cria a caixa se ela não existe. Criar de novo não muda nada, nem o prazo. Caixa nova acima de
    * `maximo` caixas no relay não entra: `relay-cheio`.
@@ -356,16 +356,22 @@ export function abrirBanco(caminho: string): Banco {
       });
     },
 
-    apagarTudo(id) {
+    apagarTudo(id, caixa) {
       return transacao(() => {
+        const apagadas: Uint8Array[] = [];
+        const apagar = (chave: Uint8Array) => {
+          // Os pacotes saem junto com a caixa (ON DELETE CASCADE).
+          if (Number(sql.apagarCaixa.run(chave).changes) > 0) apagadas.push(chave);
+        };
         const linha = sql.cartao.get(id);
-        // O cartão guardado foi conferido ao entrar; só lê a caixa dele.
-        const cartao = linha ? lerCartao(bytes(linha, 'cartao')) : null;
-        if (!cartao) return null;
-        // As prekeys saem junto com o cartão, e os pacotes junto com a caixa (ON DELETE CASCADE).
-        sql.apagarCartao.run(id);
-        sql.apagarCaixa.run(cartao.caixaPrincipal);
-        return cartao.caixaPrincipal;
+        if (linha) {
+          // O cartão guardado foi conferido ao entrar; só lê a caixa dele. As prekeys saem junto.
+          const cartao = lerCartao(bytes(linha, 'cartao'));
+          sql.apagarCartao.run(id);
+          if (cartao) apagar(cartao.caixaPrincipal);
+        }
+        apagar(caixa);
+        return apagadas;
       });
     },
 

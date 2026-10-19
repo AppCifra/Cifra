@@ -64,6 +64,7 @@ export {
 // Mensagens entre app e relay (RNF-04, RNF-13).
 export {
   aberturaAutentica,
+  apagarCaixaAutentico,
   apagarTudoAutentico,
   BYTES_DA_MARCA,
   BYTES_DO_DESAFIO,
@@ -76,6 +77,7 @@ export {
   lerMensagemDoRelay,
   lerPedido,
   mensagemDaAbertura,
+  mensagemDoApagarCaixa,
   mensagemDoApagarTudo,
   TAMANHO_MAXIMO_DA_MENSAGEM_DO_RELAY,
   TAMANHO_MAXIMO_DO_PEDIDO,

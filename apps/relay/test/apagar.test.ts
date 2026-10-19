@@ -1,4 +1,4 @@
-import { FECHAMENTOS, mensagemDoApagarTudo, TAXAS } from '@cifra/protocol';
+import { FECHAMENTOS, mensagemDoApagarCaixa, mensagemDoApagarTudo, TAXAS } from '@cifra/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { ClienteDoRelay } from '../scripts/cliente.ts';
 import type { LimitesDoRelay } from '../src/relay.ts';
@@ -13,6 +13,7 @@ import {
   publicacaoDe,
   subirRelay,
   TAXAS_LIVRES,
+  type IdentidadeDeTeste,
   type ParDeTeste,
   type RelayDeTeste,
 } from './ajuda.ts';
@@ -55,12 +56,24 @@ async function comCartaoECaixa(cliente: ClienteDoRelay) {
   return { dono, cartao: publicacao.cartao.bytes, pacotes };
 }
 
-/** Pede para apagar tudo, assinando o desafio desta conexão com a chave de `quemAssina`. */
-function apagarTudo(cliente: ClienteDoRelay, dono: ParDeTeste, quemAssina: ParDeTeste = dono) {
+/**
+ * Pede para apagar tudo, assinando o desafio desta conexão: o cartão com a chave de `quemAssina`, e
+ * a caixa principal do dono com a chave de `quemAssinaACaixa`.
+ */
+function apagarTudo(
+  cliente: ClienteDoRelay,
+  dono: IdentidadeDeTeste,
+  quemAssina: ParDeTeste = dono,
+  quemAssinaACaixa: ParDeTeste = dono.caixa,
+) {
   return cliente.pedir({
     tipo: 'apagar-tudo',
     chave: dono.publicKey,
     assinatura: quemAssina.assinar(mensagemDoApagarTudo(cliente.desafio, dono.publicKey)),
+    caixa: dono.caixa.publicKey,
+    assinaturaDaCaixa: quemAssinaACaixa.assinar(
+      mensagemDoApagarCaixa(cliente.desafio, dono.caixa.publicKey),
+    ),
   });
 }
 
@@ -102,8 +115,8 @@ describe('apagar tudo no relay (pânico, RF-48)', () => {
     expect((await cliente.pedir({ tipo: 'buscar-cartao', id: outro.dono.id })).tipo).toBe(
       'cartao-encontrado',
     );
-    // Pedir de novo não muda nada: não há mais cartão.
-    expect(codigo(await apagarTudo(panico, dono))).toBe('cartao-inexistente');
+    // Pedir de novo não muda nada: não há mais o que apagar.
+    expect(codigo(await apagarTudo(panico, dono))).toBe('ok');
   });
 
   it('o que foi apagado some do arquivo do relay', async () => {
@@ -117,6 +130,31 @@ describe('apagar tudo no relay (pânico, RF-48)', () => {
     expect(contem(arquivo, dono.publicKey)).toBe(false);
     expect(contem(arquivo, dono.caixa.publicKey)).toBe(false);
     for (const pacote of pacotes) expect(contem(arquivo, pacote)).toBe(false);
+  });
+
+  it('com o cartão já vencido, a caixa principal nomeada e os pacotes dela também saem', async () => {
+    await subir();
+    const cliente = await relay.conectar();
+    const { dono } = await comCartaoECaixa(cliente);
+    // O cartão vence; a caixa, aberta de vez em quando (o vigia do app bloqueado), não.
+    relay.relogio.avancar(89 * 24 * 3_600_000);
+    const vigia = await relay.conectar();
+    expect(codigo(await abrir(vigia, dono.caixa))).toBe('ok');
+    relay.relogio.avancar(2 * 24 * 3_600_000);
+    relay.relay.limpar();
+    const deposito = await cliente.pedir({
+      tipo: 'depositar',
+      caixa: dono.caixa.publicKey,
+      pacote: pacoteAleatorio(),
+      marca: marcaDeTeste(),
+    });
+    expect(codigo(deposito)).toBe('ok');
+    expect([contar('cartoes'), contar('caixas'), contar('pacotes')]).toEqual([0, 1, 1]);
+
+    const outra = await relay.conectar();
+    expect(codigo(await apagarTudo(outra, dono))).toBe('ok');
+    expect([contar('caixas'), contar('pacotes')]).toEqual([0, 0]);
+    expect(await vigia.fechamento).toBe(FECHAMENTOS.caixaApagada);
   });
 
   it('a conexão que estava com a caixa aberta cai', async () => {
@@ -148,13 +186,19 @@ describe('apagar tudo no relay (pânico, RF-48)', () => {
       tipo: 'apagar-tudo',
       chave: dono.publicKey,
       assinatura,
+      caixa: dono.caixa.publicKey,
+      assinaturaDaCaixa: dono.caixa.assinar(
+        mensagemDoApagarCaixa(segunda.desafio, dono.caixa.publicKey),
+      ),
     });
     expect(codigo(repetida)).toBe('assinatura-invalida');
     expect(await segunda.fechamento).toBe(FECHAMENTOS.assinaturaInvalida);
 
-    // A chave da caixa também não apaga o cartão.
+    // A chave da caixa não assina pelo cartão, e outra chave não assina pela caixa.
     const comACaixa = await relay.conectar();
-    expect(codigo(await apagarTudo(comACaixa, dono.caixa))).toBe('cartao-inexistente');
+    expect(codigo(await apagarTudo(comACaixa, dono, dono.caixa))).toBe('assinatura-invalida');
+    const semACaixa = await relay.conectar();
+    expect(codigo(await apagarTudo(semACaixa, dono, dono, novoPar()))).toBe('assinatura-invalida');
 
     expect(contar('cartoes')).toBe(1);
     expect(contar('caixas')).toBe(1);
@@ -166,11 +210,12 @@ describe('apagar tudo no relay (pânico, RF-48)', () => {
     await subir({ ...TAXAS_LIVRES, taxas: { ...taxas, apagarTudo: TAXAS.apagarTudo } });
     const cliente = await relay.conectar();
     const semCartao = novaIdentidade();
+    // Sem cartão nem caixa, não há o que apagar, e a resposta é a mesma.
     for (let i = 0; i < 3; i++) {
-      expect(codigo(await apagarTudo(cliente, semCartao))).toBe('cartao-inexistente');
+      expect(codigo(await apagarTudo(cliente, semCartao))).toBe('ok');
     }
     expect(codigo(await apagarTudo(cliente, semCartao))).toBe('taxa-excedida');
     relay.relogio.avancar(60_000);
-    expect(codigo(await apagarTudo(cliente, semCartao))).toBe('cartao-inexistente');
+    expect(codigo(await apagarTudo(cliente, semCartao))).toBe('ok');
   });
 });

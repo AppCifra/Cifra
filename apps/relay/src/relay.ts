@@ -9,6 +9,7 @@ import type { Duplex } from 'node:stream';
 import {
   aberturaAutentica,
   ANEXOS_SUBINDO,
+  apagarCaixaAutentico,
   apagarTudoAutentico,
   CAIXAS_NO_RELAY,
   CARTOES_NO_RELAY,
@@ -301,31 +302,39 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
   }
 
   /**
-   * Pânico: o dono apaga o cartão, as prekeys, a caixa principal e o que esperava nela. A
-   * assinatura cobre o desafio desta conexão. Quem estiver com a caixa aberta perde a conexão; quem
-   * depositar nela depois recebe `caixa-inexistente`, e quem buscar o cartão, `cartao-inexistente`.
+   * Pânico: o dono apaga o cartão, as prekeys, a caixa principal e o que esperava nela; a caixa sai
+   * mesmo se o cartão já venceu. As duas assinaturas cobrem o desafio desta conexão. Quem estiver
+   * com a caixa aberta perde a conexão; quem depositar nela depois recebe `caixa-inexistente`, e quem
+   * buscar o cartão, `cartao-inexistente`.
    */
   function apagarTudo(
     conexao: Conexao,
-    { numero, chave, assinatura }: Extract<PedidoAoRelay, { tipo: 'apagar-tudo' }>,
+    {
+      numero,
+      chave,
+      assinatura,
+      caixa,
+      assinaturaDaCaixa,
+    }: Extract<PedidoAoRelay, { tipo: 'apagar-tudo' }>,
   ): void {
     if (!conexao.baldes.apagarTudo()) {
       responder(conexao, numero, 'taxa-excedida');
       return;
     }
-    if (!apagarTudoAutentico(sodium, conexao.desafio, chave, assinatura)) {
+    if (
+      !apagarTudoAutentico(sodium, conexao.desafio, chave, assinatura) ||
+      !apagarCaixaAutentico(sodium, conexao.desafio, caixa, assinaturaDaCaixa)
+    ) {
       responder(conexao, numero, 'assinatura-invalida');
       fecharConexao(conexao, FECHAMENTOS.assinaturaInvalida);
       return;
     }
-    const caixa = banco.apagarTudo(idDaChave(sodium, chave));
-    if (!caixa) {
-      responder(conexao, numero, 'cartao-inexistente');
-      return;
-    }
+    const apagadas = banco.apagarTudo(idDaChave(sodium, chave), caixa);
     responder(conexao, numero, 'ok');
-    const aberta = caixasAbertas.get(hex(caixa));
-    if (aberta) fecharConexao(aberta, FECHAMENTOS.caixaApagada);
+    for (const apagada of apagadas) {
+      const aberta = caixasAbertas.get(hex(apagada));
+      if (aberta) fecharConexao(aberta, FECHAMENTOS.caixaApagada);
+    }
   }
 
   function atender(conexao: Conexao, pedido: PedidoAoRelay): void {

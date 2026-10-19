@@ -110,7 +110,7 @@ const controle: ControleDoApp<ConversasDoApp> = new ControleDoApp<ConversasDoApp
         })
       : Promise.resolve(null),
   // Pânico: o pedido ao relay sai pelo Tor, como tudo, depois de o aparelho já estar limpo.
-  apagarNoRelay: (assinatura) =>
+  apagarNoRelay: (assinatura, sementeDaCaixa) =>
     enderecoDeRelayValido(ENDERECO_DO_RELAY)
       ? apagarTudoNoRelay({
           cripto,
@@ -118,6 +118,7 @@ const controle: ControleDoApp<ConversasDoApp> = new ControleDoApp<ConversasDoApp
           relogio,
           relay: ENDERECO_DO_RELAY,
           assinatura,
+          sementeDaCaixa,
         })
       : Promise.resolve(false),
   aoApagar: () => {

@@ -9,7 +9,7 @@ import { plataformaDeTeste, type PlataformaDeTeste } from './plataforma.ts';
 // O pânico (RF-48), com o Keystore de mentira e o SQLite do Node: segurar 1,6 s na tela chama
 // `panico()`. As chaves somem antes de tudo, o que usava a sessão para, o banco fecha, a memória é
 // zerada, os arquivos do banco e do cofre saem, e o pedido ao relay vai por último, com uma cópia
-// do par de assinatura que é zerada no fim.
+// do par de assinatura e da semente da caixa, zeradas no fim.
 
 const testes: PlataformaDeTeste[] = [];
 
@@ -32,7 +32,13 @@ async function montar({ falhaNoRelay = false } = {}) {
   const { identidade } = gerarIdentidade(cripto, 'portugues');
   (await criarSessao(teste.plataforma, identidade)).banco.fechar();
   const usos: UsoDeTeste[] = [];
-  const pedidosAoRelay: { publica: Uint8Array; privada: Uint8Array; copia: Uint8Array }[] = [];
+  const pedidosAoRelay: {
+    publica: Uint8Array;
+    privada: Uint8Array;
+    copia: Uint8Array;
+    semente: Uint8Array;
+    copiaDaSemente: Uint8Array;
+  }[] = [];
   const esquecidos = { vezes: 0 };
   const controle = new ControleDoApp<UsoDeTeste>({
     plataforma: teste.plataforma,
@@ -50,11 +56,13 @@ async function montar({ falhaNoRelay = false } = {}) {
       return uso;
     },
     emPrimeiroPlano: () => true,
-    apagarNoRelay: (assinatura: ParDeChaves) => {
+    apagarNoRelay: (assinatura: ParDeChaves, sementeDaCaixa: Uint8Array) => {
       pedidosAoRelay.push({
         publica: assinatura.publicKey,
         privada: assinatura.privateKey,
         copia: assinatura.privateKey.slice(),
+        semente: sementeDaCaixa,
+        copiaDaSemente: sementeDaCaixa.slice(),
       });
       return falhaNoRelay ? Promise.reject(new Error('sem rede')) : Promise.resolve(true);
     },
@@ -124,8 +132,9 @@ describe('pânico (RF-48)', () => {
     expect(estados).toEqual(['onboarding']);
   });
 
-  it('o relay recebe o pedido com uma cópia do par de assinatura, zerada no fim', async () => {
+  it('o relay recebe o pedido com uma cópia do par de assinatura e da semente da caixa, zeradas no fim', async () => {
     const { controle, identidade, pedidosAoRelay } = await montar();
+    const semente = sessaoDe(controle).sementeDaCaixa.slice();
     await controle.panico();
     await controle.apagandoNoRelay;
     expect(pedidosAoRelay).toHaveLength(1);
@@ -134,6 +143,8 @@ describe('pânico (RF-48)', () => {
     // A cópia tinha a chave de verdade, e foi zerada quando o pedido terminou.
     expect(pedido?.copia).toEqual(identidade.assinatura.privateKey);
     expect(zerado(pedido?.privada ?? new Uint8Array(0))).toBe(true);
+    expect(pedido?.copiaDaSemente).toEqual(semente);
+    expect(zerado(pedido?.semente ?? new Uint8Array(0))).toBe(true);
   });
 
   it('sem conexão com o relay, o aparelho fica apagado do mesmo jeito', async () => {

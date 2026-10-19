@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BYTES_DA_MARCA,
   aberturaAutentica,
+  apagarCaixaAutentico,
   apagarTudoAutentico,
   BYTES_DO_DESAFIO,
   BYTES_DO_ID_DO_PACOTE,
@@ -17,6 +18,7 @@ import {
   lerMensagemDoRelay,
   lerPedido,
   mensagemDaAbertura,
+  mensagemDoApagarCaixa,
   mensagemDoApagarTudo,
   TAMANHO_DO_PACOTE,
   TAMANHO_MAXIMO_DA_MENSAGEM_DO_RELAY,
@@ -66,7 +68,14 @@ function pedidosDeTeste(): PedidoAoRelay[] {
     },
     { tipo: 'abrir-caixa', numero: 5, caixa: aleatorio(32), assinatura: aleatorio(64) },
     { tipo: 'confirmar', numero: 0xffffffff, ids: [aleatorio(16), aleatorio(16)] },
-    { tipo: 'apagar-tudo', numero: 7, chave: aleatorio(32), assinatura: aleatorio(64) },
+    {
+      tipo: 'apagar-tudo',
+      numero: 7,
+      chave: aleatorio(32),
+      assinatura: aleatorio(64),
+      caixa: aleatorio(32),
+      assinaturaDaCaixa: aleatorio(64),
+    },
   ];
 }
 
@@ -287,23 +296,32 @@ describe('apagar tudo com desafio (pânico)', () => {
     );
   });
 
-  it('o pedido leva a chave e a assinatura, nada mais', () => {
-    const bytes = codificarPedido({
+  it('a caixa principal vale só com a assinatura da chave dela, sobre o contexto próprio', () => {
+    const caixa = novoPar();
+    const desafio = aleatorio(BYTES_DO_DESAFIO);
+    const assinatura = caixa.assinar(mensagemDoApagarCaixa(desafio, caixa.publicKey));
+    expect(apagarCaixaAutentico(sodium, desafio, caixa.publicKey, assinatura)).toBe(true);
+    expect(apagarCaixaAutentico(sodium, aleatorio(32), caixa.publicKey, assinatura)).toBe(false);
+    expect(apagarCaixaAutentico(sodium, desafio, novoPar().publicKey, assinatura)).toBe(false);
+    // A de abrir a caixa, no mesmo desafio, não apaga.
+    const daAbertura = caixa.assinar(mensagemDaAbertura(desafio, caixa.publicKey));
+    expect(apagarCaixaAutentico(sodium, desafio, caixa.publicKey, daAbertura)).toBe(false);
+  });
+
+  it('o pedido leva a chave, a caixa e as duas assinaturas, nada mais', () => {
+    const pedido = {
       tipo: 'apagar-tudo',
       numero: 3,
       chave: aleatorio(32),
       assinatura: aleatorio(64),
-    });
-    expect(bytes).toHaveLength(1 + 4 + 32 + 64);
+      caixa: aleatorio(32),
+      assinaturaDaCaixa: aleatorio(64),
+    } as const;
+    const bytes = codificarPedido(pedido);
+    expect(bytes).toHaveLength(1 + 4 + 32 + 64 + 32 + 64);
     expect(bytes[0]).toBe(0x07);
-    expect(() =>
-      codificarPedido({
-        tipo: 'apagar-tudo',
-        numero: 3,
-        chave: aleatorio(31),
-        assinatura: aleatorio(64),
-      }),
-    ).toThrow(RangeError);
+    expect(() => codificarPedido({ ...pedido, chave: aleatorio(31) })).toThrow(RangeError);
+    expect(() => codificarPedido({ ...pedido, caixa: aleatorio(31) })).toThrow(RangeError);
   });
 });
 

@@ -9,7 +9,8 @@
 //   0x04 depositar          caixa (32) + pacote (4096) + marca de aviso (49)
 //   0x05 abrir-caixa        caixa (32) + assinatura do desafio (64)
 //   0x06 confirmar          quantidade (1) + IDs de pacote (16 cada)
-//   0x07 apagar-tudo        chave de identidade (32) + assinatura do desafio (64)
+//   0x07 apagar-tudo        chave de identidade (32) + assinatura do desafio (64) + caixa principal
+//                           (32) + assinatura do desafio com a chave da caixa (64)
 //
 // Do relay ao app:
 //   0x80 ola                versão (1) + desafio (32), logo ao conectar
@@ -27,8 +28,9 @@
 // chave de caixa.
 //
 // O pânico pede ao relay para apagar o cartão do dono, as one-time prekeys, a caixa principal do
-// cartão e o que esperava nela. O dono assina, com a chave de identidade, o desafio daquela
-// conexão: a assinatura não serve em outra conexão, e só o dono apaga o cartão.
+// cartão e o que esperava nela. O dono assina o desafio daquela conexão com a chave de identidade,
+// para o cartão, e com a chave da caixa principal, que ele nomeia: a caixa sai mesmo se o cartão já
+// venceu. As assinaturas não servem em outra conexão, e só o dono apaga.
 //
 // A marca de aviso vai junto com cada pacote: 1 byte selado (crypto_box_seal) para a chave da
 // caixa, que diz se o pacote é uma mensagem ou outra coisa (confirmação de leitura, digitação,
@@ -139,6 +141,9 @@ export type PedidoAoRelay =
       /** A chave de identidade Ed25519: o ID sai dela. */
       readonly chave: Uint8Array;
       readonly assinatura: Uint8Array;
+      /** A caixa principal, que sai junto, com a assinatura do desafio feita com a chave dela. */
+      readonly caixa: Uint8Array;
+      readonly assinaturaDaCaixa: Uint8Array;
     };
 
 export type MensagemDoRelay =
@@ -218,7 +223,7 @@ export function aberturaAutentica(
   );
 }
 
-/** Os bytes que o dono assina com a chave de identidade para apagar o cartão e a caixa. */
+/** Os bytes que o dono assina com a chave de identidade para apagar o cartão. */
 export function mensagemDoApagarTudo(desafio: Uint8Array, chave: Uint8Array): Uint8Array {
   return juntar(CONTEXTOS.apagarTudo, desafio, chave);
 }
@@ -235,6 +240,30 @@ export function apagarTudoAutentico(
     chave.length === BYTES_DA_CHAVE &&
     assinatura.length === BYTES_DA_ASSINATURA &&
     verificador.crypto_sign_verify_detached(assinatura, mensagemDoApagarTudo(desafio, chave), chave)
+  );
+}
+
+/** Os bytes que o dono assina com a chave da caixa principal para apagá-la no pânico. */
+export function mensagemDoApagarCaixa(desafio: Uint8Array, caixa: Uint8Array): Uint8Array {
+  return juntar(CONTEXTOS.apagarCaixa, desafio, caixa);
+}
+
+/** Confere a parte da caixa no pânico: a assinatura tem de ser da chave da própria caixa. */
+export function apagarCaixaAutentico(
+  verificador: Verificador,
+  desafio: Uint8Array,
+  caixa: Uint8Array,
+  assinatura: Uint8Array,
+): boolean {
+  return (
+    desafio.length === BYTES_DO_DESAFIO &&
+    caixa.length === BYTES_DA_CHAVE &&
+    assinatura.length === BYTES_DA_ASSINATURA &&
+    verificador.crypto_sign_verify_detached(
+      assinatura,
+      mensagemDoApagarCaixa(desafio, caixa),
+      caixa,
+    )
   );
 }
 
@@ -280,6 +309,8 @@ export function codificarPedido(pedido: PedidoAoRelay): Uint8Array {
       return escritor
         .bytes(exigirTamanho(pedido.chave, BYTES_DA_CHAVE))
         .bytes(exigirTamanho(pedido.assinatura, BYTES_DA_ASSINATURA))
+        .bytes(exigirTamanho(pedido.caixa, BYTES_DA_CHAVE))
+        .bytes(exigirTamanho(pedido.assinaturaDaCaixa, BYTES_DA_ASSINATURA))
         .resultado();
   }
 }
@@ -327,6 +358,8 @@ function lerCorpoDoPedido(tipo: number, numero: number, leitor: Leitor): PedidoA
         numero,
         chave: leitor.bytes(BYTES_DA_CHAVE),
         assinatura: leitor.bytes(BYTES_DA_ASSINATURA),
+        caixa: leitor.bytes(BYTES_DA_CHAVE),
+        assinaturaDaCaixa: leitor.bytes(BYTES_DA_ASSINATURA),
       };
     default:
       throw new ErroDeFormato('tipo de pedido');

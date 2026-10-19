@@ -14,6 +14,8 @@ export const CONTEXTOS = {
   aberturaDeCaixa: ascii('cifra/abrir-caixa/1'),
   /** O pânico: a resposta ao desafio do relay para apagar o cartão e a caixa principal. */
   apagarTudo: ascii('cifra/apagar-tudo/1'),
+  /** O pânico: a resposta ao mesmo desafio com a chave da caixa principal, que o relay apaga. */
+  apagarCaixa: ascii('cifra/apagar-caixa/1'),
 } as const;
 
 /**
