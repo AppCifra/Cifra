@@ -169,7 +169,9 @@ describe('dump do banco do relay (RNF-03)', () => {
   it('nenhum IP no arquivo', async () => {
     await cenario();
     const dump = texto(relay.bytesDoBanco());
-    for (const ip of ['127.0.0.1', '::1', '::ffff:', 'localhost']) {
+    // Marcadores de 7 bytes ou mais: um curto, como ::1, aparece por acaso nos bytes aleatórios dos
+    // pacotes e das chaves.
+    for (const ip of ['127.0.0.1', '::ffff:', 'localhost']) {
       expect(dump).not.toContain(ip);
     }
   });
