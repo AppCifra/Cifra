@@ -393,6 +393,7 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 - **Desafio:** ao conectar, o relay manda um desafio aleatório de 32 bytes. A assinatura que abre a caixa cobre o desafio daquela conexão, então não serve em outra. Uma chave de caixa vale para um relay só.
 - **Uma caixa por conexão:** abrir a mesma caixa em outra conexão fecha a anterior. Vale a abertura mais nova, e a reconexão não espera a conexão velha cair.
 - **Entrega:** em ordem de chegada, até 100 pacotes sem confirmação por vez. Quando os pendentes acabam, o relay avisa que a caixa está em dia; o que chega depois vai na hora.
+- **Pacote que não entra no app:** o app confirma cada pacote depois de guardá-lo. Se não consegue guardar (um erro do banco, como o disco cheio), ele fecha a conexão, e o relay entrega o pacote de novo na abertura seguinte; na terceira falha do mesmo pacote, o app confirma e ele se perde, para não ocupar a janela para sempre.
 - **Vigia (RF-42):** com o app bloqueado, o aparelho vigia a caixa principal em vez de abri-la. O relay manda o ID e a marca de aviso de cada pacote, sem o pacote e sem a janela de 100: o vigia não confirma nada, e a caixa fica inteira para o desbloqueio. Como na abertura, vale a conexão mais nova.
 - **Pacote repetido:** o ID do pacote no relay é o BLAKE2b de 16 bytes do próprio pacote. Um reenvio idêntico não duplica.
 - **Formato inválido:** o relay responde `formato-invalido` e fecha a conexão. Assinatura errada na abertura também fecha.
@@ -700,7 +701,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e setenta e cinco riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e setenta e quatro riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -778,7 +779,6 @@ Quatro decisões ainda abertas e setenta e cinco riscos com mitigação. O maior
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; os depósitos numa caixa têm taxa no relay inteiro; prova de trabalho na fase 2 |
-| Um pacote que falha ao entrar no banco do app ocupa para sempre uma vaga da janela de entrega daquela conexão; com a janela cheia deles, a caixa para de receber | correção: pedir o pacote de novo e, depois de algumas falhas, descartá-lo |
 | Na primeira abertura sem identidade, o app liga e desliga o serviço de avisos em milissegundos, e o Android pode fechar o app | correção: o serviço só liga com identidade e só para depois de ter subido |
 | A conexão com o relay não tem prazo para abrir: um relay que aceita e não responde deixa o app em "conectando", e o vigia para de avisar | correção: prazo de 60 s para abrir, como nos pedidos de anexo |
 | Uma conexão fechada pelo próprio app não avisa o fechamento ao JS, e os ouvintes dela se acumulam | correção: o módulo avisa todo fechamento |

@@ -437,3 +437,42 @@ describe('iniciar conversa com o circuito do contato falhando', () => {
     expect(await alice.agenda.conversa(bob.id)).toBeNull();
   });
 });
+
+describe('pacote que falha ao entrar no banco', () => {
+  /** As próximas `vezes` mensagens que chegam falham ao entrar no banco, como com o disco cheio. */
+  function falharAoGuardar(p: Awaited<ReturnType<typeof conversa>>[number], vezes: number) {
+    const banco = p.banco.banco;
+    const original = banco.executar.bind(banco);
+    let faltam = vezes;
+    banco.executar = (sql, parametros) => {
+      if (faltam > 0 && sql.trimStart().startsWith('INSERT OR IGNORE INTO mensagens')) {
+        faltam--;
+        return Promise.reject(new Error('database or disk is full'));
+      }
+      return original(sql, parametros);
+    };
+    return { faltam: () => faltam };
+  }
+
+  const pacotesDe = (caixa: Uint8Array) =>
+    relay.consultar('SELECT count(*) AS n FROM pacotes WHERE caixa = ?', caixa)[0]?.['n'];
+
+  it('o relay entrega de novo, e a mensagem entra quando o banco volta', async () => {
+    const [alice, bob] = await conversa();
+    const falha = falharAoGuardar(bob, 1);
+    await alice.correio.enviarTexto(bob.id, 'depois da falha');
+    await ate(() => falha.faltam() === 0, 'a falha');
+    await avancarAte(async () => (await textos(bob, alice)).includes('depois da falha'), 'entra');
+    await avancarAte(() => pacotesDe(bob.caixa) === 0, 'confirmada');
+  });
+
+  it('na terceira falha do mesmo pacote, ele é descartado, e a caixa segue', async () => {
+    const [alice, bob] = await conversa();
+    const falha = falharAoGuardar(bob, 3);
+    await alice.correio.enviarTexto(bob.id, 'nunca entra');
+    await avancarAte(() => falha.faltam() === 0 && pacotesDe(bob.caixa) === 0, 'descartado');
+    expect(await textos(bob, alice)).not.toContain('nunca entra');
+    await alice.correio.enviarTexto(bob.id, 'a seguinte');
+    await ate(async () => (await textos(bob, alice)).includes('a seguinte'), 'a seguinte entra');
+  });
+});

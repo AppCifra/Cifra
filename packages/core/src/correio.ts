@@ -160,6 +160,9 @@ const TENTATIVAS_DO_AVISO = 3;
 /** Com a caixa aberta, confere a cada hora se o cartão precisa ser renovado. */
 const CONFERENCIA_DO_CARTAO = 3_600_000;
 
+/** Falhas ao guardar o mesmo pacote recebido antes de descartá-lo. */
+const FALHAS_ANTES_DE_DESCARTAR = 3;
+
 /**
  * Tentativas de buscar o cartão ao iniciar uma conversa. O circuito novo do Tor para o contato pode
  * falhar na primeira, com a caixa conectada: o correio tenta de novo antes de dizer que não deu.
@@ -381,6 +384,8 @@ export class Correio {
   readonly #exclusivo: Exclusivo;
   /** Os pacotes que chegam são processados um de cada vez, na ordem. */
   #recebimentos: Promise<void> = Promise.resolve();
+  /** Falhas ao guardar cada pacote recebido (ID do relay em hex), nesta execução. */
+  readonly #falhasAoReceber = new Map<string, number>();
   #entregando = false;
   #entregarDeNovo = false;
   #cancelarEntrega: (() => void) | null = null;
@@ -1384,7 +1389,9 @@ export class Correio {
 
   /**
    * Guarda o que chegou e só então confirma, para o relay apagar. Erro inesperado (do banco, por
-   * exemplo) não confirma: o pacote volta na próxima abertura da caixa.
+   * exemplo) não confirma: a conexão fecha, a caixa abre de novo depois do intervalo de reconexão, e
+   * o relay entrega o pacote outra vez. Um pacote que falha assim sem parar ocuparia para sempre uma
+   * vaga da janela de entrega: na terceira falha, ele é confirmado e se perde.
    */
   async #receber(
     estado: EstadoDaCaixa,
@@ -1400,8 +1407,20 @@ export class Correio {
         ),
       );
     } catch {
+      const chave = hex(id);
+      const falhas = (this.#falhasAoReceber.get(chave) ?? 0) + 1;
+      if (falhas < FALHAS_ANTES_DE_DESCARTAR) {
+        this.#falhasAoReceber.set(chave, falhas);
+        await conexao.fechar();
+        return;
+      }
+      this.#falhasAoReceber.delete(chave);
+      if (conexao.aberta) {
+        await conexao.pedir({ tipo: 'confirmar', ids: [id] }).catch(() => undefined);
+      }
       return;
     }
+    this.#falhasAoReceber.delete(hex(id));
     this.#avisarRecebimento(recebimento, estado);
     if (conexao.aberta) {
       await conexao.pedir({ tipo: 'confirmar', ids: [id] }).catch(() => undefined);
