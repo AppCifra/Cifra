@@ -379,9 +379,9 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 
 | Operação | Quem chama | Autenticação | O que faz |
 | --- | --- | --- | --- |
-| `publicarCartao` | dono do ID | cartão e publicação assinados; hash da chave = ID | guarda o cartão e as *one-time prekeys*; vale o mais novo; só `substituir` troca a caixa principal |
-| `buscarCartao` | qualquer um | nenhuma; limite de taxa | devolve o cartão e consome uma *one-time prekey* |
-| `criarCaixa` | qualquer um | chave pública da caixa; limite de taxa | cria uma caixa vazia; criar de novo não muda nada |
+| `publicarCartao` | dono do ID | cartão e publicação assinados; hash da chave = ID | guarda o cartão e as *one-time prekeys*; vale o mais novo; só `substituir` troca a caixa principal; um ID novo acima do teto de cartões recebe `relay-cheio` |
+| `buscarCartao` | qualquer um | nenhuma; limite de taxa | devolve o cartão e consome uma *one-time prekey*, até a cota do ID; acima dela, o cartão vai sem prekey |
+| `criarCaixa` | qualquer um | chave pública da caixa; limite de taxa | cria uma caixa vazia; criar de novo não muda nada; acima do teto de caixas, `relay-cheio` |
 | `depositar` | qualquer um | nenhuma; limite de taxa | guarda um pacote de 4096 bytes na caixa, com a marca de aviso (49 bytes, selada para a chave da caixa) |
 | `abrirCaixa` | dono da caixa | desafio da conexão assinado com a chave da caixa | entrega os pacotes pendentes por WebSocket |
 | `confirmar` | dono da caixa | caixa aberta na conexão | apaga os pacotes confirmados |
@@ -416,6 +416,10 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 | *One-time prekeys* por ID | até 100 |
 | Data do cartão | até 24 h à frente do relógio do relay |
 | Taxa de envio | por conexão: depositar, 20 de uma vez e depois 60 por minuto; buscar cartão, 10 e depois 10 por minuto; publicar cartão, criar caixa e apagar tudo, 3 e depois 1 por minuto. Acima disso, `taxa-excedida`. Prova de trabalho no primeiro contato na fase 2 |
+| Taxas do relay inteiro | o que uma conexão nova não recomeça: depósitos numa mesma caixa, 100 de uma vez e depois 60 por minuto (acima disso, `taxa-excedida`); *one-time prekeys* entregues de um mesmo ID, 10 de uma vez e depois 10 por hora (acima disso, o cartão vai sem prekey) |
+| Espaço dos pacotes | 4 GB no relay inteiro, ajustável por quem opera (`CIFRA_ESPACO_DOS_PACOTES`, em MB); cheio, `caixa-cheia` |
+| Cartões guardados | 250 mil, ajustável (`CIFRA_MAXIMO_DE_CARTOES`); cheio, o cartão de um ID novo recebe `relay-cheio` |
+| Caixas | 1 milhão, ajustável (`CIFRA_MAXIMO_DE_CAIXAS`); cheio, criar caixa recebe `relay-cheio` |
 | Mensagens por conexão | 100 de uma vez e depois 1200 por minuto; acima disso, a conexão fecha |
 | Conexões simultâneas | 1000 |
 | Saída por conexão | 1 MiB esperando para sair (quem não lê o que o relay manda); acima disso, a conexão cai |
@@ -712,8 +716,8 @@ Quatro decisões ainda abertas e setenta e oito riscos com mitigação. O maior 
 | Bloqueio de print no iOS depende de um truque não oficial | testar a cada versão do iOS; texto honesto |
 | Tamanho do cofre das ocultas indicar uso | o cofre nasce com um bloco de 16 MiB e cresce de 16 em 16, com as datas tocadas a cada abertura e bloqueio; passar de um bloco (muitas mensagens ou anexos ocultos) mostra que há uso. Limite documentado |
 | Spam contra IDs públicos | pedidos de conversa e bloqueio; prova de trabalho na fase 2 |
-| Alguém esgota as *one-time prekeys* de um ID buscando o cartão muitas vezes | taxa de busca por conexão, que zera a cada conexão nova; correção: taxa do relay inteiro por ID buscado; sem prekey, o X3DH continua valendo, com menos proteção na primeira mensagem; prova de trabalho na fase 2 |
-| Disco do relay cheio de cartões e caixas criados em massa | taxa por conexão (que zera a cada conexão nova), teto de pacotes por caixa e retenção; ainda sem teto de disco; correção: taxa do relay inteiro para criar caixa e depositar, e teto de disco para os pacotes; prova de trabalho na fase 2 |
+| Quem busca muitas vezes o cartão de um ID gasta a cota de prekeys dele: quem buscar em seguida recebe o cartão sem prekey, e a primeira mensagem tem menos proteção | a cota é de 10 por hora por ID, e o app repõe as prekeys de hora em hora; prova de trabalho na fase 2 |
+| Cartões, caixas e pacotes criados em massa enchem os tetos do relay, e ele recusa o novo até o prazo do que entrou vencer | tetos ajustáveis por quem opera, taxas por conexão e por caixa; prova de trabalho na fase 2 |
 | Relay único no MVP | fila de saída; relays da comunidade na fase 2 |
 | Orbot configurado sem isolamento por credencial SOCKS juntaria os circuitos da caixa e dos depósitos | o Tor isola por padrão (`IsolateSOCKSAuth`); a tela de verificação técnica mede o tempo de circuito novo, reaproveitado e de outra credencial |
 | Contato que reinstala ou restaura sem escrever primeiro não recebe o que foi mandado para a caixa antiga | a restauração apaga a caixa antiga: quem escreve depois acha a caixa nova no cartão, abre sessão nova e cifra de novo o que esperava na fila. O que já estava na caixa antiga se perde (linha seguinte) |
@@ -772,7 +776,7 @@ Quatro decisões ainda abertas e setenta e oito riscos com mitigação. O maior 
 | Alguém divulgar fora do app um endereço de doação falso | o app assinado e o código mostram o endereço certo (RF-60) |
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
-| Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; a taxa de depósitos do relay ainda é por conexão; prova de trabalho na fase 2 |
+| Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; os depósitos numa caixa têm taxa no relay inteiro; prova de trabalho na fase 2 |
 | Um pacote que falha ao entrar no banco do app ocupa para sempre uma vaga da janela de entrega daquela conexão; com a janela cheia deles, a caixa para de receber | correção: pedir o pacote de novo e, depois de algumas falhas, descartá-lo |
 | O vigia do app bloqueado não confirma pacotes: com 100 deles à espera (mensagens, "digitando", confirmações), os novos não chegam a ele, e o aviso de mensagem nova para | correção: o relay mostra ao dono da caixa a marca de aviso dos pacotes além da janela, sem entregar o pacote |
 | Pânico com o cartão já vencido e a caixa principal ainda no relay não apaga a caixa, e o app conta o pânico como feito | correção: o pedido do pânico nomeia a caixa principal, e o app não aceita "cartão inexistente" como pânico completo |

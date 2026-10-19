@@ -84,9 +84,17 @@ describe('o processo do relay não escreve nada (RNF-05)', () => {
   });
 
   it('configuração inválida sai com o código 2, em silêncio', async () => {
-    const relay = rodar({ CIFRA_PORTA: 'oitenta' });
-    expect(await relay.fim).toBe(2);
-    expect(relay.saida()).toBe('');
+    for (const ambiente of [
+      { CIFRA_PORTA: 'oitenta' },
+      // Menos que uma caixa cheia.
+      { CIFRA_ESPACO_DOS_PACOTES: '3' },
+      { CIFRA_MAXIMO_DE_CARTOES: '0' },
+      { CIFRA_MAXIMO_DE_CAIXAS: 'muitas' },
+    ]) {
+      const relay = rodar(ambiente);
+      expect(await relay.fim).toBe(2);
+      expect(relay.saida()).toBe('');
+    }
   });
 
   it('porta ocupada sai com o código 3, em silêncio', async () => {

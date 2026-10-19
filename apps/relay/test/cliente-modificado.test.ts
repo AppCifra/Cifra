@@ -7,6 +7,7 @@ import {
   TAMANHO_DO_PACOTE,
   TAMANHO_MAXIMO_DO_PEDIDO,
   TAXAS,
+  TAXAS_DO_RELAY,
 } from '@cifra/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ClienteDoRelay } from '../scripts/cliente.ts';
@@ -15,6 +16,7 @@ import type { LimitesDoRelay } from '../src/relay.ts';
 import {
   abrir,
   codigo,
+  INICIO,
   novaIdentidade,
   novoPar,
   pacoteAleatorio,
@@ -292,5 +294,130 @@ describe('conexões ociosas e mortas', () => {
       const resposta = await conexao.pedir({ tipo: 'buscar-cartao', id: novaIdentidade().id });
       expect(codigo(resposta)).toBe('cartao-inexistente');
     }
+  });
+});
+
+describe('o que uma conexão nova não recomeça (RNF-13)', () => {
+  /** Uma conexão nova para cada pedido, como quem troca de circuito no Tor. */
+  async function emConexoesNovas<T>(
+    quantas: number,
+    pedir: (cliente: ClienteDoRelay) => Promise<T>,
+  ): Promise<T[]> {
+    const resultados: T[] = [];
+    for (let i = 0; i < quantas; i++) {
+      const cliente = await relay.conectar();
+      resultados.push(await pedir(cliente));
+      await cliente.fechar();
+    }
+    return resultados;
+  }
+
+  it('as one-time prekeys de um ID têm cota no relay inteiro; acima dela, o cartão vai sem prekey', async () => {
+    await subir({ ...TAXAS_LIVRES, taxasDoRelay: TAXAS_DO_RELAY });
+    const bob = novaIdentidade();
+    const numeros = Array.from({ length: 100 }, (_, i) => i + 1);
+    const dono = await relay.conectar();
+    await dono.pedir({
+      tipo: 'publicar-cartao',
+      publicacao: publicacaoDe(bob, { prekeys: numeros }),
+    });
+
+    const { rajada, porMinuto } = TAXAS_DO_RELAY.prekeysPorId;
+    const buscas = await emConexoesNovas(rajada + 15, (cliente) =>
+      cliente.pedir({ tipo: 'buscar-cartao', id: bob.id }),
+    );
+    const comPrekey = buscas.filter((r) => r.tipo === 'cartao-encontrado' && r.prekey !== null);
+    expect(buscas.every((r) => r.tipo === 'cartao-encontrado')).toBe(true);
+    expect(comPrekey).toHaveLength(rajada);
+    expect(relay.consultar('SELECT count(*) AS n FROM prekeys')).toEqual([{ n: 100 - rajada }]);
+
+    // A cota volta com o tempo: 10 por hora.
+    relay.relogio.avancar(60_000 / porMinuto);
+    const depois = await emConexoesNovas(2, (cliente) =>
+      cliente.pedir({ tipo: 'buscar-cartao', id: bob.id }),
+    );
+    expect(depois.map((r) => r.tipo === 'cartao-encontrado' && r.prekey !== null)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it('depósitos numa caixa têm taxa no relay inteiro, venham de quantas conexões vierem', async () => {
+    await subir({ ...TAXAS_LIVRES, taxasDoRelay: TAXAS_DO_RELAY });
+    const caixa = novoPar();
+    const dono = await relay.conectar();
+    await dono.pedir({ tipo: 'criar-caixa', caixa: caixa.publicKey });
+    const { rajada } = TAXAS_DO_RELAY.depositosPorCaixa;
+    const codigos = (
+      await emConexoesNovas(rajada + 5, (cliente) =>
+        cliente.pedir({
+          tipo: 'depositar',
+          caixa: caixa.publicKey,
+          pacote: pacoteAleatorio(),
+          marca: marcaDeTeste(),
+        }),
+      )
+    ).map(codigo);
+    expect(codigos.filter((c) => c === 'ok')).toHaveLength(rajada);
+    expect(codigos.filter((c) => c === 'taxa-excedida')).toHaveLength(5);
+    expect(pacotesNoBanco()).toBe(rajada);
+  });
+
+  it('teto de pacotes no relay inteiro: cheio, caixa-cheia; o que sai abre vaga', async () => {
+    await subir({ ...TAXAS_LIVRES, pacotes: 3 });
+    const [a, b] = [novoPar(), novoPar()];
+    const dono = await relay.conectar();
+    for (const caixa of [a, b]) await dono.pedir({ tipo: 'criar-caixa', caixa: caixa.publicKey });
+    const depositar = (caixa: ReturnType<typeof novoPar>, pacote = pacoteAleatorio()) =>
+      dono
+        .pedir({ tipo: 'depositar', caixa: caixa.publicKey, pacote, marca: marcaDeTeste() })
+        .then(codigo);
+    const repetido = pacoteAleatorio();
+    expect([
+      await depositar(a, repetido),
+      await depositar(a),
+      await depositar(b),
+      await depositar(b),
+    ]).toEqual(['ok', 'ok', 'ok', 'caixa-cheia']);
+    // O mesmo pacote de novo não ocupa vaga: é o reenvio de quem não viu a resposta.
+    expect(await depositar(a, repetido)).toBe('ok');
+    expect(pacotesNoBanco()).toBe(3);
+
+    // O que o dono confirma abre vaga, e o que vence também.
+    const leitor = await relay.conectar();
+    await abrir(leitor, a);
+    const aviso = await leitor.proximoAviso();
+    if (aviso.tipo !== 'pacote') throw new Error('esperava um pacote');
+    await leitor.pedir({ tipo: 'confirmar', ids: [aviso.id] });
+    expect([await depositar(b), await depositar(b)]).toEqual(['ok', 'caixa-cheia']);
+    relay.relogio.avancar(15 * 24 * 3_600_000);
+    relay.relay.limpar();
+    expect(pacotesNoBanco()).toBe(0);
+    expect([await depositar(a), await depositar(b), await depositar(b)]).toEqual([
+      'ok',
+      'ok',
+      'ok',
+    ]);
+  });
+
+  it('tetos de cartões e de caixas: cheio, o novo recebe relay-cheio; o que já existe continua', async () => {
+    await subir({ ...TAXAS_LIVRES, cartoes: 1, caixas: 1 });
+    const cliente = await relay.conectar();
+    const [bob, carol] = [novaIdentidade(), novaIdentidade()];
+    const publicar = (identidade: ReturnType<typeof novaIdentidade>, data = INICIO) =>
+      cliente
+        .pedir({ tipo: 'publicar-cartao', publicacao: publicacaoDe(identidade, { data }) })
+        .then(codigo);
+    expect(await publicar(bob)).toBe('cartao-publicado');
+    expect(await publicar(carol)).toBe('relay-cheio');
+    expect(await publicar(bob, INICIO + 1)).toBe('cartao-publicado');
+
+    const [x, y] = [novoPar(), novoPar()];
+    const criar = (caixa: ReturnType<typeof novoPar>) =>
+      cliente.pedir({ tipo: 'criar-caixa', caixa: caixa.publicKey }).then(codigo);
+    expect(await criar(x)).toBe('ok');
+    expect(await criar(y)).toBe('relay-cheio');
+    expect(await criar(x)).toBe('ok');
+    expect(relay.consultar('SELECT count(*) AS n FROM caixas')).toEqual([{ n: 1 }]);
   });
 });

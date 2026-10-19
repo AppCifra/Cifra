@@ -46,6 +46,7 @@ export const TAXAS_LIVRES: Partial<LimitesDoRelay> = {
     apagarTudo: LIVRE,
     mensagens: LIVRE,
   },
+  taxasDoRelay: { prekeysPorId: LIVRE, depositosPorCaixa: LIVRE },
 };
 
 export interface Relogio {

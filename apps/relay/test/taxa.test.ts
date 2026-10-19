@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { criarBalde } from '../src/taxa.ts';
+import { criarBalde, criarBaldes } from '../src/taxa.ts';
 
 describe('balde de fichas', () => {
   it('libera a rajada de uma vez e depois a taxa por minuto, sem passar da rajada', () => {
@@ -22,5 +22,20 @@ describe('balde de fichas', () => {
     expect(tirar()).toBe(false);
     agora += 60_000;
     expect(tirar()).toBe(true);
+  });
+});
+
+describe('baldes por chave', () => {
+  it('cada chave tem o seu balde, e os que voltaram a encher são esquecidos', () => {
+    let agora = 0;
+    const baldes = criarBaldes({ rajada: 2, porMinuto: 1 }, () => agora);
+    expect([baldes.tirar('a'), baldes.tirar('a'), baldes.tirar('a')]).toEqual([true, true, false]);
+    expect(baldes.tirar('b')).toBe(true);
+
+    // Um minuto depois, o de "a" tem uma ficha; o de "b", cheio de novo, é esquecido sem mudar nada.
+    agora += 60_000;
+    baldes.esquecerCheios();
+    expect([baldes.tirar('a'), baldes.tirar('a')]).toEqual([true, false]);
+    expect([baldes.tirar('b'), baldes.tirar('b'), baldes.tirar('b')]).toEqual([true, true, false]);
   });
 });

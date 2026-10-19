@@ -66,6 +66,23 @@ const MIGRACOES: readonly (readonly string[])[] = [
     `ALTER TABLE pacotes ADD COLUMN marca BLOB NOT NULL
        DEFAULT x'${'00'.repeat(49)}' CHECK (length(marca) = 49)`,
   ],
+  // 4. Contagens do relay inteiro, para os tetos de pacotes, cartões e caixas sem contar a tabela a
+  // cada pedido. Os gatilhos acompanham toda entrada e saída, também as que vêm em cascata.
+  [
+    `CREATE TABLE contagens (
+      tabela TEXT PRIMARY KEY,
+      n INTEGER NOT NULL
+    ) STRICT, WITHOUT ROWID`,
+    ...['pacotes', 'cartoes', 'caixas'].flatMap((tabela) => [
+      `INSERT INTO contagens (tabela, n) SELECT '${tabela}', count(*) FROM ${tabela}`,
+      `CREATE TRIGGER ${tabela}_entram AFTER INSERT ON ${tabela} BEGIN
+         UPDATE contagens SET n = n + 1 WHERE tabela = '${tabela}';
+       END`,
+      `CREATE TRIGGER ${tabela}_saem AFTER DELETE ON ${tabela} BEGIN
+         UPDATE contagens SET n = n - 1 WHERE tabela = '${tabela}';
+       END`,
+    ]),
+  ],
 ];
 
 export interface NovaPublicacao {
@@ -79,18 +96,22 @@ export interface NovaPublicacao {
   readonly modo: ModoDaPublicacao;
   readonly prekeys: readonly Prekey[];
   readonly maximoDePrekeys: number;
+  /** Cartões no relay inteiro: um ID novo não entra acima disso. */
+  readonly maximoDeCartoes: number;
 }
 
 /**
  * - `caixaSubstituida`: a caixa principal do cartão anterior, quando o novo trouxe outra (RF-05).
  *   Ela já saiu do banco, com os pacotes: o aparelho novo não decifraria nenhum.
  * - `caixa-substituida`: a publicação traz outra caixa sem ser `substituir`; nada muda.
+ * - `relay-cheio`: o ID é novo, e o relay chegou ao teto de cartões; nada muda.
  */
 export type ResultadoDaPublicacao =
   | { readonly prekeysGuardadas: number; readonly caixaSubstituida: Uint8Array | null }
   | 'cartao-antigo'
   | 'prekeys-recusadas'
-  | 'caixa-substituida';
+  | 'caixa-substituida'
+  | 'relay-cheio';
 
 export interface CartaoGuardado {
   readonly cartao: Uint8Array;
@@ -106,6 +127,8 @@ export interface NovoPacote {
   readonly marca: Uint8Array;
   readonly expiraEm: number;
   readonly maximoNaCaixa: number;
+  /** Pacotes no relay inteiro; acima disso, `caixa-cheia`. */
+  readonly maximoNoRelay: number;
 }
 
 /** `repetido`: o mesmo pacote já estava na caixa, e nada mudou. */
@@ -135,15 +158,21 @@ export interface Banco {
    * principal, e a caixa anterior sai na mesma transação.
    */
   publicarCartao(publicacao: NovaPublicacao): ResultadoDaPublicacao;
-  /** Devolve o cartão com uma one-time prekey, que sai do banco: cada uma é entregue uma vez. */
-  buscarCartao(id: Uint8Array): CartaoGuardado | null;
+  /**
+   * Devolve o cartão e, se `comPrekey` deixar, uma one-time prekey, que sai do banco: cada uma é
+   * entregue uma vez. `comPrekey` só é chamado quando o ID tem cartão.
+   */
+  buscarCartao(id: Uint8Array, comPrekey: () => boolean): CartaoGuardado | null;
   /**
    * Pânico: apaga o cartão do ID, as prekeys, a caixa principal do cartão e os pacotes dela, numa
    * transação. Devolve a caixa apagada, ou `null` se o ID não tinha cartão.
    */
   apagarTudo(id: Uint8Array): Uint8Array | null;
-  /** Cria a caixa se ela não existe. Criar de novo não muda nada, nem o prazo. */
-  criarCaixa(caixa: Uint8Array, expiraEm: number): void;
+  /**
+   * Cria a caixa se ela não existe. Criar de novo não muda nada, nem o prazo. Caixa nova acima de
+   * `maximo` caixas no relay não entra: `relay-cheio`.
+   */
+  criarCaixa(caixa: Uint8Array, expiraEm: number, maximo: number): 'ok' | 'relay-cheio';
   /** Adia o prazo da caixa. Devolve `false` se ela não existe. */
   renovarCaixa(caixa: Uint8Array, expiraEm: number): boolean;
   depositar(pacote: NovoPacote): ResultadoDoDeposito;
@@ -260,6 +289,7 @@ export function abrirBanco(caminho: string): Banco {
     ),
     pedaco: db.prepare('SELECT dados FROM pedacos WHERE anexo = ? AND indice = ?'),
     anexosIncompletos: db.prepare('DELETE FROM anexos WHERE completo = 0'),
+    contagem: db.prepare('SELECT n FROM contagens WHERE tabela = ?'),
   };
 
   /** Roda `operacao` numa transação. Se ela devolver `desfazer`, nada do que fez fica. */
@@ -277,6 +307,8 @@ export function abrirBanco(caminho: string): Banco {
   }
 
   const contar = (linha: Linha | undefined) => numero(linha, 'n');
+  /** Quantas linhas a tabela tem no relay inteiro, pela contagem que os gatilhos mantêm. */
+  const quantos = (tabela: 'pacotes' | 'cartoes' | 'caixas') => contar(sql.contagem.get(tabela));
 
   return {
     publicarCartao(publicacao) {
@@ -291,6 +323,7 @@ export function abrirBanco(caminho: string): Banco {
           // Antes da data: o aparelho trocado descobre isso na primeira renovação.
           if (outraCaixa && publicacao.modo !== 'substituir') return 'caixa-substituida';
           if (guardado && numero(guardado, 'data') >= publicacao.data) return 'cartao-antigo';
+          if (!guardado && quantos('cartoes') >= publicacao.maximoDeCartoes) return 'relay-cheio';
           if (publicacao.modo === 'substituir') sql.apagarPrekeys.run(id);
           const existentes = contar(sql.contarPrekeys.get(id));
           if (
@@ -309,11 +342,11 @@ export function abrirBanco(caminho: string): Banco {
       );
     },
 
-    buscarCartao(id) {
+    buscarCartao(id, comPrekey) {
       return transacao(() => {
         const linha = sql.cartao.get(id);
         if (!linha) return null;
-        const prekey = sql.consumirPrekey.get(id);
+        const prekey = comPrekey() ? sql.consumirPrekey.get(id) : undefined;
         return {
           cartao: bytes(linha, 'cartao'),
           prekey: prekey
@@ -336,8 +369,13 @@ export function abrirBanco(caminho: string): Banco {
       });
     },
 
-    criarCaixa(caixa, expiraEm) {
-      sql.criarCaixa.run(caixa, expiraEm);
+    criarCaixa(caixa, expiraEm, maximo) {
+      return transacao(() => {
+        if (sql.caixaExiste.get(caixa)) return 'ok';
+        if (quantos('caixas') >= maximo) return 'relay-cheio';
+        sql.criarCaixa.run(caixa, expiraEm);
+        return 'ok';
+      });
     },
 
     renovarCaixa(caixa, expiraEm) {
@@ -349,6 +387,7 @@ export function abrirBanco(caminho: string): Banco {
         if (!sql.caixaExiste.get(novo.caixa)) return 'caixa-inexistente';
         if (sql.pacoteExiste.get(novo.caixa, novo.id)) return 'repetido';
         if (contar(sql.contarPacotes.get(novo.caixa)) >= novo.maximoNaCaixa) return 'caixa-cheia';
+        if (quantos('pacotes') >= novo.maximoNoRelay) return 'caixa-cheia';
         sql.guardarPacote.run(novo.caixa, novo.id, novo.pacote, novo.marca, novo.expiraEm);
         return 'novo';
       });

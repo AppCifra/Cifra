@@ -3,15 +3,23 @@
 //   CIFRA_ENDERECO  interface de escuta (padrão 127.0.0.1; no Docker, 0.0.0.0)
 //   CIFRA_BANCO     arquivo do banco SQLite (padrão relay.sqlite)
 //   CIFRA_ESPACO_DOS_ANEXOS  espaço dos anexos, em MB (padrão 4096)
+//   CIFRA_ESPACO_DOS_PACOTES espaço dos pacotes guardados, em MB (padrão 4096)
+//   CIFRA_MAXIMO_DE_CARTOES  cartões guardados (padrão 250000)
+//   CIFRA_MAXIMO_DE_CAIXAS   caixas (padrão 1000000)
 //
 // O processo não escreve nada em stdout nem em stderr, nem quando falha (RNF-05). O motivo de uma
 // saída fica no código: 2 para configuração inválida, 3 quando não abre a porta e 1 para erro
 // inesperado.
 import {
   ANEXOS_SUBINDO,
+  CAIXAS_NO_RELAY,
+  CARTOES_NO_RELAY,
   ESPACO_DOS_ANEXOS_EM_MB,
+  ESPACO_DOS_PACOTES_EM_MB,
   INTERVALO_DO_PING_EM_SEGUNDOS,
+  PACOTES_POR_CAIXA,
   PARADA_DO_ANEXO_EM_SEGUNDOS,
+  TAMANHO_DO_PACOTE,
   TAMANHO_MAXIMO_DO_ANEXO,
   TRANSFERENCIAS_DE_ANEXOS,
 } from '@cifra/protocol';
@@ -31,6 +39,11 @@ const porta = Number(ambiente['CIFRA_PORTA'] ?? 8080);
 const endereco = ambiente['CIFRA_ENDERECO'] ?? '127.0.0.1';
 const caminho = ambiente['CIFRA_BANCO'] ?? 'relay.sqlite';
 const espaco = Number(ambiente['CIFRA_ESPACO_DOS_ANEXOS'] ?? ESPACO_DOS_ANEXOS_EM_MB) * 1024 * 1024;
+const pacotes =
+  (Number(ambiente['CIFRA_ESPACO_DOS_PACOTES'] ?? ESPACO_DOS_PACOTES_EM_MB) * 1024 * 1024) /
+  TAMANHO_DO_PACOTE;
+const cartoes = Number(ambiente['CIFRA_MAXIMO_DE_CARTOES'] ?? CARTOES_NO_RELAY);
+const caixas = Number(ambiente['CIFRA_MAXIMO_DE_CAIXAS'] ?? CAIXAS_NO_RELAY);
 
 if (
   !Number.isInteger(porta) ||
@@ -39,7 +52,14 @@ if (
   endereco === '' ||
   caminho === '' ||
   !Number.isSafeInteger(espaco) ||
-  espaco < TAMANHO_MAXIMO_DO_ANEXO
+  espaco < TAMANHO_MAXIMO_DO_ANEXO ||
+  // No mínimo uma caixa cheia.
+  !Number.isSafeInteger(pacotes) ||
+  pacotes < PACOTES_POR_CAIXA ||
+  !Number.isSafeInteger(cartoes) ||
+  cartoes < 1 ||
+  !Number.isSafeInteger(caixas) ||
+  caixas < 1
 ) {
   process.exit(SAIDAS.configuracao);
 }
@@ -50,6 +70,9 @@ const relay = criarRelay({
   sodium: libsodium,
   agora: Date.now,
   limites: {
+    pacotes,
+    cartoes,
+    caixas,
     anexos: {
       subindo: ANEXOS_SUBINDO,
       transferencias: TRANSFERENCIAS_DE_ANEXOS,

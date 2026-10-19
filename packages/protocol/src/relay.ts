@@ -74,6 +74,8 @@ export const BYTES_DA_MARCA = 49;
  * - `caixa-fechada`: confirmar sem ter aberto uma caixa nesta conexão.
  * - `caixa-substituida`: a publicação traz outra caixa principal, mas não é `substituir`. Só a
  *   restauração em outro aparelho troca a caixa, e o aparelho que recebe este código foi trocado.
+ * - `relay-cheio`: o relay chegou ao teto de cartões ou de caixas; o cartão de um ID novo, ou a
+ *   caixa nova, não entra. Tente mais tarde.
  */
 export const CODIGOS = [
   'ok',
@@ -89,6 +91,7 @@ export const CODIGOS = [
   'caixa-ja-aberta',
   'caixa-fechada',
   'caixa-substituida',
+  'relay-cheio',
 ] as const;
 
 export type CodigoDeResposta = (typeof CODIGOS)[number];

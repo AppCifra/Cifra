@@ -110,3 +110,24 @@ export const TAXAS = {
   apagarTudo: { rajada: 3, porMinuto: 1 },
   mensagens: { rajada: 100, porMinuto: 1200 },
 } as const satisfies Readonly<Record<string, Taxa>>;
+
+/**
+ * Taxas do relay inteiro, que uma conexão nova não recomeça.
+ * - `prekeysPorId`: one-time prekeys entregues de um mesmo ID, 10 por hora. Acima disso, a busca
+ *   devolve o cartão sem prekey: o X3DH continua valendo, com menos proteção na primeira mensagem, e
+ *   o dono, que repõe as prekeys de hora em hora, não fica sem nenhuma.
+ * - `depositosPorCaixa`: depósitos numa mesma caixa; acima disso, `taxa-excedida`.
+ */
+export const TAXAS_DO_RELAY = {
+  prekeysPorId: { rajada: 10, porMinuto: 10 / 60 },
+  depositosPorCaixa: { rajada: 100, porMinuto: 60 },
+} as const satisfies Readonly<Record<string, Taxa>>;
+
+/** Espaço dos pacotes guardados no relay inteiro, em MB (padrão; quem opera ajusta). */
+export const ESPACO_DOS_PACOTES_EM_MB = 4096;
+
+/** Cartões guardados no relay (padrão; quem opera ajusta). */
+export const CARTOES_NO_RELAY = 250_000;
+
+/** Caixas no relay (padrão; quem opera ajusta). */
+export const CAIXAS_NO_RELAY = 1_000_000;

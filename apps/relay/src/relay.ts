@@ -10,9 +10,12 @@ import {
   aberturaAutentica,
   ANEXOS_SUBINDO,
   apagarTudoAutentico,
+  CAIXAS_NO_RELAY,
+  CARTOES_NO_RELAY,
   codificarMensagemDoRelay,
   CONEXOES_SIMULTANEAS,
   ESPACO_DOS_ANEXOS_EM_MB,
+  ESPACO_DOS_PACOTES_EM_MB,
   FECHAMENTOS,
   idDaChave,
   idDoCartao,
@@ -31,8 +34,10 @@ import {
   RETENCAO_DO_CARTAO_EM_DIAS,
   RETENCAO_DO_PACOTE_EM_DIAS,
   SAIDA_POR_CONEXAO,
+  TAMANHO_DO_PACOTE,
   TAMANHO_MAXIMO_DO_PEDIDO,
   TAXAS,
+  TAXAS_DO_RELAY,
   TOLERANCIA_DO_RELOGIO_EM_HORAS,
   TRANSFERENCIAS_DE_ANEXOS,
   VERSAO_DO_PROTOCOLO,
@@ -45,7 +50,7 @@ import { WebSocketServer, type RawData, type WebSocket } from 'ws';
 import { criarAnexos, type LimitesDosAnexos } from './anexos.ts';
 import type { Banco } from './banco.ts';
 import type { SodiumDoRelay } from './sodium.ts';
-import { criarBalde, type Balde } from './taxa.ts';
+import { criarBalde, criarBaldes, type Balde } from './taxa.ts';
 
 const HORA = 3_600_000;
 const DIA = 24 * HORA;
@@ -66,6 +71,12 @@ export interface LimitesDoRelay {
   /** Bytes esperando para sair numa conexão; acima disso, ela cai. */
   readonly saida: number;
   readonly taxas: Readonly<Record<keyof typeof TAXAS, Taxa>>;
+  /** As taxas que valem para o relay inteiro, por ID buscado e por caixa. */
+  readonly taxasDoRelay: Readonly<Record<keyof typeof TAXAS_DO_RELAY, Taxa>>;
+  /** Pacotes, cartões e caixas no relay inteiro. */
+  readonly pacotes: number;
+  readonly cartoes: number;
+  readonly caixas: number;
   readonly anexos: LimitesDosAnexos;
 }
 
@@ -76,6 +87,10 @@ const LIMITES: LimitesDoRelay = {
   ociosidade: OCIOSIDADE_EM_SEGUNDOS * 1000,
   saida: SAIDA_POR_CONEXAO,
   taxas: TAXAS,
+  taxasDoRelay: TAXAS_DO_RELAY,
+  pacotes: (ESPACO_DOS_PACOTES_EM_MB * 1024 * 1024) / TAMANHO_DO_PACOTE,
+  cartoes: CARTOES_NO_RELAY,
+  caixas: CAIXAS_NO_RELAY,
   anexos: {
     subindo: ANEXOS_SUBINDO,
     transferencias: TRANSFERENCIAS_DE_ANEXOS,
@@ -100,7 +115,10 @@ export interface Relay {
   readonly servidor: Server;
   /** Apaga pacotes, cartões e caixas vencidos (RNF-14). Rode ao subir e a cada hora. */
   limpar(): void;
-  /** Manda ping, derruba quem deixou os últimos sem resposta e fecha as conexões ociosas. */
+  /**
+   * Manda ping, derruba quem deixou os últimos sem resposta e fecha as conexões ociosas. Esquece os
+   * baldes do relay inteiro que já voltaram a encher. Rode a cada intervalo do ping.
+   */
   vigiar(): void;
   /** Derruba todas as conexões e fecha o servidor. */
   fechar(): Promise<void>;
@@ -134,6 +152,11 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
   const conexoes = new Set<Conexao>();
   /** Caixa aberta (em hex) para a conexão que a abriu. Vale a abertura mais nova. */
   const caixasAbertas = new Map<string, Conexao>();
+  /** O que uma conexão nova não recomeça: as prekeys entregues de cada ID e os depósitos em cada caixa. */
+  const baldesDoRelay = {
+    prekeys: criarBaldes(limites.taxasDoRelay.prekeysPorId, agora),
+    depositos: criarBaldes(limites.taxasDoRelay.depositosPorCaixa, agora),
+  };
 
   // O que sobrou de um envio interrompido quando o relay caiu não volta.
   banco.apagarIncompletos();
@@ -260,6 +283,7 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
       modo: publicacao.modo,
       prekeys: publicacao.prekeys,
       maximoDePrekeys: MAXIMO_DE_PREKEYS,
+      maximoDeCartoes: limites.cartoes,
     });
     if (typeof resultado === 'string') {
       responder(conexao, numero, resultado);
@@ -316,7 +340,10 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
           responder(conexao, numero, 'taxa-excedida');
           return;
         }
-        const guardado = banco.buscarCartao(pedido.id);
+        // Acima da cota de prekeys do ID, o cartão vai sem prekey: quem busca muito não esvazia as dele.
+        const guardado = banco.buscarCartao(pedido.id, () =>
+          baldesDoRelay.prekeys.tirar(hex(pedido.id)),
+        );
         const cartao = guardado && lerCartao(guardado.cartao);
         if (!guardado || !cartao) {
           responder(conexao, numero, 'cartao-inexistente');
@@ -331,12 +358,19 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
           responder(conexao, numero, 'taxa-excedida');
           return;
         }
-        banco.criarCaixa(pedido.caixa, horaCheia(agora() + RETENCAO_DA_CAIXA_EM_DIAS * DIA));
-        responder(conexao, numero, 'ok');
+        responder(
+          conexao,
+          numero,
+          banco.criarCaixa(
+            pedido.caixa,
+            horaCheia(agora() + RETENCAO_DA_CAIXA_EM_DIAS * DIA),
+            limites.caixas,
+          ),
+        );
         return;
 
       case 'depositar': {
-        if (!conexao.baldes.depositar()) {
+        if (!conexao.baldes.depositar() || !baldesDoRelay.depositos.tirar(hex(pedido.caixa))) {
           responder(conexao, numero, 'taxa-excedida');
           return;
         }
@@ -347,6 +381,7 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
           marca: pedido.marca,
           expiraEm: horaCheia(agora() + RETENCAO_DO_PACOTE_EM_DIAS * DIA),
           maximoNaCaixa: limites.pacotesPorCaixa,
+          maximoNoRelay: limites.pacotes,
         });
         if (resultado === 'caixa-inexistente' || resultado === 'caixa-cheia') {
           responder(conexao, numero, resultado);
@@ -484,6 +519,8 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
 
     vigiar() {
       const instante = agora();
+      baldesDoRelay.prekeys.esquecerCheios();
+      baldesDoRelay.depositos.esquecerCheios();
       for (const conexao of [...conexoes]) {
         if (conexao.pingsSemResposta >= PINGS_SEM_RESPOSTA) {
           esquecer(conexao);

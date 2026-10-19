@@ -26,6 +26,7 @@ export const ESQUEMA: Record<string, readonly string[]> = {
   anexos: ['id', 'tamanho', 'completo', 'expira_em'],
   caixas: ['chave', 'expira_em'],
   cartoes: ['id', 'cartao', 'data', 'expira_em'],
+  contagens: ['tabela', 'n'],
   pacotes: ['ordem', 'caixa', 'id', 'pacote', 'expira_em', 'marca'],
   pedacos: ['anexo', 'indice', 'dados'],
   prekeys: ['cartao', 'numero', 'chave'],

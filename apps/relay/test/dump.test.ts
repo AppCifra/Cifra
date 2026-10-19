@@ -140,22 +140,26 @@ describe('dump do banco do relay (RNF-03)', () => {
       'anexos',
       'caixas',
       'cartoes',
+      'contagens',
       'pacotes',
       'pedacos',
       'prekeys',
     ]);
     const colunas = Object.fromEntries(
-      ['anexos', 'caixas', 'cartoes', 'pacotes', 'pedacos', 'prekeys'].map((tabela) => [
-        tabela,
-        relay
-          .consultar(`SELECT name FROM pragma_table_info('${tabela}') ORDER BY cid`)
-          .map((linha) => linha['name']),
-      ]),
+      ['anexos', 'caixas', 'cartoes', 'contagens', 'pacotes', 'pedacos', 'prekeys'].map(
+        (tabela) => [
+          tabela,
+          relay
+            .consultar(`SELECT name FROM pragma_table_info('${tabela}') ORDER BY cid`)
+            .map((linha) => linha['name']),
+        ],
+      ),
     );
     expect(colunas).toEqual({
       anexos: ['id', 'tamanho', 'completo', 'expira_em'],
       caixas: ['chave', 'expira_em'],
       cartoes: ['id', 'cartao', 'data', 'expira_em'],
+      contagens: ['tabela', 'n'],
       pacotes: ['ordem', 'caixa', 'id', 'pacote', 'expira_em', 'marca'],
       pedacos: ['anexo', 'indice', 'dados'],
       prekeys: ['cartao', 'numero', 'chave'],
