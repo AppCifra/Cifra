@@ -692,7 +692,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e oitenta e quatro riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e oitenta e três riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -741,7 +741,7 @@ Quatro decisões ainda abertas e oitenta e quatro riscos com mitigação. O maio
 | Fotos abertas ficam na memória do JS e no cache de imagens enquanto o app está aberto | saem no bloqueio (o cache de imagens é limpo); o texto do JS não dá para zerar, como a chave do banco |
 | GIF vira foto parada | limite documentado; animação fica para depois |
 | Documento vai como está e pode ter dados do autor | o painel "Anexar" avisa (RF-34); limpar documentos fica para depois |
-| A área de transferência só é limpa com o Cifra na frente: o Android 10 não deixa o app de trás conferir o que está copiado | o texto vai marcado como sensível; se a pessoa saiu antes dos 60 s, ele sai quando ela volta ao Cifra, e nunca o texto que outro app copiou depois |
+| A área de transferência só é limpa com o Cifra na frente e com a janela dele em foco: desde o Android 10, só assim o app consegue conferir o que está copiado | o texto vai marcado como sensível; se a pessoa saiu antes dos 60 s, ele sai quando ela volta ao Cifra, e nunca o texto que outro app copiou depois |
 | Tocar vídeo em tela cheia, salvar documento em Download e cancelar no meio de uma transferência só passaram pelos testes, sem conferência num aparelho | a lógica tem testes, e a seção "Anexos" da verificação técnica passou; conferir num celular de verdade |
 | Depois de reiniciar o celular (ou de o sistema fechar o app), as notificações só voltam quando a pessoa abre o Cifra | o serviço não liga junto com o sistema: ele precisaria da chave da caixa e das preferências antes de qualquer abertura. Texto dos ajustes e rever na fase 2 |
 | A economia de bateria do Android (Doze) atrasa o aviso de mensagem nova e o alarme do bloqueio sozinho | o alarme é inexato para não pedir permissão de alarme exato; a volta ao app confere o prazo. Pedir para tirar o Cifra da economia de bateria fica para depois |
@@ -769,7 +769,6 @@ Quatro decisões ainda abertas e oitenta e quatro riscos com mitigação. O maio
 | Depois do pânico, ficam na pasta do app o arquivo do keychain com 0 byte, o marcador de perfil do Android e o estado dos pedidos de permissão do Expo | nenhum tem dado da pessoa; mostram só que o app está instalado, o que já se vê |
 | Alguém divulgar fora do app um endereço de doação falso | o app assinado e o código mostram o endereço certo (RF-60) |
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
-| A limpeza da área de transferência depois de 60 s pode falhar ao voltar ao app, porque o Android 10 ou mais novo só deixa ler com a janela em foco, e o texto fica | correção: conferir quando a janela ganha foco e só desistir depois de conseguir ler (RF-52) |
 | Mais de 1000 mensagens seguidas sem leitura numa cadeia do Double Ratchet (caixa sem leitura por mais de 14 dias, como a de uma conversa oculta com o cofre fechado) fazem as seguintes não abrirem até o próximo passo DH | correção: teto de saltos maior, como os 25 mil do Signal, com teto de memória para as chaves puladas |
 | Se o app fecha entre a cópia da conversa para o cofre e a exclusão no banco principal, a conversa continua no principal, e o cofre apaga depois o que chegou nesse meio-tempo | correção: a mudança fica marcada também no principal, e a retomada não apaga o que é mais novo que a cópia |
 | Sem espaço para crescer o bloco do cofre, ocultar desfaz pela metade, e a conversa fica nos dois bancos | correção: separar a falha da cópia da falha do bloco e terminar a mudança pela marca |
