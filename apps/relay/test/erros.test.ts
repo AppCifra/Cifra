@@ -1,4 +1,5 @@
-import { FECHAMENTOS } from '@cifra/protocol';
+import { connect, type Socket } from 'node:net';
+import { codificarPedido, FECHAMENTOS } from '@cifra/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { ClienteDoRelay } from '../scripts/cliente.ts';
 import type { Banco } from '../src/banco.ts';
@@ -7,8 +8,10 @@ import {
   codigo,
   falhando,
   marcaDeTeste,
+  novaIdentidade,
   novoPar,
   pacoteAleatorio,
+  publicacaoDe,
   sodium,
   subirRelay,
   TAXAS_LIVRES,
@@ -16,8 +19,9 @@ import {
   type RelayDeTeste,
 } from './ajuda.ts';
 
-// Um erro do banco no meio de um pedido (disco cheio, arquivo danificado) não derruba o relay: só
-// a conexão daquele pedido cai, e as outras continuam (RNF-13).
+// O relay não cai por causa de uma conexão (RNF-13): um erro do banco no meio de um pedido (disco
+// cheio, arquivo danificado) derruba só a conexão daquele pedido, e uma conexão que não lê o que o
+// relay manda é derrubada antes de a saída dela encher a memória.
 
 let relay: RelayDeTeste;
 let falhar: keyof Banco | null = null;
@@ -97,5 +101,87 @@ describe('erro do banco num pedido (RNF-13)', () => {
     expect(() => {
       relay.relay.limpar();
     }).not.toThrow();
+  });
+});
+
+/** Um quadro WebSocket binário do cliente, mascarado como o protocolo exige. */
+function quadro(dados: Uint8Array): Buffer {
+  const mascara = sodium.randombytes_buf(4);
+  const cabeca =
+    dados.length < 126
+      ? Buffer.from([0x82, 0x80 | dados.length])
+      : Buffer.from([0x82, 0x80 | 126, dados.length >> 8, dados.length & 0xff]);
+  const corpo = Buffer.from(dados.map((byte, i) => byte ^ (mascara[i % 4] ?? 0)));
+  return Buffer.concat([cabeca, Buffer.from(mascara), corpo]);
+}
+
+/**
+ * Uma conexão WebSocket feita à mão, que manda pedidos e nunca lê nada do socket: o que o relay
+ * manda fica parado do lado dele.
+ */
+async function conexaoQueNaoLe(endereco: string): Promise<Socket> {
+  const { hostname, port } = new URL(endereco.replace('ws://', 'http://'));
+  const socket = connect(Number(port), hostname);
+  await new Promise<void>((pronto) => socket.once('connect', pronto));
+  socket.pause();
+  const chave = Buffer.from(sodium.randombytes_buf(16)).toString('base64');
+  socket.write(
+    `GET / HTTP/1.1\r\nHost: ${hostname}:${port}\r\nUpgrade: websocket\r\n` +
+      `Connection: Upgrade\r\nSec-WebSocket-Key: ${chave}\r\nSec-WebSocket-Version: 13\r\n\r\n`,
+  );
+  return socket;
+}
+
+describe('uma conexão que não lê (RNF-13)', () => {
+  it('a saída dela tem teto: acima dele, o relay derruba a conexão', async () => {
+    const livre = { rajada: 1_000_000, porMinuto: 1_000_000 };
+    relay = await subirRelay({
+      taxas: {
+        depositar: livre,
+        buscarCartao: livre,
+        publicarCartao: livre,
+        criarCaixa: livre,
+        apagarTudo: livre,
+        mensagens: livre,
+      },
+      saida: 64 * 1024,
+    });
+    const bob = novaIdentidade();
+    const publicador = await relay.conectar();
+    const publicacao = publicacaoDe(bob);
+    expect((await publicador.pedir({ tipo: 'publicar-cartao', publicacao })).tipo).toBe(
+      'cartao-publicado',
+    );
+
+    // Milhares de buscas, cada resposta com o cartão inteiro, sem ler nenhuma.
+    const socket = await conexaoQueNaoLe(relay.endereco);
+    for (let numero = 1; numero <= 20_000; numero++) {
+      socket.write(quadro(codificarPedido({ tipo: 'buscar-cartao', numero, id: bob.id })));
+    }
+    await new Promise((pronto) => setTimeout(pronto, 1000));
+
+    // Lendo agora, chega o que já tinha saído e, depois, o fim da conexão.
+    let recebidos = 0;
+    const fechou = new Promise<boolean>((pronto) => {
+      socket.on('data', (dados: Buffer) => {
+        recebidos += dados.length;
+      });
+      socket.on('close', () => {
+        pronto(true);
+      });
+      socket.on('error', () => undefined);
+      setTimeout(() => {
+        pronto(false);
+      }, 3000);
+    });
+    socket.resume();
+    expect(await fechou).toBe(true);
+    expect(recebidos).toBeLessThan(20_000 * publicacao.cartao.bytes.length);
+    socket.destroy();
+
+    const outro = await relay.conectar();
+    expect(codigo(await outro.pedir({ tipo: 'buscar-cartao', id: bob.id }))).toBe(
+      'cartao-encontrado',
+    );
   });
 });

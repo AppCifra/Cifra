@@ -418,6 +418,7 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 | Taxa de envio | por conexão: depositar, 20 de uma vez e depois 60 por minuto; buscar cartão, 10 e depois 10 por minuto; publicar cartão, criar caixa e apagar tudo, 3 e depois 1 por minuto. Acima disso, `taxa-excedida`. Prova de trabalho no primeiro contato na fase 2 |
 | Mensagens por conexão | 100 de uma vez e depois 1200 por minuto; acima disso, a conexão fecha |
 | Conexões simultâneas | 1000 |
+| Saída por conexão | 1 MiB esperando para sair (quem não lê o que o relay manda); acima disso, a conexão cai |
 | Conexão ociosa | sem caixa aberta e sem mensagem por 5 min, fecha |
 | Conexão morta | ping a cada 30 s; dois seguidos sem resposta derrubam a conexão |
 
@@ -693,7 +694,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e setenta e nove riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e setenta e oito riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -772,7 +773,6 @@ Quatro decisões ainda abertas e setenta e nove riscos com mitigação. O maior 
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; a taxa de depósitos do relay ainda é por conexão; prova de trabalho na fase 2 |
-| Uma conexão que envia sem nunca ler faz o relay guardar na memória tudo o que vai para ela, até a memória acabar | correção: teto do que fica à espera por conexão; acima dele, a conexão fecha |
 | Um pacote que falha ao entrar no banco do app ocupa para sempre uma vaga da janela de entrega daquela conexão; com a janela cheia deles, a caixa para de receber | correção: pedir o pacote de novo e, depois de algumas falhas, descartá-lo |
 | O vigia do app bloqueado não confirma pacotes: com 100 deles à espera (mensagens, "digitando", confirmações), os novos não chegam a ele, e o aviso de mensagem nova para | correção: o relay mostra ao dono da caixa a marca de aviso dos pacotes além da janela, sem entregar o pacote |
 | Pânico com o cartão já vencido e a caixa principal ainda no relay não apaga a caixa, e o app conta o pânico como feito | correção: o pedido do pânico nomeia a caixa principal, e o app não aceita "cartão inexistente" como pânico completo |

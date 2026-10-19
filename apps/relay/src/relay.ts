@@ -30,6 +30,7 @@ import {
   RETENCAO_DO_ANEXO_EM_DIAS,
   RETENCAO_DO_CARTAO_EM_DIAS,
   RETENCAO_DO_PACOTE_EM_DIAS,
+  SAIDA_POR_CONEXAO,
   TAMANHO_MAXIMO_DO_PEDIDO,
   TAXAS,
   TOLERANCIA_DO_RELOGIO_EM_HORAS,
@@ -62,6 +63,8 @@ export interface LimitesDoRelay {
   readonly janelaDeEntrega: number;
   readonly conexoes: number;
   readonly ociosidade: number;
+  /** Bytes esperando para sair numa conexão; acima disso, ela cai. */
+  readonly saida: number;
   readonly taxas: Readonly<Record<keyof typeof TAXAS, Taxa>>;
   readonly anexos: LimitesDosAnexos;
 }
@@ -71,6 +74,7 @@ const LIMITES: LimitesDoRelay = {
   janelaDeEntrega: JANELA_DE_ENTREGA,
   conexoes: CONEXOES_SIMULTANEAS,
   ociosidade: OCIOSIDADE_EM_SEGUNDOS * 1000,
+  saida: SAIDA_POR_CONEXAO,
   taxas: TAXAS,
   anexos: {
     subindo: ANEXOS_SUBINDO,
@@ -170,7 +174,14 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
   });
 
   function enviar(conexao: Conexao, mensagem: MensagemDoRelay): void {
-    if (!conexao.fechada) conexao.ws.send(codificarMensagemDoRelay(mensagem));
+    if (conexao.fechada) return;
+    conexao.ws.send(codificarMensagemDoRelay(mensagem));
+    // Quem não lê o que o relay manda não deixa a saída na memória dele: acima do teto, a conexão
+    // cai na hora, sem o fechamento educado, que esperaria na mesma fila.
+    if (conexao.ws.bufferedAmount > limites.saida) {
+      esquecer(conexao);
+      conexao.ws.terminate();
+    }
   }
 
   function responder(conexao: Conexao, numero: number, codigo: CodigoDeResposta): void {

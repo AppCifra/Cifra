@@ -73,6 +73,12 @@ export const JANELA_DE_ENTREGA = 100;
 /** Conexões abertas ao mesmo tempo no relay. */
 export const CONEXOES_SIMULTANEAS = 1000;
 
+/**
+ * Bytes que o relay deixa esperando para sair numa conexão. Acima disso, quem não lê o que o relay
+ * manda perde a conexão: a saída dela não fica na memória do relay.
+ */
+export const SAIDA_POR_CONEXAO = 1024 * 1024;
+
 /** Conexão sem caixa aberta e sem mensagem neste prazo é fechada. */
 export const OCIOSIDADE_EM_SEGUNDOS = 300;
 

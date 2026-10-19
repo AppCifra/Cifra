@@ -4,6 +4,7 @@ import {
   BITS_DO_ID,
   CARACTERES_DO_ID,
   CONEXOES_SIMULTANEAS,
+  SAIDA_POR_CONEXAO,
   ESPACO_DOS_ANEXOS_EM_MB,
   INTERVALO_DO_PING_EM_SEGUNDOS,
   JANELA_DE_ENTREGA,
@@ -66,6 +67,11 @@ describe('limites do protocolo (valores iniciais do SPEC)', () => {
     expect(INTERVALO_DO_PING_EM_SEGUNDOS).toBe(30);
     // Morta só depois de 2 pings sem resposta: de 60 a 90 s, porque pelo Tor a volta demora.
     expect(PINGS_SEM_RESPOSTA).toBe(2);
+  });
+
+  it('saída por conexão: 1 MiB, mais que uma janela inteira de pacotes', () => {
+    expect(SAIDA_POR_CONEXAO).toBe(1024 * 1024);
+    expect(SAIDA_POR_CONEXAO).toBeGreaterThan(JANELA_DE_ENTREGA * (TAMANHO_DO_PACOTE + 100));
   });
 
   it('mensagens temporárias: timer de 10 s a 7 dias', () => {
