@@ -67,6 +67,7 @@ function pedidosDeTeste(): PedidoAoRelay[] {
       marca: aleatorio(BYTES_DA_MARCA),
     },
     { tipo: 'abrir-caixa', numero: 5, caixa: aleatorio(32), assinatura: aleatorio(64) },
+    { tipo: 'vigiar-caixa', numero: 8, caixa: aleatorio(32), assinatura: aleatorio(64) },
     { tipo: 'confirmar', numero: 0xffffffff, ids: [aleatorio(16), aleatorio(16)] },
     {
       tipo: 'apagar-tudo',
@@ -196,6 +197,7 @@ describe('mensagens do relay ao app', () => {
         pacote: aleatorio(TAMANHO_DO_PACOTE),
         marca: aleatorio(BYTES_DA_MARCA),
       },
+      { tipo: 'marca', id: aleatorio(16), marca: aleatorio(BYTES_DA_MARCA) },
       { tipo: 'em-dia' },
       { tipo: 'caixa-substituida' },
     ];

@@ -96,6 +96,15 @@ describe('vigia do app bloqueado (RF-42)', () => {
     expect(avisos.n).toBe(1);
   });
 
+  it('com 100 pacotes à espera sem confirmação, a mensagem seguinte ainda avisa', async () => {
+    const [alice, bob] = await conversa();
+    const { vigia, avisos } = await bobBloqueado(bob);
+    for (let i = 0; i <= 100; i++) await alice.correio.enviarTexto(bob.id, `mensagem ${i}`);
+    await ate(() => avisos.n === 101, 'cada mensagem avisa');
+    expect(pacotesNaCaixa(bob)).toBe(101);
+    await vigia.parar();
+  });
+
   it('a entrega de novo depois de uma reconexão não repete o aviso', async () => {
     const [alice, bob] = await conversa();
     const { vigia, avisos } = await bobBloqueado(bob);

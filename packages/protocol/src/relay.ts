@@ -11,6 +11,7 @@
 //   0x06 confirmar          quantidade (1) + IDs de pacote (16 cada)
 //   0x07 apagar-tudo        chave de identidade (32) + assinatura do desafio (64) + caixa principal
 //                           (32) + assinatura do desafio com a chave da caixa (64)
+//   0x08 vigiar-caixa       caixa (32) + assinatura do desafio (64), a mesma da abertura
 //
 // Do relay ao app:
 //   0x80 ola                versão (1) + desafio (32), logo ao conectar
@@ -22,6 +23,8 @@
 //   0x86 caixa-substituida  nada: o cartão do dono passou a apontar outra caixa (outro aparelho
 //                           restaurou a identidade); a caixa aberta nesta conexão foi apagada, e
 //                           o relay fecha a conexão logo depois
+//   0x87 marca              ID (16) + marca de aviso (49): no lugar do pacote, para quem vigia a
+//                           caixa (o aparelho bloqueado), que não abre o pacote nem confirma
 //
 // Uma caixa é uma chave pública Ed25519. Para abrir, o dono assina o desafio que o relay mandou no
 // `ola` daquela conexão: a assinatura não serve em outra conexão nem em outro relay que use outra
@@ -129,7 +132,7 @@ export type PedidoAoRelay =
       readonly marca: Uint8Array;
     }
   | {
-      readonly tipo: 'abrir-caixa';
+      readonly tipo: 'abrir-caixa' | 'vigiar-caixa';
       readonly numero: number;
       readonly caixa: Uint8Array;
       readonly assinatura: Uint8Array;
@@ -162,6 +165,7 @@ export type MensagemDoRelay =
       readonly pacote: Uint8Array;
       readonly marca: Uint8Array;
     }
+  | { readonly tipo: 'marca'; readonly id: Uint8Array; readonly marca: Uint8Array }
   | { readonly tipo: 'em-dia' }
   | { readonly tipo: 'caixa-substituida' };
 
@@ -173,6 +177,7 @@ const TIPOS_DE_PEDIDO = {
   'abrir-caixa': 0x05,
   confirmar: 0x06,
   'apagar-tudo': 0x07,
+  'vigiar-caixa': 0x08,
 } as const satisfies Record<PedidoAoRelay['tipo'], number>;
 
 const TIPOS_DE_MENSAGEM = {
@@ -183,6 +188,7 @@ const TIPOS_DE_MENSAGEM = {
   pacote: 0x84,
   'em-dia': 0x85,
   'caixa-substituida': 0x86,
+  marca: 0x87,
 } as const satisfies Record<MensagemDoRelay['tipo'], number>;
 
 /** Maior pedido possível, em bytes: o relay recusa qualquer mensagem maior antes de ler. */
@@ -295,6 +301,7 @@ export function codificarPedido(pedido: PedidoAoRelay): Uint8Array {
         .bytes(exigirTamanho(pedido.marca, BYTES_DA_MARCA))
         .resultado();
     case 'abrir-caixa':
+    case 'vigiar-caixa':
       return escritor
         .bytes(exigirTamanho(pedido.caixa, BYTES_DA_CHAVE))
         .bytes(exigirTamanho(pedido.assinatura, BYTES_DA_ASSINATURA))
@@ -344,8 +351,9 @@ function lerCorpoDoPedido(tipo: number, numero: number, leitor: Leitor): PedidoA
         marca: leitor.bytes(BYTES_DA_MARCA),
       };
     case TIPOS_DE_PEDIDO['abrir-caixa']:
+    case TIPOS_DE_PEDIDO['vigiar-caixa']:
       return {
-        tipo: 'abrir-caixa',
+        tipo: tipo === TIPOS_DE_PEDIDO['abrir-caixa'] ? 'abrir-caixa' : 'vigiar-caixa',
         numero,
         caixa: leitor.bytes(BYTES_DA_CHAVE),
         assinatura: leitor.bytes(BYTES_DA_ASSINATURA),
@@ -421,6 +429,11 @@ export function codificarMensagemDoRelay(mensagem: MensagemDoRelay): Uint8Array 
         .bytes(exigirTamanho(mensagem.pacote, TAMANHO_DO_PACOTE))
         .bytes(exigirTamanho(mensagem.marca, BYTES_DA_MARCA))
         .resultado();
+    case 'marca':
+      return escritor
+        .bytes(exigirTamanho(mensagem.id, BYTES_DO_ID_DO_PACOTE))
+        .bytes(exigirTamanho(mensagem.marca, BYTES_DA_MARCA))
+        .resultado();
     case 'em-dia':
     case 'caixa-substituida':
       return escritor.resultado();
@@ -457,6 +470,12 @@ function lerCorpoDaMensagem(tipo: number, leitor: Leitor): MensagemDoRelay {
         tipo: 'pacote',
         id: leitor.bytes(BYTES_DO_ID_DO_PACOTE),
         pacote: leitor.bytes(TAMANHO_DO_PACOTE),
+        marca: leitor.bytes(BYTES_DA_MARCA),
+      };
+    case TIPOS_DE_MENSAGEM.marca:
+      return {
+        tipo: 'marca',
+        id: leitor.bytes(BYTES_DO_ID_DO_PACOTE),
         marca: leitor.bytes(BYTES_DA_MARCA),
       };
     case TIPOS_DE_MENSAGEM['em-dia']:

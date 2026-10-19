@@ -178,6 +178,8 @@ export interface Banco {
   depositar(pacote: NovoPacote): ResultadoDoDeposito;
   /** Os pacotes mais antigos da caixa, na ordem de chegada. */
   pendentes(caixa: Uint8Array, limite: number): PacoteGuardado[];
+  /** O ID e a marca de aviso de cada pacote da caixa, na ordem de chegada, sem o pacote. */
+  marcas(caixa: Uint8Array): Omit<PacoteGuardado, 'pacote'>[];
   contarPacotes(caixa: Uint8Array): number;
   /** Apaga os pacotes confirmados. ID que não está na caixa é ignorado. */
   confirmar(caixa: Uint8Array, ids: readonly Uint8Array[]): void;
@@ -271,6 +273,7 @@ export function abrirBanco(caminho: string): Banco {
       'SELECT id, pacote, marca FROM pacotes WHERE caixa = ? ORDER BY ordem LIMIT ?',
     ),
     apagarPacote: db.prepare('DELETE FROM pacotes WHERE caixa = ? AND id = ?'),
+    marcas: db.prepare('SELECT id, marca FROM pacotes WHERE caixa = ? ORDER BY ordem'),
     pacotesVencidos: db.prepare('DELETE FROM pacotes WHERE expira_em <= ?'),
     cartoesVencidos: db.prepare('DELETE FROM cartoes WHERE expira_em <= ?'),
     caixasVencidas: db.prepare('DELETE FROM caixas WHERE expira_em <= ?'),
@@ -403,6 +406,13 @@ export function abrirBanco(caminho: string): Banco {
       return sql.pendentes.all(caixa, limite).map((linha) => ({
         id: bytes(linha, 'id'),
         pacote: bytes(linha, 'pacote'),
+        marca: bytes(linha, 'marca'),
+      }));
+    },
+
+    marcas(caixa) {
+      return sql.marcas.all(caixa).map((linha) => ({
+        id: bytes(linha, 'id'),
         marca: bytes(linha, 'marca'),
       }));
     },

@@ -22,12 +22,13 @@ export type Pedido = SemNumero<PedidoAoRelay>;
 export type Resposta = Extract<MensagemDoRelay, { readonly numero: number }>;
 
 /**
- * O que o relay manda sem pedido: os pacotes da caixa aberta, o aviso de que estão em dia e o de
- * que a caixa foi substituída por outra no cartão (outro aparelho restaurou a identidade).
+ * O que o relay manda sem pedido: os pacotes da caixa aberta (ou só as marcas, para quem vigia), o
+ * aviso de que estão em dia e o de que a caixa foi substituída por outra no cartão (outro aparelho
+ * restaurou a identidade).
  */
 export type Aviso = Extract<
   MensagemDoRelay,
-  { readonly tipo: 'pacote' | 'em-dia' | 'caixa-substituida' }
+  { readonly tipo: 'pacote' | 'marca' | 'em-dia' | 'caixa-substituida' }
 >;
 
 /** Prazo do `ola` e de cada resposta. Pelo Tor, uma ida e volta passa de 30 s nos piores momentos. */
@@ -161,6 +162,7 @@ export class ConexaoComORelay {
     }
     if (
       mensagem.tipo === 'pacote' ||
+      mensagem.tipo === 'marca' ||
       mensagem.tipo === 'em-dia' ||
       mensagem.tipo === 'caixa-substituida'
     ) {

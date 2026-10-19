@@ -1375,6 +1375,8 @@ export class Correio {
       });
       return;
     }
+    // A marca sozinha só vai para quem vigia a caixa; o correio abre e recebe o pacote inteiro.
+    if (aviso.tipo !== 'pacote') return;
     this.#recebimentos = this.#recebimentos.then(() =>
       this.#receber(estado, conexao, aviso.id, aviso.pacote),
     );

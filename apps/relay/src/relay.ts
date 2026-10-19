@@ -131,6 +131,8 @@ interface Conexao {
   readonly desafio: Uint8Array;
   readonly baldes: Readonly<Record<keyof typeof TAXAS, Balde>>;
   caixa: { readonly chave: Uint8Array; readonly hex: string } | null;
+  /** A caixa foi aberta para vigiar: vão só as marcas de aviso, e nada se confirma. */
+  vigia: boolean;
   /** IDs (em hex) dos pacotes entregues e ainda sem confirmação. */
   readonly enviados: Set<string>;
   emDia: boolean;
@@ -232,7 +234,7 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
    */
   function preencher(conexao: Conexao): void {
     const { caixa } = conexao;
-    if (!caixa || conexao.fechada) return;
+    if (!caixa || conexao.fechada || conexao.vigia) return;
     const pendentes = banco.pendentes(caixa.chave, limites.janelaDeEntrega);
     // Entregue que sumiu do banco (venceu antes da confirmação) libera a vaga na janela.
     const existentes = new Set(pendentes.map(({ id }) => hex(id)));
@@ -383,9 +385,10 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
           responder(conexao, numero, 'taxa-excedida');
           return;
         }
+        const id = idDoPacote(sodium, pedido.pacote);
         const resultado = banco.depositar({
           caixa: pedido.caixa,
-          id: idDoPacote(sodium, pedido.pacote),
+          id,
           pacote: pedido.pacote,
           marca: pedido.marca,
           expiraEm: horaCheia(agora() + RETENCAO_DO_PACOTE_EM_DIAS * DIA),
@@ -398,11 +401,14 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
         }
         responder(conexao, numero, 'ok');
         const dono = caixasAbertas.get(hex(pedido.caixa));
-        if (resultado === 'novo' && dono) preencher(dono);
+        if (resultado !== 'novo' || !dono) return;
+        if (dono.vigia) enviar(dono, { tipo: 'marca', id, marca: pedido.marca });
+        else preencher(dono);
         return;
       }
 
-      case 'abrir-caixa': {
+      case 'abrir-caixa':
+      case 'vigiar-caixa': {
         if (conexao.caixa) {
           responder(conexao, numero, 'caixa-ja-aberta');
           return;
@@ -421,9 +427,17 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
         const anterior = caixasAbertas.get(caixa.hex);
         if (anterior) fecharConexao(anterior, FECHAMENTOS.caixaEmOutraConexao);
         conexao.caixa = caixa;
+        conexao.vigia = pedido.tipo === 'vigiar-caixa';
         caixasAbertas.set(caixa.hex, conexao);
         responder(conexao, numero, 'ok');
-        preencher(conexao);
+        if (!conexao.vigia) {
+          preencher(conexao);
+          return;
+        }
+        // Quem vigia recebe a marca de cada pacote que espera, sem janela: ele não confirma nada.
+        for (const { id, marca } of banco.marcas(caixa.chave)) {
+          enviar(conexao, { tipo: 'marca', id, marca });
+        }
         return;
       }
 
@@ -432,7 +446,7 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
         return;
 
       case 'confirmar':
-        if (!conexao.caixa) {
+        if (!conexao.caixa || conexao.vigia) {
           responder(conexao, numero, 'caixa-fechada');
           return;
         }
@@ -486,6 +500,7 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
         mensagens: balde(limites.taxas.mensagens),
       },
       caixa: null,
+      vigia: false,
       enviados: new Set(),
       emDia: false,
       pingsSemResposta: 0,

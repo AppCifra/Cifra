@@ -60,6 +60,44 @@ function pacoteDe(aviso: Aviso): Extract<MensagemDoRelay, { tipo: 'pacote' }> {
 /** Dá tempo para o relay mandar o que fosse mandar. */
 const pausa = () => new Promise((pronto) => setTimeout(pronto, 50));
 
+describe('vigiar a caixa (RF-42)', () => {
+  it('só a marca de cada pacote, os que esperam e os que chegam, sem janela e sem confirmar', async () => {
+    await subir({ janelaDeEntrega: 2 });
+    const cliente = await relay.conectar();
+    const caixa = novoPar();
+    await criar(cliente, caixa);
+    const depositarCom = (marca: Uint8Array) =>
+      cliente.pedir({
+        tipo: 'depositar',
+        caixa: caixa.publicKey,
+        pacote: pacoteAleatorio(),
+        marca,
+      });
+    const marcas = [marcaDeTeste(), marcaDeTeste(), marcaDeTeste()];
+    for (const marca of marcas) await depositarCom(marca);
+
+    const vigia = await relay.conectar();
+    const assinatura = caixa.assinar(mensagemDaAberturaDe(vigia, caixa));
+    const resposta = await vigia.pedir({
+      tipo: 'vigiar-caixa',
+      caixa: caixa.publicKey,
+      assinatura,
+    });
+    expect(codigo(resposta)).toBe('ok');
+    const recebidas = [];
+    for (let i = 0; i < 3; i++) recebidas.push(await vigia.proximoAviso());
+    expect(recebidas.map((aviso) => aviso.tipo === 'marca' && aviso.marca)).toEqual(marcas);
+
+    const nova = marcaDeTeste();
+    await depositarCom(nova);
+    const aviso = await vigia.proximoAviso();
+    if (aviso.tipo !== 'marca') throw new Error('esperava uma marca');
+    expect(aviso.marca).toEqual(nova);
+    expect(codigo(await vigia.pedir({ tipo: 'confirmar', ids: [aviso.id] }))).toBe('caixa-fechada');
+    expect(relay.consultar('SELECT count(*) AS n FROM pacotes')).toEqual([{ n: 4 }]);
+  });
+});
+
 describe('caixas: criar, depositar, abrir com desafio e confirmar', () => {
   it('cria a caixa; criar de novo responde ok e não muda nada', async () => {
     await subir();

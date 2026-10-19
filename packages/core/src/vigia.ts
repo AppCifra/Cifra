@@ -4,9 +4,10 @@
 // (relay/marca.ts) diz, sem abrir o pacote, se é mensagem; confirmação de leitura, "digitando" e
 // controles não avisam.
 //
-// O vigia nunca confirma: o relay guarda tudo até o app desbloquear, e aí o correio recebe,
-// decifra e confirma. Cada pacote avisa uma vez, mesmo que o relay entregue de novo depois de uma
-// reconexão. Quem abre a caixa por último fica com ela (o relay fecha a conexão anterior): o app
+// O vigia nunca confirma: ele vigia a caixa, e o relay manda só a marca de cada pacote, sem o
+// pacote e sem a janela de entrega; tudo fica guardado até o app desbloquear, e aí o correio recebe,
+// decifra e confirma. Cada pacote avisa uma vez, mesmo que o relay mande a marca de novo depois de
+// uma reconexão. Quem abre a caixa por último fica com ela (o relay fecha a conexão anterior): o app
 // para o vigia antes de o correio abrir a caixa, e o vigia parado não reabre sozinho.
 import { mensagemDaAbertura } from '@cifra/protocol';
 import { intervaloDeReenvio } from './mensagens/fila.ts';
@@ -124,7 +125,7 @@ export class Vigia {
       } finally {
         cripto.memzero(par.privateKey);
       }
-      const resposta = await aberta.pedir({ tipo: 'abrir-caixa', caixa: this.#caixa, assinatura });
+      const resposta = await aberta.pedir({ tipo: 'vigiar-caixa', caixa: this.#caixa, assinatura });
       if (codigoDe(resposta) === 'caixa-inexistente') {
         // A caixa sumiu: outro aparelho restaurou a identidade (RF-05). O correio descobre no
         // desbloqueio; o vigia não cria caixa nem tenta de novo.
@@ -146,7 +147,7 @@ export class Vigia {
       this.#semCaixa = true;
       return;
     }
-    if (aviso.tipo !== 'pacote') return;
+    if (aviso.tipo !== 'marca') return;
     const chave = hex(aviso.id);
     if (this.#vistos.has(chave)) return;
     this.#vistos.add(chave);

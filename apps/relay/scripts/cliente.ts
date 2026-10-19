@@ -21,12 +21,12 @@ export type Pedido = SemNumero<PedidoAoRelay>;
 export type Resposta = Extract<MensagemDoRelay, { readonly numero: number }>;
 
 /**
- * O que o relay manda sem pedido: os pacotes da caixa aberta, o aviso de que estão em dia e o de
- * que a caixa foi substituída por outra no cartão do dono.
+ * O que o relay manda sem pedido: os pacotes da caixa aberta (ou só as marcas, para quem vigia), o
+ * aviso de que estão em dia e o de que a caixa foi substituída por outra no cartão do dono.
  */
 export type Aviso = Extract<
   MensagemDoRelay,
-  { readonly tipo: 'pacote' | 'em-dia' | 'caixa-substituida' }
+  { readonly tipo: 'pacote' | 'marca' | 'em-dia' | 'caixa-substituida' }
 >;
 
 export interface OpcoesDoCliente {
@@ -72,6 +72,7 @@ export class ClienteDoRelay {
       }
       if (
         mensagem.tipo === 'pacote' ||
+        mensagem.tipo === 'marca' ||
         mensagem.tipo === 'em-dia' ||
         mensagem.tipo === 'caixa-substituida'
       ) {

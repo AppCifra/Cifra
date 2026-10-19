@@ -384,6 +384,7 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 | `criarCaixa` | qualquer um | chave pública da caixa; limite de taxa | cria uma caixa vazia; criar de novo não muda nada; acima do teto de caixas, `relay-cheio` |
 | `depositar` | qualquer um | nenhuma; limite de taxa | guarda um pacote de 4096 bytes na caixa, com a marca de aviso (49 bytes, selada para a chave da caixa) |
 | `abrirCaixa` | dono da caixa | desafio da conexão assinado com a chave da caixa | entrega os pacotes pendentes por WebSocket |
+| `vigiarCaixa` | dono da caixa | a mesma da abertura | como abrir a caixa, mas manda só a marca de aviso de cada pacote, os que esperam e os que chegam; nada é confirmado |
 | `confirmar` | dono da caixa | caixa aberta na conexão | apaga os pacotes confirmados |
 | `PUT`, `GET` e `DELETE /anexos/<token>` | remetente / destinatário | token aleatório do anexo; o relay guarda só o hash dele | guarda o blob cifrado (409 se ele já subiu inteiro, 503 se outro envio dele ainda sobe), entrega e apaga; quem recebe apaga depois de conferir |
 | `apagarTudo` | dono do ID | desafio da conexão assinado com a chave de identidade e com a da caixa principal | pânico: remove cartão, *one-time prekeys*, caixa principal e os pacotes dela; a caixa sai mesmo se o cartão já venceu |
@@ -392,6 +393,7 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 - **Desafio:** ao conectar, o relay manda um desafio aleatório de 32 bytes. A assinatura que abre a caixa cobre o desafio daquela conexão, então não serve em outra. Uma chave de caixa vale para um relay só.
 - **Uma caixa por conexão:** abrir a mesma caixa em outra conexão fecha a anterior. Vale a abertura mais nova, e a reconexão não espera a conexão velha cair.
 - **Entrega:** em ordem de chegada, até 100 pacotes sem confirmação por vez. Quando os pendentes acabam, o relay avisa que a caixa está em dia; o que chega depois vai na hora.
+- **Vigia (RF-42):** com o app bloqueado, o aparelho vigia a caixa principal em vez de abri-la. O relay manda o ID e a marca de aviso de cada pacote, sem o pacote e sem a janela de 100: o vigia não confirma nada, e a caixa fica inteira para o desbloqueio. Como na abertura, vale a conexão mais nova.
 - **Pacote repetido:** o ID do pacote no relay é o BLAKE2b de 16 bytes do próprio pacote. Um reenvio idêntico não duplica.
 - **Formato inválido:** o relay responde `formato-invalido` e fecha a conexão. Assinatura errada na abertura também fecha.
 - **Erro ao atender:** um erro do relay ao atender um pedido (no banco, com o disco cheio, por exemplo) fecha só a conexão daquele pedido (4008), sem atender; nos anexos, a resposta é 500. As outras conexões continuam.
@@ -698,7 +700,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e setenta e sete riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e setenta e cinco riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -752,7 +754,6 @@ Quatro decisões ainda abertas e setenta e sete riscos com mitigação. O maior 
 | Depois de reiniciar o celular (ou de o sistema fechar o app), as notificações só voltam quando a pessoa abre o Cifra | o serviço não liga junto com o sistema: ele precisaria da chave da caixa e das preferências antes de qualquer abertura. Texto dos ajustes e rever na fase 2 |
 | A economia de bateria do Android (Doze) atrasa o aviso de mensagem nova e o alarme do bloqueio sozinho | o alarme é inexato para não pedir permissão de alarme exato; a volta ao app confere o prazo. Pedir para tirar o Cifra da economia de bateria fica para depois |
 | Com o app bloqueado, a mensagem de um ID bloqueado também gera "Nova mensagem" | o vigia não abre o pacote e não sabe quem escreveu; ao abrir, nada aparece. Aceito no MVP |
-| O vigia não confirma: com 100 pacotes esperando, o relay para de entregar os novos a ele, e o aviso de uma mensagem nova pode não sair | caso raro (só leitura e digitando de outro lado, sem mensagem); a mensagem chega no desbloqueio |
 | O "digitando" para quem está fora do ar ocupa a caixa dele (no máximo um a cada 15 s) e, se o depósito falha depois de cifrar, deixa uma chave pulada do outro lado | só sai com a conexão de depósito aberta; a próxima mensagem decifra com a chave pulada |
 | Com o tema claro, a janela nativa abre escura e o JS pinta o claro em seguida | a cor da janela vem do app.json, antes de ler as preferências; aceito |
 | Confirmação de leitura e pedido de apagar (pra todos ou a conversa) que o contato manda nos segundos da troca de caixa, antes de ler o aviso, não valem deste lado: o banco que lê a caixa antiga não tem mais a sessão | as mensagens cruzam pelo reenvio; o app do contato não guarda o que já apagou, então não há o que mandar de novo. Aceito |
@@ -778,7 +779,6 @@ Quatro decisões ainda abertas e setenta e sete riscos com mitigação. O maior 
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; os depósitos numa caixa têm taxa no relay inteiro; prova de trabalho na fase 2 |
 | Um pacote que falha ao entrar no banco do app ocupa para sempre uma vaga da janela de entrega daquela conexão; com a janela cheia deles, a caixa para de receber | correção: pedir o pacote de novo e, depois de algumas falhas, descartá-lo |
-| O vigia do app bloqueado não confirma pacotes: com 100 deles à espera (mensagens, "digitando", confirmações), os novos não chegam a ele, e o aviso de mensagem nova para | correção: o relay mostra ao dono da caixa a marca de aviso dos pacotes além da janela, sem entregar o pacote |
 | Na primeira abertura sem identidade, o app liga e desliga o serviço de avisos em milissegundos, e o Android pode fechar o app | correção: o serviço só liga com identidade e só para depois de ter subido |
 | A conexão com o relay não tem prazo para abrir: um relay que aceita e não responde deixa o app em "conectando", e o vigia para de avisar | correção: prazo de 60 s para abrir, como nos pedidos de anexo |
 | Uma conexão fechada pelo próprio app não avisa o fechamento ao JS, e os ouvintes dela se acumulam | correção: o módulo avisa todo fechamento |
