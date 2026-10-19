@@ -62,11 +62,10 @@ export class AvisosDoApp {
       return;
     }
     if (!naFrente) return;
-    // Ligar de novo só troca o texto (o idioma pode ter mudado).
+    // Ligar de novo só troca o texto (o idioma pode ter mudado). Um pedido que falha pode ter
+    // ligado o serviço mesmo assim: o desligar continua valendo.
     this.#ligado = true;
-    await this.#plataforma.ligar(textosDosAvisos(this.#t)).catch(() => {
-      this.#ligado = false;
-    });
+    await this.#plataforma.ligar(textosDosAvisos(this.#t)).catch(() => undefined);
   }
 
   /** "Nova mensagem", sem remetente nem conteúdo. */

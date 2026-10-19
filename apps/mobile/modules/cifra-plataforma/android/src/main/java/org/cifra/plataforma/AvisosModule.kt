@@ -32,11 +32,20 @@ class AvisosModule : Module() {
       criarCanais(contexto, textos)
       val intencao = Intent(contexto, ServicoDeAvisos::class.java).putExtra(ServicoDeAvisos.TEXTO, textos.servico)
       contexto.startForegroundService(intencao)
+      // Sem valor de volta: o Expo não converte o ComponentName do startForegroundService, e a
+      // promessa falharia com o serviço já ligado.
+      Unit
     }
 
+    // O pedido de parar entra na fila do serviço, depois de um ligar que ainda não subiu: parar
+    // antes do startForeground derruba o app.
     AsyncFunction("desligar") {
       val contexto = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      contexto.stopService(Intent(contexto, ServicoDeAvisos::class.java))
+      try {
+        contexto.startService(Intent(contexto, ServicoDeAvisos::class.java).setAction(ServicoDeAvisos.PARAR))
+      } catch (_: IllegalStateException) {
+        // Fora da frente e sem o serviço, o Android recusa o pedido: não há o que parar.
+      }
       contexto.getSystemService(NotificationManager::class.java).cancel(ID_DA_MENSAGEM)
     }
 
@@ -115,6 +124,11 @@ class ServicoDeAvisos : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    // Os pedidos chegam na ordem: o de parar só vale se nenhum de ligar veio depois dele.
+    if (intent?.action == PARAR) {
+      stopSelf(startId)
+      return START_NOT_STICKY
+    }
     val texto = intent?.getStringExtra(TEXTO) ?: ""
     val aviso = Notification.Builder(this, AvisosModule.CANAL_DO_SERVICO)
       .setSmallIcon(R.drawable.cifra_aviso)
@@ -133,5 +147,6 @@ class ServicoDeAvisos : Service() {
 
   companion object {
     const val TEXTO = "texto"
+    const val PARAR = "org.cifra.plataforma.PARAR"
   }
 }

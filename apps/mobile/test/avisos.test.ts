@@ -47,6 +47,23 @@ describe('notificações cegas (RF-42)', () => {
     expect(chamadas).toEqual(['ligar', 'desligar']);
   });
 
+  it('um pedido de ligar que falha pode ter ligado o serviço: desligar ainda pede para parar', async () => {
+    const { plataforma, chamadas } = plataformaDeTeste();
+    // O sistema liga o serviço, e a resposta ao app chega como erro.
+    const falha: PlataformaDosAvisos = {
+      ...plataforma,
+      ligar: (textos) => plataforma.ligar(textos).then(() => Promise.reject(new Error('falhou'))),
+    };
+    const app = new AvisosDoApp(falha, i18n.t.bind(i18n));
+    await app.sincronizar({ naFrente: true, temIdentidade: true, ligadas: true });
+    await app.sincronizar({ naFrente: true, temIdentidade: true, ligadas: false });
+    expect(chamadas).toEqual(['ligar', 'desligar']);
+    // Sem identidade (o pânico, outro aparelho), o mesmo.
+    await app.sincronizar({ naFrente: true, temIdentidade: true, ligadas: true });
+    await app.sincronizar({ naFrente: true, temIdentidade: false, ligadas: true });
+    expect(chamadas).toEqual(['ligar', 'desligar', 'ligar', 'desligar']);
+  });
+
   it('o aviso diz só "nova mensagem", sem remetente nem conteúdo', async () => {
     const { plataforma, avisos } = plataformaDeTeste();
     await i18n.changeLanguage('pt-BR');
