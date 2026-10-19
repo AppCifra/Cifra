@@ -407,7 +407,13 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
       fecharConexao(conexao, FECHAMENTOS.formatoInvalido);
       return;
     }
-    atender(conexao, leitura.pedido);
+    try {
+      atender(conexao, leitura.pedido);
+    } catch {
+      // Um erro do banco (o disco cheio, por exemplo) fica nesta conexão: o pedido não foi
+      // atendido, e quem pediu tenta de novo numa conexão nova. As outras continuam.
+      fecharConexao(conexao, FECHAMENTOS.erroInterno);
+    }
   }
 
   function aoConectar(ws: WebSocket): void {
@@ -454,11 +460,15 @@ export function criarRelay({ banco, sodium, agora, limites: ajustes = {} }: Opco
       const instante = agora();
       // Caixa aberta agora não vence: o prazo conta da última abertura.
       const prazo = horaCheia(instante + RETENCAO_DA_CAIXA_EM_DIAS * DIA);
-      for (const conexao of caixasAbertas.values()) {
-        if (conexao.caixa) banco.renovarCaixa(conexao.caixa.chave, prazo);
+      try {
+        for (const conexao of caixasAbertas.values()) {
+          if (conexao.caixa) banco.renovarCaixa(conexao.caixa.chave, prazo);
+        }
+        banco.apagarVencidos(instante);
+        for (const conexao of caixasAbertas.values()) preencher(conexao);
+      } catch {
+        // Um erro do banco não derruba o relay: a próxima limpeza tenta de novo.
       }
-      banco.apagarVencidos(instante);
-      for (const conexao of caixasAbertas.values()) preencher(conexao);
     },
 
     vigiar() {

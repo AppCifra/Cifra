@@ -108,6 +108,8 @@ export const FECHAMENTOS = {
   caixaSubstituida: 4006,
   /** O dono apagou o cartão e a caixa aberta nesta conexão (pânico). */
   caixaApagada: 4007,
+  /** O relay falhou ao atender um pedido desta conexão (o banco, o disco cheio): ele não foi atendido. */
+  erroInterno: 4008,
 } as const;
 
 export type PedidoAoRelay =

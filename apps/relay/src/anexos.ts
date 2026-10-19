@@ -95,7 +95,11 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
     const desistir = () => {
       if (encerrado) return;
       encerrado = true;
-      o.banco.apagarAnexo(id);
+      try {
+        o.banco.apagarAnexo(id);
+      } catch {
+        // O que ficou pela metade sai na próxima subida do relay (`apagarIncompletos`).
+      }
       pedido.destroy();
     };
     const gravar = () => {
@@ -163,8 +167,13 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
     let indice = 0;
     const escrever = () => {
       while (indice < anexo.pedacos) {
-        const dados = o.banco.pedaco(id, indice++);
-        // Apagado no meio do download: a resposta cai sem completar.
+        let dados: Uint8Array | null;
+        try {
+          dados = o.banco.pedaco(id, indice++);
+        } catch {
+          dados = null;
+        }
+        // Apagado no meio do download, ou o banco falhou: a resposta cai sem completar.
         if (!dados) {
           resposta.destroy();
           return;
@@ -209,14 +218,20 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
       pedido.destroy();
     });
     const id = idDe(token);
-    if (metodo === 'PUT') {
-      subir(id, pedido, resposta);
-    } else if (metodo === 'GET') {
+    try {
+      if (metodo === 'PUT') {
+        subir(id, pedido, resposta);
+      } else if (metodo === 'GET') {
+        pedido.resume();
+        baixar(id, resposta);
+      } else {
+        pedido.resume();
+        responder(resposta, o.banco.apagarAnexo(id) ? 204 : 404);
+      }
+    } catch {
+      // Um erro do banco (o disco cheio, por exemplo) fica neste pedido.
       pedido.resume();
-      baixar(id, resposta);
-    } else {
-      pedido.resume();
-      responder(resposta, o.banco.apagarAnexo(id) ? 204 : 404);
+      responder(resposta, 500, true);
     }
   };
 }

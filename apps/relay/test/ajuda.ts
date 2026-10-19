@@ -17,7 +17,7 @@ import {
   type Publicacao,
 } from '@cifra/protocol';
 import { ClienteDoRelay, type OpcoesDoCliente, type Resposta } from '../scripts/cliente.ts';
-import { abrirBanco } from '../src/banco.ts';
+import { abrirBanco, type Banco } from '../src/banco.ts';
 import { criarRelay, type LimitesDoRelay, type Relay } from '../src/relay.ts';
 import { libsodium } from '../src/sodium.ts';
 import sodium from 'libsodium-wrappers-sumo';
@@ -67,7 +67,28 @@ export interface RelayDeTeste {
   fechar(): Promise<void>;
 }
 
-export async function subirRelay(limites: Partial<LimitesDoRelay> = {}): Promise<RelayDeTeste> {
+/**
+ * O banco que lança, como com o disco cheio, no método que `qual` disser enquanto disser; os outros
+ * funcionam.
+ */
+export function falhando(banco: Banco, qual: () => keyof Banco | null): Banco {
+  return new Proxy(banco, {
+    get(alvo, nome: keyof Banco, receptor) {
+      const valor: unknown = Reflect.get(alvo, nome, receptor);
+      if (typeof valor !== 'function') return valor;
+      return (...argumentos: unknown[]) => {
+        if (qual() === nome) throw new Error('database or disk is full');
+        return Reflect.apply(valor, alvo, argumentos) as unknown;
+      };
+    },
+  });
+}
+
+/** `embrulhar` passa o banco do relay por outro, como `falhando`. */
+export async function subirRelay(
+  limites: Partial<LimitesDoRelay> = {},
+  embrulhar: (banco: Banco) => Banco = (banco) => banco,
+): Promise<RelayDeTeste> {
   const pasta = mkdtempSync(join(tmpdir(), 'cifra-relay-'));
   const caminho = join(pasta, 'relay.sqlite');
   const banco = abrirBanco(caminho);
@@ -77,7 +98,12 @@ export async function subirRelay(limites: Partial<LimitesDoRelay> = {}): Promise
       relogio.agora += ms;
     },
   };
-  const relay = criarRelay({ banco, sodium: libsodium, agora: () => relogio.agora, limites });
+  const relay = criarRelay({
+    banco: embrulhar(banco),
+    sodium: libsodium,
+    agora: () => relogio.agora,
+    limites,
+  });
   await new Promise<void>((pronto) => relay.servidor.listen(0, '127.0.0.1', pronto));
   const { port } = relay.servidor.address() as AddressInfo;
   const endereco = `ws://127.0.0.1:${String(port)}`;
