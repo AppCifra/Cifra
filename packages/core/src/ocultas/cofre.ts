@@ -28,7 +28,7 @@ import type { Transporte } from '../portas/transporte.ts';
 import type { GerarPar } from '../sessao/catraca.ts';
 import { sessoesDe } from '../sessao/repositorio.ts';
 import { BLOCO_DO_COFRE, cofreEmBlocos, completarBloco } from './blocos.ts';
-import { apagarConversaDoBanco, copiarConversa } from './mudanca.ts';
+import { apagarConversaDoBanco, copiarConversa, substituirConversa } from './mudanca.ts';
 import {
   apagarCaixaOculta,
   guardarCaixaOculta,
@@ -368,6 +368,26 @@ export class Cofre {
   }
 
   /**
+   * Ocultar parou depois da cópia. Se a mesma conversa (o mesmo contato, desde o mesmo instante)
+   * ainda está no principal, ela pode ter andado lá depois da cópia: mensagens novas e a sessão,
+   * que não pode voltar atrás. O cofre troca a cópia por uma nova, e só então a conversa sai do
+   * principal. Outra conversa com o contato, criada depois, fica onde está. Precisa das duas
+   * travas, com o correio do principal parado.
+   */
+  async #terminarOcultar(contato: Uint8Array): Promise<void> {
+    const { principal } = this.#o;
+    const noPrincipal = await contatoDe(principal.banco, contato);
+    const copia = await contatoDe(this.#banco, contato);
+    if (noPrincipal && copia && noPrincipal.criadoEm === copia.criadoEm) {
+      await substituirConversa(principal.banco, this.#banco, contato);
+      await apagarConversaDoBanco(principal.banco, contato);
+    }
+    await encolherBanco(principal.banco);
+    await this.#avisarPelaFila(this.#banco, contato, await this.#caixaOculta(contato));
+    await this.#banco.transacao((t) => tirarMudanca(t, contato));
+  }
+
+  /**
    * A mudança que o app deixou no meio, pela marca: se a cópia já tinha entrado no destino, termina
    * (a origem é apagada, e o aviso de caixa vai de novo); se não, desfaz (o contato volta para a
    * caixa de onde a conversa não saiu). O contato manda de novo o que pode ter se perdido: repetir o
@@ -376,27 +396,31 @@ export class Cofre {
   async #resolverMudancas(): Promise<void> {
     const { principal } = this.#o;
     const pendentes = await this.exclusivo(() => mudancas(this.#banco));
-    await principal.exclusivo(() =>
-      this.exclusivo(async () => {
-        for (const { contato, tipo, copiada } of pendentes) {
-          if (tipo === 'ocultar' && copiada) {
-            await apagarConversaDoBanco(principal.banco, contato);
-            await encolherBanco(principal.banco);
-            await this.#avisarPelaFila(this.#banco, contato, await this.#caixaOculta(contato));
-            await this.#banco.transacao((t) => tirarMudanca(t, contato));
-          } else if (tipo === 'ocultar') {
-            await this.#desfazerOcultar(contato);
-          } else if ((await mudancaDe(principal.banco, contato))?.copiada) {
-            await this.#apagarDoCofre(contato);
-            await this.#avisarPelaFila(principal.banco, contato, null);
-          } else {
-            await this.#desfazerReexibir(contato);
+    // Como no ocultar: nada do principal anda enquanto a conversa muda.
+    const parar = pendentes.some(({ tipo, copiada }) => tipo === 'ocultar' && copiada);
+    if (parar) await principal.correio?.parar();
+    try {
+      await principal.exclusivo(() =>
+        this.exclusivo(async () => {
+          for (const { contato, tipo, copiada } of pendentes) {
+            if (tipo === 'ocultar' && copiada) {
+              await this.#terminarOcultar(contato);
+            } else if (tipo === 'ocultar') {
+              await this.#desfazerOcultar(contato);
+            } else if ((await mudancaDe(principal.banco, contato))?.copiada) {
+              await this.#apagarDoCofre(contato);
+              await this.#avisarPelaFila(principal.banco, contato, null);
+            } else {
+              await this.#desfazerReexibir(contato);
+            }
           }
-        }
-        // A marca que sobrou no principal é de uma volta que terminou: a conversa já está lá.
-        await principal.banco.transacao((t) => t.executar('DELETE FROM mudancas'));
-      }),
-    );
+          // A marca que sobrou no principal é de uma volta que terminou: a conversa já está lá.
+          await principal.banco.transacao((t) => t.executar('DELETE FROM mudancas'));
+        }),
+      );
+    } finally {
+      if (parar) principal.correio?.iniciar();
+    }
     if (pendentes.length > 0) principal.correio?.conferir();
   }
 }

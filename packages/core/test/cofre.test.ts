@@ -415,6 +415,68 @@ describe('a mudança que o app deixou no meio termina ou se desfaz na abertura',
     expect((await marcas(ocultas, alice)).cofre).toEqual([{ n: 0 }]);
   });
 
+  it('ocultar parado depois da cópia, e a conversa andou no principal: a cópia é refeita', async () => {
+    const [alice, bob] = await conversa();
+    const ocultas = ocultasDe(alice);
+    await noCofre(ocultas, async (banco) => {
+      await guardarCaixaOculta(banco, idDe(bob), cripto.randombytes_buf(32));
+      await marcarMudanca(banco, idDe(bob), 'ocultar');
+      await copiarConversa(alice.banco.banco, banco, idDe(bob), (t) => marcarCopiada(t, idDe(bob)));
+    });
+    // Até o cofre abrir, a conversa segue no principal: chegam e saem mensagens, e a sessão anda.
+    await bob.correio.enviarTexto(alice.id, 'depois da cópia');
+    await ate(async () => (await textos(alice, bob)).includes('depois da cópia'), 'chega à Alice');
+    await alice.correio.enviarTexto(bob.id, 'do principal');
+    await ate(async () => (await textos(bob, alice)).includes('do principal'), 'chega ao Bob');
+    await redeParada();
+
+    const cofre = await ocultas.abrir();
+    expect(await alice.agenda.conversa(bob.id)).toBeNull();
+    expect((await cofre.agenda.mensagens(bob.id)).map((m) => m.texto)).toEqual([
+      'oi',
+      'oi, alice',
+      'depois da cópia',
+      'do principal',
+    ]);
+    // A sessão do cofre é a que andou: o aviso da caixa oculta e o que sai depois abrem do lado do
+    // Bob. Com a sessão da cópia, eles repetiriam as chaves do que saiu do principal.
+    await avancarAte(
+      async () => (await caixaPedida(bob, alice)).caixa instanceof Uint8Array,
+      'o aviso da caixa oculta',
+    );
+    await cofre.correio?.enviarTexto(bob.id, 'do cofre');
+    await avancarAte(async () => (await textos(bob, alice)).includes('do cofre'), 'chega ao Bob');
+    await bob.correio.enviarTexto(alice.id, 'para a oculta');
+    await avancarAte(
+      async () => (await cofre.agenda.mensagens(bob.id)).some((m) => m.texto === 'para a oculta'),
+      'chega ao cofre',
+    );
+    await ocultas.fechar();
+    expect((await marcas(ocultas, alice)).cofre).toEqual([{ n: 0 }]);
+  });
+
+  it('ocultar parado depois da cópia, e o principal tem outra conversa com o contato: nada sai', async () => {
+    const [alice, bob] = await conversa();
+    const ocultas = ocultasDe(alice);
+    await noCofre(ocultas, async (banco) => {
+      await guardarCaixaOculta(banco, idDe(bob), cripto.randombytes_buf(32));
+      await marcarMudanca(banco, idDe(bob), 'ocultar');
+      await copiarConversa(alice.banco.banco, banco, idDe(bob), (t) => marcarCopiada(t, idDe(bob)));
+    });
+    // O app parou depois de apagar do principal; depois, a Alice adicionou o Bob de novo pelo "+".
+    await apagarConversaDoBanco(alice.banco.banco, idDe(bob));
+    relogio.avancar(1000);
+    await alice.correio.iniciarConversa(bob.id);
+    await alice.correio.enviarTexto(bob.id, 'de novo');
+    await redeParada();
+
+    const cofre = await ocultas.abrir();
+    expect((await cofre.agenda.mensagens(bob.id)).map((m) => m.texto)).toEqual(['oi', 'oi, alice']);
+    expect(await textos(alice, bob)).toEqual(['de novo']);
+    await ocultas.fechar();
+    expect((await marcas(ocultas, alice)).cofre).toEqual([{ n: 0 }]);
+  });
+
   it('reexibir parado depois da cópia: termina, e a conversa sai do cofre', async () => {
     const [alice, bob] = await conversa();
     const ocultas = ocultasDe(alice);
