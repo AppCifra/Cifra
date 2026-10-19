@@ -36,6 +36,37 @@ async function pedir(metodo: string, t: Uint8Array, corpo?: Uint8Array) {
   return { status: resposta.status, corpo: new Uint8Array(await resposta.arrayBuffer()) };
 }
 
+/** Manda a primeira metade do corpo e espera: `terminar` manda o resto e devolve o status. */
+function subirAosPoucos(t: Uint8Array, dados: Uint8Array): { terminar: () => Promise<number> } {
+  const pedido = request(url(t), { method: 'PUT', headers: { 'Content-Length': dados.length } });
+  const status = new Promise<number>((pronto) => {
+    pedido.on('response', (resposta) => {
+      resposta.resume();
+      pronto(resposta.statusCode ?? 0);
+    });
+    pedido.on('error', () => {
+      pronto(0);
+    });
+  });
+  const metade = Math.floor(dados.length / 2);
+  pedido.write(dados.subarray(0, metade));
+  return {
+    terminar: () => {
+      pedido.end(dados.subarray(metade));
+      return status;
+    },
+  };
+}
+
+/** Espera o relay ter `quantos` anexos, completos ou subindo. */
+async function anexosGuardados(quantos: number): Promise<void> {
+  const limite = Date.now() + 5000;
+  while (relay.consultar('SELECT count(*) AS n FROM anexos')[0]?.['n'] !== quantos) {
+    if (Date.now() > limite) throw new Error(`o relay não chegou a ${String(quantos)} anexos`);
+    await new Promise((pronto) => setTimeout(pronto, 5));
+  }
+}
+
 /** Manda só parte do corpo e corta a conexão, como uma queda de rede no meio do envio. */
 function subirCortado(t: Uint8Array, declarado: number, enviado: number): Promise<void> {
   return new Promise((pronto) => {
@@ -104,6 +135,17 @@ describe('anexos no relay (RF-35)', () => {
     const dados = blob(4096);
     await pedir('PUT', t, dados);
     expect((await pedir('PUT', t, blob(4096))).status).toBe(409);
+    expect((await pedir('GET', t)).corpo).toEqual(dados);
+  });
+
+  it('o reenvio enquanto o primeiro ainda sobe responde 503, e o anexo fica o do primeiro', async () => {
+    await subir();
+    const t = token();
+    const dados = blob(tamanhoDoAnexo(300_000));
+    const primeiro = subirAosPoucos(t, dados);
+    await anexosGuardados(1);
+    expect((await pedir('PUT', t, blob(4096))).status).toBe(503);
+    expect(await primeiro.terminar()).toBe(201);
     expect((await pedir('GET', t)).corpo).toEqual(dados);
   });
 });

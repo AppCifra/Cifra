@@ -5,8 +5,9 @@
 //
 // - PUT: o corpo precisa de Content-Length com um tamanho de faixa válido. O blob sobe em pedaços
 //   de 64 KiB, gravados à medida que chegam; até o último byte, o anexo fica incompleto e ninguém
-//   baixa. Corpo cortado não fica. Token que já existe responde 409, depois de ler o corpo: é o
-//   reenvio de quem não viu a resposta do primeiro.
+//   baixa. Corpo cortado não fica. Token de um anexo completo responde 409, depois de ler o corpo:
+//   é o reenvio de quem não viu a resposta do primeiro. Token de um anexo ainda subindo responde
+//   503: o primeiro envio pode cair, e o app tenta de novo.
 // - GET: devolve o blob, um pedaço de cada vez, sem ler o anexo inteiro para a memória.
 // - DELETE: apaga. Quem recebe apaga depois de baixar e conferir o hash.
 //
@@ -69,6 +70,12 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
     const inicio = o.banco.comecarAnexo(id, tamanho, o.prazo(), o.limites.espaco);
     if (inicio === 'sem-espaco') {
       responder(resposta, 507, true);
+      return;
+    }
+    // Outro envio do mesmo anexo ainda sobe, talvez por um circuito que parou: o app tenta de
+    // novo depois. Quando aquele terminar, o reenvio recebe 409; quando cair, este sobe.
+    if (inicio === 'subindo') {
+      responder(resposta, 503, true);
       return;
     }
     if (inicio === 'existe') {

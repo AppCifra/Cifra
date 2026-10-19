@@ -118,10 +118,11 @@ export interface PacoteGuardado {
 }
 
 /**
- * - `existe`: já há um anexo com esse token (completo ou subindo); nada muda.
+ * - `existe`: já há um anexo completo com esse token; nada muda.
+ * - `subindo`: o anexo com esse token ainda está subindo, por outro envio; nada muda.
  * - `sem-espaco`: o espaço dos anexos acabaria; nada muda.
  */
-export type InicioDoAnexo = 'ok' | 'existe' | 'sem-espaco';
+export type InicioDoAnexo = 'ok' | 'existe' | 'subindo' | 'sem-espaco';
 
 export interface AnexoGuardado {
   readonly tamanho: number;
@@ -245,7 +246,7 @@ export function abrirBanco(caminho: string): Banco {
     cartoesVencidos: db.prepare('DELETE FROM cartoes WHERE expira_em <= ?'),
     caixasVencidas: db.prepare('DELETE FROM caixas WHERE expira_em <= ?'),
     anexosVencidos: db.prepare('DELETE FROM anexos WHERE expira_em <= ?'),
-    anexoExiste: db.prepare('SELECT 1 AS existe FROM anexos WHERE id = ?'),
+    anexoExiste: db.prepare('SELECT completo FROM anexos WHERE id = ?'),
     espacoUsado: db.prepare('SELECT coalesce(sum(tamanho), 0) AS n FROM anexos'),
     reservarAnexo: db.prepare(
       'INSERT INTO anexos (id, tamanho, completo, expira_em) VALUES (?, ?, 0, ?)',
@@ -382,7 +383,8 @@ export function abrirBanco(caminho: string): Banco {
 
     comecarAnexo(id, tamanho, expiraEm, espaco) {
       return transacao((): InicioDoAnexo => {
-        if (sql.anexoExiste.get(id)) return 'existe';
+        const existente = sql.anexoExiste.get(id);
+        if (existente) return numero(existente, 'completo') === 1 ? 'existe' : 'subindo';
         if (contar(sql.espacoUsado.get()) + tamanho > espaco) return 'sem-espaco';
         sql.reservarAnexo.run(id, tamanho, expiraEm);
         return 'ok';

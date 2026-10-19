@@ -385,7 +385,7 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 | `depositar` | qualquer um | nenhuma; limite de taxa | guarda um pacote de 4096 bytes na caixa, com a marca de aviso (49 bytes, selada para a chave da caixa) |
 | `abrirCaixa` | dono da caixa | desafio da conexão assinado com a chave da caixa | entrega os pacotes pendentes por WebSocket |
 | `confirmar` | dono da caixa | caixa aberta na conexão | apaga os pacotes confirmados |
-| `PUT`, `GET` e `DELETE /anexos/<token>` | remetente / destinatário | token aleatório do anexo; o relay guarda só o hash dele | guarda o blob cifrado (409 se já existe), entrega e apaga; quem recebe apaga depois de conferir |
+| `PUT`, `GET` e `DELETE /anexos/<token>` | remetente / destinatário | token aleatório do anexo; o relay guarda só o hash dele | guarda o blob cifrado (409 se ele já subiu inteiro, 503 se outro envio dele ainda sobe), entrega e apaga; quem recebe apaga depois de conferir |
 | `apagarTudo` | dono do ID | desafio da conexão assinado com a chave de identidade | pânico: remove cartão, *one-time prekeys*, caixa principal e os pacotes dela |
 
 - **Apagar tudo:** o pedido leva a chave de identidade e a assinatura dela sobre um contexto próprio, o desafio da conexão e a própria chave: não serve em outra conexão, e só o dono apaga o cartão. Assinatura errada recebe `assinatura-invalida` e fecha a conexão, como na abertura de caixa. Sem cartão, `cartao-inexistente`. A conexão que estava com a caixa aberta é fechada (4007); quem depositar nela depois recebe `caixa-inexistente`, e quem buscar o cartão, `cartao-inexistente`. O app manda pela conexão no circuito da caixa, que já publicava o cartão.
@@ -692,7 +692,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e oitenta e dois riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e oitenta e um riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -771,7 +771,6 @@ Quatro decisões ainda abertas e oitenta e dois riscos com mitigação. O maior 
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; a taxa de depósitos do relay ainda é por conexão; prova de trabalho na fase 2 |
-| Um envio de anexo repetido enquanto o primeiro ainda sobe recebe "já existe" do relay, e o app marca o anexo como enviado; depois o relay descarta o envio parado | correção: o relay só responde "já existe" para anexo completo |
 | Um banco que passou pela atualização dos contatos com notas pessoais guarda o próprio ID entre os contatos, e o backup dele não restaura | correção: o backup não leva o próprio ID, a leitura ignora, e uma atualização do banco o tira dos contatos |
 | Uma conexão que envia sem nunca ler faz o relay guardar na memória tudo o que vai para ela, até a memória acabar | correção: teto do que fica à espera por conexão; acima dele, a conexão fecha |
 | Um erro do banco ao atender um pedido, como disco cheio, encerra o processo do relay e derruba todas as conexões | correção: o erro fica na conexão que fez o pedido |

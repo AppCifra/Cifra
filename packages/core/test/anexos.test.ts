@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { request } from 'node:http';
 import {
   BYTES_DO_CABECALHO_DO_FLUXO,
   BYTES_DO_PEDACO,
+  caminhoDoAnexo,
   iguais,
   TAMANHO_MAXIMO_DO_CLARO,
   TAMANHO_MINIMO_DO_ANEXO,
@@ -139,6 +141,21 @@ async function blobNoBanco(p: Pessoa, id: Uint8Array): Promise<Uint8Array | null
 }
 
 const httpDe = (p: Pessoa, metodo: string) => p.transporte.http.filter((h) => h.metodo === metodo);
+
+/** Um envio direto ao relay que parou no meio: ele tem o anexo pela metade até `cortar`. */
+function subirParado(token: Uint8Array, blob: Uint8Array): { cortar: () => void } {
+  const pedido = request(relay.endereco.replace('ws://', 'http://') + caminhoDoAnexo(token), {
+    method: 'PUT',
+    headers: { 'Content-Length': blob.length },
+  });
+  pedido.on('error', () => undefined);
+  pedido.write(blob.subarray(0, Math.floor(blob.length / 2)));
+  return {
+    cortar: () => {
+      pedido.destroy();
+    },
+  };
+}
 
 /** Segura os pedidos HTTP do método até `soltar`: uma transferência lenta pelo Tor. */
 function segurar(p: Pessoa, metodo: string): { soltar: () => void } {
@@ -374,6 +391,34 @@ describe('anexo pelo relay (RF-32 a RF-35)', () => {
     alice.transporte.falharHttp = null;
     await avancarAte(async () => (await estadoDo(bob, alice, id)) === 'baixado', 'bob baixa');
     expect(await statusDa(alice, bob, id)).toBe('enviada');
+  }, 30_000);
+
+  it('o mesmo anexo ainda subindo no relay, por um envio parado: espera ele cair e sobe de novo', async () => {
+    const [alice, bob] = await conversa();
+    const lento = segurar(alice, 'PUT');
+    const arquivo = imagem();
+    const id = await alice.correio.enviarAnexo(bob.id, arquivo);
+    await ate(() => httpDe(alice, 'PUT').length === 1, 'tenta subir');
+    // Um envio anterior do mesmo blob, por um circuito que parou: o relay o tem pela metade.
+    const [linha] = await alice.banco.banco.consultar(
+      'SELECT token, blob FROM anexos WHERE mensagem = ?',
+      [id],
+    );
+    const parado = subirParado(linha?.['token'] as Uint8Array, linha?.['blob'] as Uint8Array);
+    await ate(() => anexosNoRelay() === 1, 'o envio parado começa');
+    lento.soltar();
+    await ate(async () => {
+      const [item] = await alice.banco.banco.consultar('SELECT tentativas FROM fila');
+      return Number(item?.['tentativas'] ?? 0) > 0 || (await estadoDo(alice, bob, id)) !== 'enviar';
+    }, 'o relay responde');
+    expect(await estadoDo(alice, bob, id)).toBe('enviar');
+    await redeParada();
+    expect(await itemDa(bob, alice, id)).toBeUndefined();
+
+    parado.cortar();
+    await ate(() => anexosNoRelay() === 0, 'o relay descarta o envio parado');
+    await avancarAte(async () => (await estadoDo(bob, alice, id)) === 'baixado', 'bob baixa');
+    expect((await bob.agenda.abrirAnexo(alice.id, id))?.bytes).toEqual(arquivo.bytes);
   }, 30_000);
 
   it('um anexo subindo não segura as outras conversas; a mensagem seguinte espera por ele', async () => {
