@@ -484,10 +484,10 @@ db.execute("INSERT INTO busca(busca, rank) VALUES('secure-delete', 1)");
 
 ### Backup
 
-- **O que leva (RF-46):** os contatos aceitos (apelido, verificado, bloqueado, a data em que entraram, o timer e os prints da conversa com a data da mudança, até onde as mensagens deles já tinham chegado e o cartão conferido de cada um), os IDs bloqueados que vieram de pedidos, a linha dos ajustes, o tema e o idioma. Nunca leva mensagem, nota, anexo, pedido, sessão, prekey, a caixa que o contato pediu para a conversa, nem nada do cofre: ele sai só do banco principal. As notificações ficam de fora (dependem da permissão do sistema).
+- **O que leva (RF-46):** os contatos aceitos (apelido, verificado, bloqueado, a data em que entraram, o timer e os prints da conversa com a data da mudança, até onde as mensagens deles já tinham chegado e o cartão conferido de cada um), os IDs bloqueados que vieram de pedidos, a linha dos ajustes, o tema e o idioma. Nunca leva mensagem, nota, anexo, pedido, sessão, prekey, a caixa que o contato pediu para a conversa, o próprio ID, nem nada do cofre: ele sai só do banco principal. As notificações ficam de fora (dependem da permissão do sistema).
 - **Arquivo:** um nonce de 24 bytes e o texto claro cifrado com XChaCha20-Poly1305, com uma chave que sai da semente da identidade (BLAKE2b com chave, num contexto próprio): só abre com as 12 palavras da mesma identidade. Nada fica em claro, nem um cabeçalho; o texto claro é completado com zeros até a faixa do Padmé, com no mínimo 4096 bytes, para o tamanho não dizer quantos contatos há. O app lê no máximo 16 MiB.
 - **Exportar:** em Ajustes > Backup, pelo "salvar como" do sistema (sem permissão de armazenamento): a pessoa escolhe a pasta e o nome; o sugerido é "Cifra backup AAAA-MM-DD". O app não bloqueia enquanto o "salvar como" está na frente, como nos seletores de fotos e arquivos. O backup é um retrato: o que mudar depois não está nele.
-- **Restaurar (RF-47):** na tela da identidade restaurada, "Usar um backup" abre o seletor de arquivos do sistema. O arquivo de outra identidade, ou mexido, não abre, e a tela avisa. Ao entrar, os contatos e os ajustes vão para o banco novo junto com a identidade, e o tema e o idioma do backup passam a valer.
+- **Restaurar (RF-47):** na tela da identidade restaurada, "Usar um backup" abre o seletor de arquivos do sistema. O arquivo de outra identidade, ou mexido, não abre, e a tela avisa. O próprio ID, se estiver entre os contatos do arquivo, fica de fora. Ao entrar, os contatos e os ajustes vão para o banco novo junto com a identidade, e o tema e o idioma do backup passam a valer.
 
 ### Anexos
 
@@ -692,7 +692,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e oitenta e um riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e oitenta riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -771,7 +771,6 @@ Quatro decisões ainda abertas e oitenta e um riscos com mitigação. O maior ri
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; a taxa de depósitos do relay ainda é por conexão; prova de trabalho na fase 2 |
-| Um banco que passou pela atualização dos contatos com notas pessoais guarda o próprio ID entre os contatos, e o backup dele não restaura | correção: o backup não leva o próprio ID, a leitura ignora, e uma atualização do banco o tira dos contatos |
 | Uma conexão que envia sem nunca ler faz o relay guardar na memória tudo o que vai para ela, até a memória acabar | correção: teto do que fica à espera por conexão; acima dele, a conexão fecha |
 | Um erro do banco ao atender um pedido, como disco cheio, encerra o processo do relay e derruba todas as conexões | correção: o erro fica na conexão que fez o pedido |
 | Um pacote que falha ao entrar no banco do app ocupa para sempre uma vaga da janela de entrega daquela conexão; com a janela cheia deles, a caixa para de receber | correção: pedir o pacote de novo e, depois de algumas falhas, descartá-lo |

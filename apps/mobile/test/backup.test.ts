@@ -163,8 +163,11 @@ describe('importar o backup na restauração (RF-47)', () => {
     await alice.agenda.renomear(bob.id, 'Bob');
     await alice.agenda.verificar(bob.id, true);
     await alice.agenda.mudarTimerPadrao(3600);
+    const meuId = lerId(alice.id);
+    if (!meuId) throw new Error('ID');
     const conteudo = await conteudoDoBackup(
       alice.banco.banco,
+      meuId,
       { tema: 'claro', idioma: 'en' },
       relogio.agora(),
     );

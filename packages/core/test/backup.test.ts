@@ -204,6 +204,26 @@ describe('exportar o backup (RF-46)', () => {
     expect(aberto?.contatos).toEqual([{ ...doBob, cartao: null }]);
     expect(formatarId(aberto?.contatos[0]?.contato ?? new Uint8Array(10))).toBe(bob.id);
   });
+
+  it('o próprio ID entre os contatos não vai, e um backup que o leve abre sem ele', async () => {
+    const [alice, bob] = await conversa();
+    // Como a atualização dos contatos deixava um banco que tinha notas pessoais.
+    await alice.banco.banco.executar(
+      'INSERT INTO contatos (contato, aceito, criado_em) VALUES (?, 1, 0)',
+      [idDe(alice)],
+    );
+    const conteudo = abrirBackup(cripto, alice.identidade, await exportar(alice));
+    if (!conteudo) throw new Error('não abriu');
+    expect(conteudo.contatos.map((c) => formatarId(c.contato))).toEqual([bob.id]);
+
+    const [doBob] = conteudo.contatos;
+    if (!doBob) throw new Error('sem o Bob');
+    const comOProprio = cifrarBackup(cripto, alice.identidade, {
+      ...conteudo,
+      contatos: [{ ...doBob, contato: idDe(alice), cartao: null }, doBob],
+    });
+    expect(abrirBackup(cripto, alice.identidade, comOProprio)?.contatos).toEqual([doBob]);
+  });
 });
 
 describe('importar o backup na restauração (RF-47)', () => {

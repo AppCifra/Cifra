@@ -139,10 +139,12 @@ function apelidoValido(apelido: string): boolean {
 
 /**
  * O que vai no backup, lido do banco principal: os contatos aceitos e os IDs bloqueados, com o cartão
- * conferido de cada um, e os ajustes. Pedidos de conversa ficam de fora.
+ * conferido de cada um, e os ajustes. Pedidos de conversa ficam de fora, e o próprio ID também (um
+ * banco que passou pela atualização dos contatos com notas pessoais o tem entre os contatos).
  */
 export async function conteudoDoBackup(
   banco: Armazenamento,
+  meuId: Uint8Array,
   preferencias: PreferenciasDoBackup,
   agora: number,
 ): Promise<ConteudoDoBackup> {
@@ -152,8 +154,9 @@ export async function conteudoDoBackup(
             c.timer_desde, c.timer_por_avisar, c.prints_bloqueados, c.prints_desde,
             c.recebidas_ate, d.cartao
        FROM contatos c LEFT JOIN destinos d ON d.contato = c.contato
-      WHERE c.aceito = 1 OR c.bloqueado = 1
+      WHERE (c.aceito = 1 OR c.bloqueado = 1) AND c.contato <> ?
       ORDER BY c.criado_em, c.contato`,
+    [meuId],
   );
   const contatos = linhas.map((linha): ContatoDoBackup => {
     const apelido = linha['apelido'];
@@ -281,7 +284,10 @@ function lerContato(leitor: Leitor): ContatoDoBackup {
   };
 }
 
-/** Lê o texto claro sem confiar em nada: formato, faixas, nenhum ID repetido nem o próprio. */
+/**
+ * Lê o texto claro sem confiar em nada: formato, faixas, nenhum ID repetido. O próprio ID, que o
+ * backup de um banco com ele entre os contatos levava, fica de fora, e o resto vale.
+ */
 function ler(claro: Uint8Array, meuId: Uint8Array): ConteudoDoBackup {
   const leitor = new Leitor(claro);
   if (leitor.uint8() !== VERSAO) throw new ErroDeFormato('versão');
@@ -295,8 +301,9 @@ function ler(claro: Uint8Array, meuId: Uint8Array): ConteudoDoBackup {
   const vistos = new Set<string>();
   for (let i = 0; i < quantidade; i++) {
     const contato = lerContato(leitor);
+    if (iguais(contato.contato, meuId)) continue;
     const chave = Array.from(contato.contato).join(',');
-    if (vistos.has(chave) || iguais(contato.contato, meuId)) throw new ErroDeFormato('ID');
+    if (vistos.has(chave)) throw new ErroDeFormato('ID');
     vistos.add(chave);
     contatos.push(contato);
   }
@@ -345,7 +352,12 @@ export async function exportarBackup(
   preferencias: PreferenciasDoBackup,
   agora: number,
 ): Promise<Uint8Array> {
-  return cifrarBackup(cripto, identidade, await conteudoDoBackup(banco, preferencias, agora));
+  const meuId = idDaChave(cripto, identidade.assinatura.publicKey);
+  return cifrarBackup(
+    cripto,
+    identidade,
+    await conteudoDoBackup(banco, meuId, preferencias, agora),
+  );
 }
 
 /**
