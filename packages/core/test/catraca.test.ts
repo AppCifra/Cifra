@@ -182,16 +182,35 @@ describe('Double Ratchet (RNF-02)', () => {
     expect(serializado(bob.estado)).toEqual(antes);
   });
 
-  it(`pula até ${SALTO_MAXIMO} chaves; um salto maior é recusado`, () => {
+  // Numa caixa sem leitura por mais de 14 dias, o relay apaga os pacotes velhos e aceita os novos:
+  // a distância passa do teto de pacotes da caixa.
+  it('1500 mensagens perdidas na mesma cadeia: a seguinte abre', () => {
     const { alice, bob } = conversa();
     bob.receber(alice.enviar('abre'));
-    const limite = SALTO_MAXIMO;
-    // Salto exatamente no limite: 1000 chaves puladas.
-    for (let i = 0; i < limite; i++) alice.enviar(`perdida ${i}`);
+    for (let i = 0; i < 1500; i++) alice.enviar('apagada pelo relay');
+    expect(bob.receber(alice.enviar('depois'))).toBe('depois');
+  });
+
+  it('1500 mensagens perdidas antes do passo DH: a primeira da cadeia nova abre', () => {
+    const { alice, bob } = conversa();
+    bob.receber(alice.enviar('abre'));
+    for (let i = 0; i < 1500; i++) alice.enviar('apagada pelo relay');
+    expect(alice.receber(bob.enviar('resposta'))).toBe('resposta');
+    expect(bob.receber(alice.enviar('cadeia nova'))).toBe('cadeia nova');
+  });
+
+  it(`pula até ${SALTO_MAXIMO} chaves e guarda as mais novas; um salto maior é recusado`, () => {
+    const { alice, bob } = conversa();
+    bob.receber(alice.enviar('abre'));
+    // Salto exatamente no limite.
+    const perdidas: Mensagem[] = [];
+    for (let i = 0; i < SALTO_MAXIMO; i++) perdidas.push(alice.enviar(`perdida ${i}`));
     expect(bob.receber(alice.enviar('no limite'))).toBe('no limite');
-    expect(bob.estado.puladas).toHaveLength(limite);
+    expect(bob.estado.puladas).toHaveLength(CHAVES_PULADAS_GUARDADAS);
+    expect(bob.receber(perdidas.at(-1) as Mensagem)).toBe(`perdida ${SALTO_MAXIMO - 1}`);
+    expect(bob.receber(perdidas.at(-CHAVES_PULADAS_GUARDADAS - 1) as Mensagem)).toBeNull();
     // Um a mais que o limite, na mesma cadeia: recusada.
-    for (let i = 0; i <= limite; i++) alice.enviar(`perdida ${i}`);
+    for (let i = 0; i <= SALTO_MAXIMO; i++) alice.enviar(`perdida ${i}`);
     expect(bob.receber(alice.enviar('além'))).toBeNull();
   });
 
@@ -200,7 +219,7 @@ describe('Double Ratchet (RNF-02)', () => {
     bob.receber(alice.enviar('abre'));
     const primeira = alice.enviar('primeira pulada');
     for (let rodada = 0; rodada < 3; rodada++) {
-      for (let i = 0; i < SALTO_MAXIMO - 1; i++) alice.enviar('perdida');
+      for (let i = 0; i < CHAVES_PULADAS_GUARDADAS / 2 - 1; i++) alice.enviar('perdida');
       expect(bob.receber(alice.enviar(`rodada ${rodada}`))).toBe(`rodada ${rodada}`);
     }
     expect(bob.estado.puladas).toHaveLength(CHAVES_PULADAS_GUARDADAS);

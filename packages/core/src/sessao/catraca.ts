@@ -10,20 +10,20 @@ import {
   iguais,
   juntar,
   Leitor,
-  PACOTES_POR_CAIXA,
   type CabecalhoDaCatraca,
 } from '@cifra/protocol';
 import type { Cripto, ParDeChaves } from '../portas/cripto.ts';
 import { derivarCadeia, derivarCifra, derivarRaiz } from './derivacao.ts';
 
 /**
- * MAX_SKIP: quantas chaves uma mensagem pode mandar pular numa cadeia. É o teto de pacotes à
- * espera numa caixa: mais que isso não chega a existir no relay.
+ * MAX_SKIP: quantas chaves uma mensagem pode mandar pular numa cadeia, o mesmo do Signal. Não é o
+ * teto de pacotes da caixa: numa caixa sem leitura, o relay apaga os pacotes de 14 dias e aceita
+ * os novos, e a distância cresce.
  */
-export const SALTO_MAXIMO = PACOTES_POR_CAIXA;
+export const SALTO_MAXIMO = 25_000;
 
 /** Chaves puladas guardadas numa sessão; acima disso, as mais antigas saem. */
-export const CHAVES_PULADAS_GUARDADAS = 2 * SALTO_MAXIMO;
+export const CHAVES_PULADAS_GUARDADAS = 2000;
 
 /** Uma chave de mensagem que ficou para trás: a mensagem fora de ordem ainda pode chegar. */
 export interface ChavePulada {
@@ -167,7 +167,10 @@ export function cifrar(
   }
 }
 
-/** SkipMessageKeys: guarda as chaves da cadeia de recebimento até `ate`. */
+/**
+ * SkipMessageKeys: guarda as chaves da cadeia de recebimento até `ate`. Num salto maior que o
+ * teto das guardadas, as do começo não entram e são zeradas logo, como as cadeias do meio.
+ */
 function pular(cripto: Cripto, estado: EstadoDaCatraca, ate: number): EstadoDaCatraca {
   if (estado.recebidas + SALTO_MAXIMO < ate) throw new Error('salto grande demais');
   const { recebendo } = estado;
@@ -177,7 +180,12 @@ function pular(cripto: Cripto, estado: EstadoDaCatraca, ate: number): EstadoDaCa
   const novas: ChavePulada[] = [];
   while (recebidas < ate) {
     const passo = derivarCadeia(cripto, cadeia);
-    novas.push({ chave: recebendo, numero: recebidas, mensagem: passo.mensagem });
+    if (recebidas >= ate - CHAVES_PULADAS_GUARDADAS) {
+      novas.push({ chave: recebendo, numero: recebidas, mensagem: passo.mensagem });
+    } else {
+      cripto.memzero(passo.mensagem);
+    }
+    if (cadeia !== estado.cadeiaDeRecebimento) cripto.memzero(cadeia);
     cadeia = passo.cadeia;
     recebidas++;
   }
