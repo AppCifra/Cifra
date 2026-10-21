@@ -54,7 +54,8 @@ import kotlin.math.min
 //   foto parada. O JPEG sai sem o perfil de cor que o Android embute.
 // - Vídeo (RF-33): as trilhas de vídeo e de áudio vão para um MP4 novo, sem recodificar e sem
 //   metadados (sem localização, sem modelo). O MP4 passa por um arquivo temporário no cache do app,
-//   zerado e apagado logo depois. A capa é um quadro em JPEG.
+//   zerado e apagado logo depois; a cópia para assim que passa do limite do anexo. A capa é um
+//   quadro em JPEG.
 // - Documento (RF-34): vai como está, sem o nome nem as datas do arquivo.
 // - A miniatura (JPEG pequeno) vai dentro da mensagem, desfocada até o anexo baixar.
 // - Salvar no celular (RF-53) só acontece quando a pessoa pede: foto e vídeo na galeria (álbum
@@ -387,7 +388,10 @@ class AnexosModule : Module() {
     }
   }
 
-  /** O MP4 novo, lido do arquivo temporário, que é zerado e apagado antes de devolver. */
+  /**
+   * O MP4 novo, lido do arquivo temporário, que é zerado e apagado antes de devolver. O arquivo tem
+   * pelo menos as amostras: quando elas passam de `maximo`, recusa sem copiar o resto.
+   */
   private fun remuxar(uri: Uri, rotacao: Int, maximo: Int): ByteArray {
     val temporario = File.createTempFile("cifra", ".mp4", contexto.cacheDir)
     try {
@@ -422,11 +426,14 @@ class AnexosModule : Module() {
         muxer.start()
         val amostra = ByteBuffer.allocate(maiorAmostra)
         val info = MediaCodec.BufferInfo()
+        var copiados = 0L
         while (true) {
           val tamanho = extrator.readSampleData(amostra, 0)
           if (tamanho < 0) break
           val trilha = trilhas[extrator.sampleTrackIndex]
           if (trilha != null) {
+            copiados += tamanho
+            if (copiados > maximo) throw grandeDemais()
             val chave = (extrator.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC) != 0
             info.set(0, tamanho, extrator.sampleTime, if (chave) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0)
             muxer.writeSampleData(trilha, amostra, info)

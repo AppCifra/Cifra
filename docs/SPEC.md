@@ -702,7 +702,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e setenta riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e sessenta e nove riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -781,7 +781,6 @@ Quatro decisões ainda abertas e setenta riscos com mitigação. O maior risco t
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; os depósitos numa caixa têm taxa no relay inteiro; prova de trabalho na fase 2 |
 | Desbloquear durante uma tentativa de conexão do vigia espera a tentativa acabar: com o Tor lento ou sem internet, até 60 s para a conexão abrir e até 60 s pela resposta do relay | o prazo para abrir limita a espera; cancelar a tentativa do vigia no desbloqueio fica para depois |
-| Um vídeo muito acima do limite de 25 MB é copiado inteiro e zerado antes de ser recusado | correção: parar a cópia ao passar do limite |
 | A busca exportada pelo núcleo (`buscarMensagens`) devolve mensagens escondidas por "apagar só neste celular" e as de pedidos | o app usa a busca da agenda, que filtra; correção: filtrar também ou deixar de exportar |
 | Um endereço de relay com `?` ou `#` passa na validação do cartão e quebra o endereço dos anexos | correção: recusar `?` e `#` no endereço |
 | Tipos de arquivo com maiúscula, como o do `.xlsm`, são recusados no anexo | correção: passar o tipo para minúsculas antes de validar |
