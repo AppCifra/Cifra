@@ -428,6 +428,7 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 | Saída por conexão | 1 MiB esperando para sair (quem não lê o que o relay manda); acima disso, a conexão cai |
 | Conexão ociosa | sem caixa aberta e sem mensagem por 5 min, fecha |
 | Conexão morta | ping a cada 30 s; dois seguidos sem resposta derrubam a conexão |
+| Conexão que não abre | o app desiste depois de 60 s (o Tor e a resposta do relay) e tenta de novo |
 
 As datas ficam no banco do relay só na hora cheia, sem minuto nem segundo. A data do cartão, que vem assinada pelo app, também: o app publica com a hora cheia, e uma publicação seguinte na mesma hora anda 1 ms.
 
@@ -779,7 +780,7 @@ Quatro decisões ainda abertas e setenta e três riscos com mitigação. O maior
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; os depósitos numa caixa têm taxa no relay inteiro; prova de trabalho na fase 2 |
-| A conexão com o relay não tem prazo para abrir: um relay que aceita e não responde deixa o app em "conectando", e o vigia para de avisar | correção: prazo de 60 s para abrir, como nos pedidos de anexo |
+| Desbloquear durante uma tentativa de conexão do vigia espera a tentativa acabar: com o Tor lento ou sem internet, até 60 s para a conexão abrir e até 60 s pela resposta do relay | o prazo para abrir limita a espera; cancelar a tentativa do vigia no desbloqueio fica para depois |
 | Uma conexão fechada pelo próprio app não avisa o fechamento ao JS, e os ouvintes dela se acumulam | correção: o módulo avisa todo fechamento |
 | Um erro ao parar as conversas no bloqueio deixa o vigia desligado, e o desbloqueio seguinte falha | correção: o bloqueio segue mesmo com erro, como o pânico |
 | A numeração dos pedidos de anexo recomeça a cada desbloqueio, e um cancelamento antigo pode cancelar outro envio | correção: numeração única no processo |

@@ -40,6 +40,10 @@ import kotlin.concurrent.thread
 // com "tor-indisponivel" e nunca tenta o caminho direto (RF-44, RNF-06). Nada aqui escreve log
 // (RNF-05).
 //
+// A conexão que não abre em 60 s (o SOCKS, o Tor e a resposta do relay) falha com
+// "relay-inacessivel": um relay que aceita e não responde não segura quem espera por ela. Aberta,
+// ela não tem prazo, e o ping a cada 30 s derruba a que morreu.
+//
 // O HTTP dos anexos passa pelo mesmo caminho, com a credencial do circuito pedido. A transferência
 // parada por 60 s cai, a resposta maior que o limite é recusada (o app também não confia no relay)
 // e o JS pode cancelar no meio. O progresso vai ao JS de tanto em tanto.
@@ -224,6 +228,8 @@ class TransporteTorModule : Module() {
 
   private fun abrir(endereco: String, portaSocks: Int?, credencial: String?, promise: Promise) {
     val cliente = cliente(portaSocks, credencial) {
+      // O OkHttp tira este prazo quando o WebSocket abre: ele vale só para o aperto de mão.
+      callTimeout(PRAZO_PARA_ABRIR_EM_SEGUNDOS, TimeUnit.SECONDS)
       readTimeout(0, TimeUnit.SECONDS)
       pingInterval(30, TimeUnit.SECONDS)
     }
@@ -277,6 +283,9 @@ class TransporteTorModule : Module() {
 
     /** Transferência de anexo parada por este tempo cai (o relay tem o mesmo prazo). */
     const val PARADA_EM_SEGUNDOS = 60L
+
+    /** A conexão com o relay que não abre neste tempo falha, e quem pediu tenta de novo. */
+    const val PRAZO_PARA_ABRIR_EM_SEGUNDOS = 60L
 
     /** O corpo vai e vem em pedaços de 64 KiB. */
     const val PEDACO = 65_536
