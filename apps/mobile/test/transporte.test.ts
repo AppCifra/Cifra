@@ -1,3 +1,4 @@
+import type { Transporte } from '@cifra/core';
 import { describe, expect, it } from 'vitest';
 import { cripto } from '../../../packages/core/test/adaptadores/sodium-node.ts';
 import {
@@ -15,6 +16,8 @@ function moduloDeTeste() {
   const ouvintes: Ouvintes = { mensagem: new Set(), fechou: new Set(), progresso: new Set() };
   const abertas = new Set<number>();
   let proximaConexao = 1;
+  const pedidos: number[] = [];
+  const respostas: (() => void)[] = [];
   const modulo: ModuloDoTransporte = {
     conectar() {
       const id = proximaConexao++;
@@ -29,7 +32,14 @@ function moduloDeTeste() {
       abertas.delete(id);
       return Promise.resolve();
     },
-    http: () => Promise.resolve({ status: 200, corpo: new Uint8Array() }),
+    http(numero) {
+      pedidos.push(numero);
+      return new Promise((pronto) => {
+        respostas.push(() => {
+          pronto({ status: 200, corpo: new Uint8Array() });
+        });
+      });
+    },
     cancelarHttp: () => undefined,
     addListener(evento, ouvinte) {
       const lista: Set<typeof ouvinte> = ouvintes[evento];
@@ -53,6 +63,16 @@ function moduloDeTeste() {
     cair(id: number) {
       if (!abertas.delete(id)) return;
       for (const ouvinte of [...ouvintes.fechou]) ouvinte({ id });
+    },
+    /** O número de cada pedido HTTP que chegou ao módulo, na ordem. */
+    pedidos,
+    /** O progresso do pedido HTTP com este número. */
+    progredir(numero: number, fracao: number) {
+      for (const ouvinte of [...ouvintes.progresso]) ouvinte({ numero, fracao });
+    },
+    /** Os pedidos HTTP terminam. */
+    responder() {
+      for (const pronto of respostas.splice(0)) pronto();
     },
   };
 }
@@ -101,5 +121,32 @@ describe('conexão com o relay', () => {
     await conexao.fechar();
     expect(avisos.fechou).toBe(1);
     expect(teste.ouvintes()).toBe(0);
+  });
+});
+
+describe('pedidos HTTP dos anexos', () => {
+  it('cada desbloqueio cria um transporte, e o número de um pedido nunca se repete', async () => {
+    const teste = moduloDeTeste();
+    const progressos = { antes: [] as number[], depois: [] as number[] };
+    const pedir = (transporte: Transporte, lado: keyof typeof progressos) =>
+      transporte.pedirHttp({
+        metodo: 'GET',
+        endereco: 'http://relay.onion/anexos/a',
+        circuito: 'anexos',
+        limite: 1024,
+        aoProgredir: (fracao) => {
+          progressos[lado].push(fracao);
+        },
+      });
+    const antes = pedir(transportePorModulo(teste.modulo, cripto, COM_TOR), 'antes');
+    const depois = pedir(transportePorModulo(teste.modulo, cripto, COM_TOR), 'depois');
+    const [primeiro, segundo] = teste.pedidos;
+    if (primeiro === undefined || segundo === undefined) throw new Error('sem pedidos');
+    expect(primeiro).not.toBe(segundo);
+    // O progresso e o cancelamento vão pelo número: um não chega ao pedido do outro.
+    teste.progredir(primeiro, 0.5);
+    expect(progressos).toEqual({ antes: [0.5], depois: [] });
+    teste.responder();
+    await Promise.all([antes, depois]);
   });
 });

@@ -44,6 +44,13 @@ export interface OpcoesDoTransporte {
   readonly portaSocks: number | null;
 }
 
+/**
+ * O número de cada pedido HTTP, que não se repete enquanto o app está aberto: o módulo nativo é um
+ * só, e cada desbloqueio cria um transporte novo. Repetido, o progresso e o cancelamento de um
+ * pedido chegariam a outro.
+ */
+let proximoPedido = 1;
+
 export function transportePorModulo(
   modulo: ModuloDoTransporte,
   cripto: Pick<Cripto, 'randombytes_buf'>,
@@ -58,8 +65,6 @@ export function transportePorModulo(
     }
     return credencial;
   };
-
-  let proximoPedido = 1;
 
   return {
     // O HTTP dos anexos sai pela mesma credencial do circuito pedido: o envio de um anexo vai pelo

@@ -25,8 +25,8 @@ declare class CifraTransporte extends NativeModule<EventosDoTransporte> {
   fechar(id: number): Promise<void>;
   /**
    * Um pedido HTTP (os anexos), com as mesmas regras de `conectar`. `numero` identifica o pedido
-   * no progresso e no cancelamento. Rejeita com `tor-indisponivel`, `relay-inacessivel` ou
-   * `cancelado`.
+   * no progresso e no cancelamento, e não se repete enquanto o app está aberto. Rejeita com
+   * `tor-indisponivel`, `relay-inacessivel` ou `cancelado`.
    */
   http(
     numero: number,

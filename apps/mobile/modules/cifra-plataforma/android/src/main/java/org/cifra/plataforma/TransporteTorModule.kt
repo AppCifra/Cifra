@@ -51,7 +51,11 @@ class TransporteTorModule : Module() {
   private val conexoes = ConcurrentHashMap<Int, WebSocket>()
   private val proximoId = AtomicInteger(1)
   private val pedidosHttp = ConcurrentHashMap<Int, Call>()
-  /** Cancelados antes de o pedido sair: o JS pode cancelar antes de a thread começar. */
+  /**
+   * Cancelados antes de o pedido sair: o JS pode cancelar antes de a thread começar. O número não
+   * se repete enquanto o app está aberto, então o cancelamento que chega depois do fim não pega
+   * outro pedido.
+   */
   private val canceladosHttp = ConcurrentHashMap.newKeySet<Int>()
 
   override fun definition() = ModuleDefinition {
@@ -88,6 +92,7 @@ class TransporteTorModule : Module() {
         corpo: ByteArray?, limite: Int, promise: Promise ->
       thread(name = "cifra-http") {
         if (portaSocks != null && (credencial == null || !socksResponde(portaSocks))) {
+          canceladosHttp.remove(numero)
           promise.reject(CodedException("tor-indisponivel", "tor-indisponivel", null))
           return@thread
         }
@@ -105,6 +110,7 @@ class TransporteTorModule : Module() {
       conexoes.clear()
       pedidosHttp.values.forEach { it.cancel() }
       pedidosHttp.clear()
+      canceladosHttp.clear()
     }
   }
 
