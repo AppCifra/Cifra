@@ -137,14 +137,15 @@ export interface AnexoPreparado {
 }
 
 /**
- * Cifra o arquivo com chave nova e sorteia o token. Devolve `null` se o arquivo não segue o formato:
+ * Cifra o arquivo com chave nova e sorteia o token. O tipo MIME vai em minúsculas: ele não diferencia
+ * maiúscula, e o protocolo só aceita uma grafia. Devolve `null` se o arquivo não segue o formato:
  * tamanho, tipo MIME, capa, miniatura ou medidas.
  */
 export function prepararAnexo(cripto: Cripto, arquivo: ArquivoParaEnviar): AnexoPreparado | null {
   const capa = arquivo.capa ?? new Uint8Array(0);
   const parcial: DadosDoAnexo = {
     arquivo: arquivo.arquivo,
-    formato: arquivo.formato,
+    formato: arquivo.formato.toLowerCase(),
     tamanho: arquivo.bytes.length,
     capa: capa.length,
     largura: arquivo.largura ?? 0,

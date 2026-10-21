@@ -276,6 +276,16 @@ describe('cifra do anexo (RF-35)', () => {
     expect(recusado({}, documento())).toBe(false);
     expect(recusado({ formato: 'application/x-qualquer' }, documento())).toBe(false);
   });
+
+  it('o tipo vai em minúsculas: o do .xlsm, que tem maiúscula, é aceito', () => {
+    const xlsm = prepararAnexo(cripto, {
+      ...documento(),
+      formato: 'application/vnd.ms-excel.sheet.macroEnabled.12',
+    });
+    expect(xlsm?.anexo.formato).toBe('application/vnd.ms-excel.sheet.macroenabled.12');
+    const foto = prepararAnexo(cripto, { ...imagem(), formato: 'Image/JPEG' });
+    expect(foto?.anexo.formato).toBe('image/jpeg');
+  });
 });
 
 describe('anexo pelo relay (RF-32 a RF-35)', () => {
