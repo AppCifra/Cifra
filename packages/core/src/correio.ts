@@ -43,6 +43,7 @@ import {
   idDaChave,
   idDoCartao,
   cartaoAutentico,
+  JANELA_DE_ENTREGA,
   lerId,
   MAXIMO_DE_LIDAS,
   mensagemDaAbertura,
@@ -338,6 +339,20 @@ function novaCaixa(
     cancelarReconexao: null,
     removida: false,
   };
+}
+
+/**
+ * As confirmações de uma conexão da caixa, em lote. O que entra enquanto uma confirmação está a
+ * caminho espera e vai junto na seguinte: uma ida e volta pelo Tor serve a vários pacotes, e o
+ * relay recebe bem menos pedidos do que a taxa dele aceita.
+ */
+interface Confirmacoes {
+  /** Pacotes que chegaram e ainda não terminaram de entrar. */
+  esperando: number;
+  /** Os que entraram (ou foram descartados) e falta confirmar. */
+  readonly ids: Uint8Array[];
+  /** Uma confirmação saiu, e a resposta ainda não voltou. */
+  aCaminho: boolean;
 }
 
 /** A caixa para onde vai a conversa com o contato. */
@@ -1160,9 +1175,10 @@ export class Correio {
       conexao = await ConexaoComORelay.abrir(transporte, relay, estado.circuito, relogio);
       const aberta = conexao;
       estado.emDia = false;
+      const confirmacoes: Confirmacoes = { esperando: 0, ids: [], aCaminho: false };
       // Ouve antes de abrir a caixa: os pacotes chegam logo depois da resposta.
       aberta.aoAvisar((aviso) => {
-        this.#aoAvisar(estado, aberta, aviso);
+        this.#aoAvisar(estado, aberta, confirmacoes, aviso);
       });
       aberta.aoFechar(() => {
         this.#aoCairACaixa(estado, aberta);
@@ -1362,7 +1378,12 @@ export class Correio {
     return cartao !== null && !!this.#caixa && !iguais(cartao.caixaPrincipal, this.#caixa);
   }
 
-  #aoAvisar(estado: EstadoDaCaixa, conexao: ConexaoComORelay, aviso: Aviso): void {
+  #aoAvisar(
+    estado: EstadoDaCaixa,
+    conexao: ConexaoComORelay,
+    confirmacoes: Confirmacoes,
+    aviso: Aviso,
+  ): void {
     if (aviso.tipo === 'caixa-substituida') {
       // O relay apagou esta caixa e vai fechar a conexão: outro aparelho restaurou a identidade. Só
       // acontece com a caixa do cartão.
@@ -1382,23 +1403,27 @@ export class Correio {
     }
     // A marca sozinha só vai para quem vigia a caixa; o correio abre e recebe o pacote inteiro.
     if (aviso.tipo !== 'pacote') return;
-    this.#recebimentos = this.#recebimentos.then(() =>
-      this.#receber(estado, conexao, aviso.id, aviso.pacote),
-    );
+    confirmacoes.esperando++;
+    this.#recebimentos = this.#recebimentos.then(async () => {
+      const confirmar = await this.#receber(estado, conexao, aviso.id, aviso.pacote);
+      confirmacoes.esperando--;
+      if (confirmar) confirmacoes.ids.push(aviso.id);
+      this.#confirmar(conexao, confirmacoes);
+    });
   }
 
   /**
-   * Guarda o que chegou e só então confirma, para o relay apagar. Erro inesperado (do banco, por
-   * exemplo) não confirma: a conexão fecha, a caixa abre de novo depois do intervalo de reconexão, e
-   * o relay entrega o pacote outra vez. Um pacote que falha assim sem parar ocuparia para sempre uma
-   * vaga da janela de entrega: na terceira falha, ele é confirmado e se perde.
+   * Guarda o que chegou e diz se o pacote pode ser confirmado, para o relay apagar. Erro inesperado
+   * (do banco, por exemplo) não confirma: a conexão fecha, a caixa abre de novo depois do intervalo
+   * de reconexão, e o relay entrega o pacote outra vez. Um pacote que falha assim sem parar ocuparia
+   * para sempre uma vaga da janela de entrega: na terceira falha, ele é confirmado e se perde.
    */
   async #receber(
     estado: EstadoDaCaixa,
     conexao: ConexaoComORelay,
     id: Uint8Array,
     pacote: Uint8Array,
-  ): Promise<void> {
+  ): Promise<boolean> {
     let recebimento: Recebimento;
     try {
       recebimento = await this.#exclusivo(() =>
@@ -1412,19 +1437,37 @@ export class Correio {
       if (falhas < FALHAS_ANTES_DE_DESCARTAR) {
         this.#falhasAoReceber.set(chave, falhas);
         await conexao.fechar();
-        return;
+        return false;
       }
       this.#falhasAoReceber.delete(chave);
-      if (conexao.aberta) {
-        await conexao.pedir({ tipo: 'confirmar', ids: [id] }).catch(() => undefined);
-      }
-      return;
+      return true;
     }
     this.#falhasAoReceber.delete(hex(id));
     this.#avisarRecebimento(recebimento, estado);
-    if (conexao.aberta) {
-      await conexao.pedir({ tipo: 'confirmar', ids: [id] }).catch(() => undefined);
+    return true;
+  }
+
+  /**
+   * Confirma numa mensagem só o que já entrou, quando nenhuma confirmação está a caminho e nenhum
+   * pacote espera a vez: o relay só entrega mais depois de uma confirmação. Com a conexão fechada,
+   * os IDs ficam para trás; o relay entrega os pacotes de novo na abertura seguinte, e o repetido
+   * é descartado.
+   */
+  #confirmar(conexao: ConexaoComORelay, confirmacoes: Confirmacoes): void {
+    const { ids } = confirmacoes;
+    if (confirmacoes.aCaminho || confirmacoes.esperando > 0 || ids.length === 0) return;
+    if (!conexao.aberta) {
+      ids.length = 0;
+      return;
     }
+    confirmacoes.aCaminho = true;
+    void conexao
+      .pedir({ tipo: 'confirmar', ids: ids.splice(0, JANELA_DE_ENTREGA) })
+      .catch(() => undefined)
+      .then(() => {
+        confirmacoes.aCaminho = false;
+        this.#confirmar(conexao, confirmacoes);
+      });
   }
 
   /** Avisa quem ouve do que o pacote mudou. */

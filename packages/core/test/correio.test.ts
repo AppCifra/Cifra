@@ -2,6 +2,7 @@ import {
   cartaoAutentico,
   idDaChave,
   idDoCartao,
+  JANELA_DE_ENTREGA,
   lerMensagemDoRelay,
   lerPedido,
   TAMANHO_DO_PACOTE,
@@ -474,5 +475,52 @@ describe('pacote que falha ao entrar no banco', () => {
     expect(await textos(bob, alice)).not.toContain('nunca entra');
     await alice.correio.enviarTexto(bob.id, 'a seguinte');
     await ate(async () => (await textos(bob, alice)).includes('a seguinte'), 'a seguinte entra');
+  });
+});
+
+describe('confirmação do que chegou', () => {
+  const pacotesDe = (caixa: Uint8Array) =>
+    relay.consultar('SELECT count(*) AS n FROM pacotes WHERE caixa = ?', caixa)[0]?.['n'];
+
+  /** A Alice e o Bob conversando, e `quantos` textos da Alice esperando na caixa do Bob. */
+  async function caixaCheia(quantos: number) {
+    const [alice, bob] = await conversa();
+    await bob.correio.parar();
+    for (let i = 0; i < quantos; i++) {
+      await alice.correio.enviarTexto(bob.id, `à espera ${String(i)}`);
+    }
+    await ate(() => pacotesDe(bob.caixa) === quantos, 'os textos esperam na caixa do Bob');
+    return [alice, bob] as const;
+  }
+
+  it('o que chega entra sem esperar a resposta da confirmação do anterior', async () => {
+    const [alice, bob] = await caixaCheia(150);
+    // As respostas às confirmações do Bob somem: a primeira fica a caminho até o prazo.
+    const confirmacoes = new Set<number>();
+    bob.transporte.perderAoEnviar = (dados) => {
+      const leitura = lerPedido(dados);
+      if (leitura.ok && leitura.pedido.tipo === 'confirmar') {
+        confirmacoes.add(leitura.pedido.numero);
+      }
+      return false;
+    };
+    bob.transporte.sumirAoReceber = (dados) => {
+      const mensagem = lerMensagemDoRelay(dados);
+      return mensagem !== null && 'numero' in mensagem && confirmacoes.has(mensagem.numero);
+    };
+    bob.correio.iniciar();
+    await ate(
+      async () => (await textos(bob, alice)).length >= 2 + JANELA_DE_ENTREGA,
+      'a janela inteira entra',
+    );
+  });
+
+  it('confirma em lote: a caixa esvazia com poucas confirmações', async () => {
+    const [alice, bob] = await caixaCheia(150);
+    bob.correio.iniciar();
+    await ate(() => pacotesDe(bob.caixa) === 0, 'a caixa esvazia');
+    expect(await textos(bob, alice)).toHaveLength(152);
+    const confirmacoes = pedidos(bob).filter(({ pedido }) => pedido.tipo === 'confirmar');
+    expect(confirmacoes.length).toBeLessThanOrEqual(10);
   });
 });
