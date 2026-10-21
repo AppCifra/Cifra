@@ -215,6 +215,12 @@ describe('conformidade da porta Transporte, contra o relay de verdade', () => {
     relay = undefined;
   });
 
+  const relogioCurto: Relogio = {
+    agora: () => Date.now(),
+    // Prazo curto: o canal que não avisa o fechamento não segura o teste por um minuto.
+    agendar: (atraso, tarefa) => relogioDoNode.agendar(Math.min(atraso, 300), tarefa),
+  };
+
   it('o WebSocket do Node passa', async () => {
     relay = await RelayDeTeste.subir(relogioDoNode);
     expect(
@@ -237,16 +243,39 @@ describe('conformidade da porta Transporte, contra o relay de verdade', () => {
         };
       },
     };
-    const relogioCurto: Relogio = {
-      agora: () => Date.now(),
-      // Prazo curto: o canal que não avisa o fechamento não segura o teste por um minuto.
-      agendar: (atraso, tarefa) => relogioDoNode.agendar(Math.min(atraso, 300), tarefa),
-    };
     const acusadas = falhas(
       await verificarTransporte(cortado, relay.endereco, cripto, relogioCurto),
     );
     expect(acusadas).toContain('transporte.pacote-de-4096-bytes-chega-inteiro');
     expect(acusadas).toContain('transporte.avisa-quando-o-relay-fecha');
+  });
+
+  it('acusa canal que não avisa quando o próprio app fecha', async () => {
+    relay = await RelayDeTeste.subir(relogioDoNode);
+    const base = transporteNode();
+    const calado: Transporte = {
+      pedirHttp: (pedido) => base.pedirHttp(pedido),
+      async conectar(endereco, circuito) {
+        const conexao = await base.conectar(endereco, circuito);
+        // Avisa a queda, mas o fechamento pedido pelo app passa calado.
+        let fechandoPeloApp = false;
+        return {
+          ...conexao,
+          aoFechar: (ouvinte) =>
+            conexao.aoFechar(() => {
+              if (!fechandoPeloApp) ouvinte();
+            }),
+          fechar: () => {
+            fechandoPeloApp = true;
+            return conexao.fechar();
+          },
+        };
+      },
+    };
+    const acusadas = falhas(
+      await verificarTransporte(calado, relay.endereco, cripto, relogioCurto),
+    );
+    expect(acusadas).toEqual(['transporte.avisa-quando-o-app-fecha']);
   });
 
   it('acusa HTTP que troca bytes da resposta e que passa do limite', async () => {

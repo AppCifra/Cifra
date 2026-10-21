@@ -8,6 +8,7 @@
     ".",
     "../src/adaptadores/formato.ts",
     "../src/adaptadores/relogio-por-espera.ts",
+    "../src/adaptadores/transporte-por-modulo.ts",
     "../src/sessao.ts",
     "../src/controle.ts",
     "../src/conversas.ts",

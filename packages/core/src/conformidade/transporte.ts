@@ -1,7 +1,7 @@
 // Conformidade da porta Transporte, contra um relay de verdade: o canal leva mensagens binárias
 // inteiras nos dois sentidos, duas conexões em circuitos diferentes funcionam ao mesmo tempo, o
-// fechamento pelo relay é avisado e nada sai depois de fechado. Usa o protocolo cru, sem o cliente
-// do núcleo, para que um erro do cliente não esconda um erro do adaptador.
+// fechamento, pelo relay ou pelo app, é avisado, e nada sai depois de fechado. Usa o protocolo cru,
+// sem o cliente do núcleo, para que um erro do cliente não esconda um erro do adaptador.
 //
 // O HTTP dos anexos: um blob sobe, desce inteiro e é apagado, e a resposta maior que o limite
 // pedido é recusada (o app também não confia no relay).
@@ -200,6 +200,12 @@ export async function verificarTransporte(
         } catch {
           return true;
         }
+      },
+
+      'transporte.avisa-quando-o-app-fecha': async () => {
+        const a = exigir(dono);
+        await a.conexao.fechar();
+        return a.esperar(() => a.fechou);
       },
 
       'transporte.http-sobe-um-anexo': async () => {

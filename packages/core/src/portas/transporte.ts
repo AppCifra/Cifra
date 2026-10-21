@@ -46,7 +46,10 @@ export interface Conexao {
   enviar(dados: Uint8Array): Promise<void>;
   /** Registra quem recebe cada mensagem binária. Devolve a função que cancela o registro. */
   aoReceber(ouvinte: (dados: Uint8Array) => void): () => void;
-  /** Registra quem é avisado quando a conexão cai. Devolve a função que cancela o registro. */
+  /**
+   * Registra quem é avisado quando a conexão cai ou é fechada por `fechar`, uma vez só. Devolve a
+   * função que cancela o registro.
+   */
   aoFechar(ouvinte: () => void): () => void;
   fechar(): Promise<void>;
 }

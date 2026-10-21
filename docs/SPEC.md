@@ -702,7 +702,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e setenta e três riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e setenta e dois riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -781,7 +781,6 @@ Quatro decisões ainda abertas e setenta e três riscos com mitigação. O maior
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; os depósitos numa caixa têm taxa no relay inteiro; prova de trabalho na fase 2 |
 | Desbloquear durante uma tentativa de conexão do vigia espera a tentativa acabar: com o Tor lento ou sem internet, até 60 s para a conexão abrir e até 60 s pela resposta do relay | o prazo para abrir limita a espera; cancelar a tentativa do vigia no desbloqueio fica para depois |
-| Uma conexão fechada pelo próprio app não avisa o fechamento ao JS, e os ouvintes dela se acumulam | correção: o módulo avisa todo fechamento |
 | Um erro ao parar as conversas no bloqueio deixa o vigia desligado, e o desbloqueio seguinte falha | correção: o bloqueio segue mesmo com erro, como o pânico |
 | A numeração dos pedidos de anexo recomeça a cada desbloqueio, e um cancelamento antigo pode cancelar outro envio | correção: numeração única no processo |
 | Um vídeo muito acima do limite de 25 MB é copiado inteiro e zerado antes de ser recusado | correção: parar a cópia ao passar do limite |

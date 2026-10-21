@@ -7,6 +7,7 @@ import type { ViewProps } from 'react-native';
 type EventosDoTransporte = {
   /** Mensagem binária recebida, em base64 (o evento atravessa a ponte como texto). */
   mensagem: (evento: { id: number; dados: string }) => void;
+  /** A conexão caiu sem o app pedir: o relay fechou ou a rede caiu. A que o app fecha não avisa. */
   fechou: (evento: { id: number }) => void;
   /** Quanto do pedido HTTP já foi ou veio, de 0 a 1. */
   progresso: (evento: { numero: number; fracao: number }) => void;
