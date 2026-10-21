@@ -7,6 +7,7 @@ import {
   codificarInterior,
   criarCartao,
   iguais,
+  paraHex,
   type Cartao,
   type Conteudo,
   type Interior,
@@ -113,9 +114,7 @@ export function textoDoVetor(numero: number, texto: string): Conteudo {
 }
 
 function resumo(cripto: Cripto, interior: Interior): string {
-  return Array.from(cripto.crypto_generichash(32, codificarInterior(interior), null), (byte) =>
-    byte.toString(16).padStart(2, '0'),
-  ).join('');
+  return paraHex(cripto.crypto_generichash(32, codificarInterior(interior), null));
 }
 
 function texto(conteudo: Conteudo | null | undefined): string | null {

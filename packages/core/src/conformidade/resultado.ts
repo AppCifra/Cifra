@@ -35,16 +35,6 @@ export function hex(texto: string): Uint8Array {
   return bytes;
 }
 
-/** Bytes de um texto ASCII. Os textos dos vetores são todos ASCII. */
-export function ascii(texto: string): Uint8Array {
-  if (!/^[ -~]*$/.test(texto)) throw new Error('texto fora do ASCII');
-  return Uint8Array.from(texto, (caractere) => caractere.charCodeAt(0));
-}
-
-export function iguais(a: Uint8Array, b: Uint8Array): boolean {
-  return a.length === b.length && a.every((byte, i) => byte === b[i]);
-}
-
 /** Roda `operacao` e diz se ela lançou erro. */
 export function lanca(operacao: () => unknown): boolean {
   try {

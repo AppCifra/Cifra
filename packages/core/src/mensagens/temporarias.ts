@@ -18,7 +18,7 @@
 //
 // A limpeza roda ao abrir, antes de qualquer leitura das telas, no horário do próximo prazo e,
 // para pegar mensagem nova, a cada poucos segundos.
-import { timerValido } from '@cifra/protocol';
+import { paraHex, timerValido } from '@cifra/protocol';
 import { ajustesDoTimer } from '../ajustes/repositorio.ts';
 import type { Exclusivo } from '../banco/exclusivo.ts';
 import { bytesDe, numeroDe, numeroOuNulo, textoDe } from '../banco/linhas.ts';
@@ -124,12 +124,9 @@ export async function aplicarTimerPadrao(
   return true;
 }
 
-const hex = (bytes: Uint8Array) =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-
 /** As conversas das linhas, sem repetir. */
 function conversasDe(linhas: readonly { readonly conversa: Uint8Array }[]): Uint8Array[] {
-  return [...new Map(linhas.map(({ conversa }) => [hex(conversa), conversa])).values()];
+  return [...new Map(linhas.map(({ conversa }) => [paraHex(conversa), conversa])).values()];
 }
 
 /**

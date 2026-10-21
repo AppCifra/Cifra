@@ -10,11 +10,11 @@
 // "Anexar"; o que a pessoa escolhe passa pela limpeza e aparece na prévia, com a legenda (RF-56).
 // Fotos e vídeos abrem em tela cheia, com o salvar no celular (RF-53).
 import type { ArquivoParaEnviar, ItemDaConversa, Mensagem } from '@cifra/core';
-import { TIMER_MAXIMO_EM_SEGUNDOS } from '@cifra/protocol';
+import { paraHex, TIMER_MAXIMO_EM_SEGUNDOS } from '@cifra/protocol';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { BackHandler, FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { enderecoDeDados, paraHex } from '../adaptadores/formato.ts';
+import { enderecoDeDados } from '../adaptadores/formato.ts';
 import {
   ArquivoDoBalao,
   Citacao,

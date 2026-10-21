@@ -6,8 +6,9 @@
 // O adaptador abre o banco já com `secure_delete`, `journal_mode = DELETE` e
 // `temp_store = MEMORY`; estas verificações conferem, não ligam. As tabelas usadas aqui são
 // apagadas no fim, mesmo quando algo falha.
+import { iguais } from '@cifra/protocol';
 import type { Armazenamento, LinhaSql } from '../portas/armazenamento.ts';
-import { iguais, rodar, type ResultadoDaVerificacao } from './resultado.ts';
+import { rodar, type ResultadoDaVerificacao } from './resultado.ts';
 
 const TABELA = 'conformidade_tabela';
 const BUSCA = 'conformidade_busca';

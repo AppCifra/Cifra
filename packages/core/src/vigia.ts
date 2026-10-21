@@ -9,7 +9,7 @@
 // decifra e confirma. Cada pacote avisa uma vez, mesmo que o relay mande a marca de novo depois de
 // uma reconexão. Quem abre a caixa por último fica com ela (o relay fecha a conexão anterior): o app
 // para o vigia antes de o correio abrir a caixa, e o vigia parado não reabre sozinho.
-import { mensagemDaAbertura } from '@cifra/protocol';
+import { mensagemDaAbertura, paraHex } from '@cifra/protocol';
 import { intervaloDeReenvio } from './mensagens/fila.ts';
 import type { Cripto } from './portas/cripto.ts';
 import type { Relogio } from './portas/relogio.ts';
@@ -32,9 +32,6 @@ export interface OpcoesDoVigia {
    */
   readonly sementeDaCaixa: Uint8Array;
 }
-
-const hex = (bytes: Uint8Array) =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
 function codigoDe(resposta: Resposta): string {
   return resposta.tipo === 'resposta' ? resposta.codigo : resposta.tipo;
@@ -148,7 +145,7 @@ export class Vigia {
       return;
     }
     if (aviso.tipo !== 'marca') return;
-    const chave = hex(aviso.id);
+    const chave = paraHex(aviso.id);
     if (this.#vistos.has(chave)) return;
     this.#vistos.add(chave);
     if (!marcaAvisa(this.#o.cripto, aviso.marca, this.#o.sementeDaCaixa)) return;

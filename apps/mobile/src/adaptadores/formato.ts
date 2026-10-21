@@ -1,4 +1,5 @@
 // Conversões puras usadas pelos adaptadores. Sem React Native: os testes rodam no Node.
+import { paraHex } from '@cifra/protocol';
 
 /**
  * Chave crua de 256 bits no formato que o SQLCipher aceita: `x'<64 hex>'`. Com esse formato o
@@ -6,7 +7,7 @@
  */
 export function chaveDoSqlcipher(chave: Uint8Array): string {
   if (chave.length !== 32) throw new Error('a chave do banco tem 32 bytes');
-  return `x'${Array.from(chave, (byte) => byte.toString(16).padStart(2, '0')).join('')}'`;
+  return `x'${paraHex(chave)}'`;
 }
 
 /**
@@ -37,11 +38,6 @@ export function deHex(texto: string): Uint8Array {
   return Uint8Array.from({ length: texto.length / 2 }, (_, i) =>
     parseInt(texto.slice(i * 2, i * 2 + 2), 16),
   );
-}
-
-/** Bytes em hexadecimal minúsculo: a credencial SOCKS de cada circuito. */
-export function paraHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /** Bytes convertidos por vez no base64: grande o bastante para ser rápido, sem estourar a pilha. */

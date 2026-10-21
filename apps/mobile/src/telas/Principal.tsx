@@ -1,8 +1,9 @@
 // O app com a identidade aberta: a pilha de telas sobre a lista de conversas. O voltar do Android
 // tira a tela de cima; na lista, ele sai do app (e o app bloqueia).
+import { paraHex } from '@cifra/protocol';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler } from 'react-native';
-import { deHex, paraHex } from '../adaptadores/formato.ts';
+import { deHex } from '../adaptadores/formato.ts';
 import { Pilha } from '../componentes/Pilha.tsx';
 import type { ConversasDoApp } from '../conversas.ts';
 import type { PreferenciasDoApp } from '../preferencias.ts';

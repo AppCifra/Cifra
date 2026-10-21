@@ -2,7 +2,7 @@
 // o SHA-256 curto que as duas pessoas comparam ("3f9a…c21e"), a extensão do documento e o tipo de
 // anexo de um arquivo escolhido. O documento chega sem o nome original: só "documento.<ext>", com
 // a extensão tirada do tipo dele.
-import { formatoValido, type TipoDeArquivo } from '@cifra/protocol';
+import { formatoValido, paraHex, type TipoDeArquivo } from '@cifra/protocol';
 
 const KB = 1024;
 const MB = 1024 * KB;
@@ -37,7 +37,7 @@ export function duracaoLegivel(milissegundos: number): string {
 
 /** O começo e o fim do SHA-256, em hexadecimal: "3f9a…c21e". */
 export function sha256Curto(sha256: Uint8Array): string {
-  const hex = Array.from(sha256, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  const hex = paraHex(sha256);
   return `${hex.slice(0, 4)}…${hex.slice(-4)}`;
 }
 

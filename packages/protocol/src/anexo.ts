@@ -13,6 +13,8 @@
 //
 // Caminho no relay: /anexos/<token em hexadecimal minúsculo>. O endereço sai do endereço do relay:
 // ws:// vira http:// (só .onion) e wss:// vira https://.
+import { paraHex } from './bytes.ts';
+
 /** O token que aponta o anexo no relay: sorteado por quem envia, só os dois conhecem. */
 export const BYTES_DO_TOKEN = 32;
 
@@ -85,10 +87,6 @@ export const TAMANHO_MAXIMO_DO_CLARO = ((): number => {
 })();
 
 const HEXADECIMAL = /^[0-9a-f]*$/;
-
-function paraHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 
 /** O caminho do anexo no relay. */
 export function caminhoDoAnexo(token: Uint8Array): string {

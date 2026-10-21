@@ -47,6 +47,7 @@ import {
   lerId,
   MAXIMO_DE_LIDAS,
   mensagemDaAbertura,
+  paraHex,
   BYTES_DO_ID_DA_MENSAGEM,
   enderecoDoAnexo,
   tamanhoDoAnexo,
@@ -293,9 +294,6 @@ export class ErroDoCorreio extends Error {
 /** Outro aparelho restaurou a identidade: este para de vez. */
 class Substituido extends Error {}
 
-const hex = (bytes: Uint8Array) =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-
 function ok(resposta: Resposta): boolean {
   return resposta.tipo === 'resposta' && resposta.codigo === 'ok';
 }
@@ -432,7 +430,10 @@ export class Correio {
       const caixa = cripto.crypto_sign_seed_keypair(semente);
       cripto.memzero(caixa.privateKey);
       this.#caixa = caixa.publicKey;
-      this.#caixas.set(hex(caixa.publicKey), novaCaixa(caixa.publicKey, null, CIRCUITO_DA_CAIXA));
+      this.#caixas.set(
+        paraHex(caixa.publicKey),
+        novaCaixa(caixa.publicKey, null, CIRCUITO_DA_CAIXA),
+      );
     } else {
       this.#caixa = null;
     }
@@ -724,7 +725,7 @@ export class Correio {
    * download (`Agenda.pararDownload`) ou o envio (`Agenda.cancelarEnvio`).
    */
   cancelarTransferencia(mensagem: Uint8Array): void {
-    this.#transferencias.get(hex(mensagem))?.();
+    this.#transferencias.get(paraHex(mensagem))?.();
   }
 
   /**
@@ -897,7 +898,7 @@ export class Correio {
 
   /** A caixa principal; o correio do cofre não tem. */
   #principal(): EstadoDaCaixa | null {
-    return this.#caixa ? (this.#caixas.get(hex(this.#caixa)) ?? null) : null;
+    return this.#caixa ? (this.#caixas.get(paraHex(this.#caixa)) ?? null) : null;
   }
 
   /** Os circuitos do cofre têm prefixo próprio: nenhum é dividido com o principal. */
@@ -1127,7 +1128,7 @@ export class Correio {
       const par = cripto.crypto_sign_seed_keypair(semente);
       cripto.memzero(par.privateKey);
       cripto.memzero(semente);
-      const chave = hex(par.publicKey);
+      const chave = paraHex(par.publicKey);
       vistas.add(chave);
       if (!this.#caixas.has(chave)) {
         const circuito = `${PREFIXO_DO_COFRE}caixa-${String(++this.#circuitosDeCaixa)}`;
@@ -1432,7 +1433,7 @@ export class Correio {
         ),
       );
     } catch {
-      const chave = hex(id);
+      const chave = paraHex(id);
       const falhas = (this.#falhasAoReceber.get(chave) ?? 0) + 1;
       if (falhas < FALHAS_ANTES_DE_DESCARTAR) {
         this.#falhasAoReceber.set(chave, falhas);
@@ -1442,7 +1443,7 @@ export class Correio {
       this.#falhasAoReceber.delete(chave);
       return true;
     }
-    this.#falhasAoReceber.delete(hex(id));
+    this.#falhasAoReceber.delete(paraHex(id));
     this.#avisarRecebimento(recebimento, estado);
     return true;
   }
@@ -1560,7 +1561,7 @@ export class Correio {
 
   /** A conexão de depósito do contato: abre se não houver, num circuito só dele. */
   #deposito(contato: Uint8Array): Promise<ConexaoComORelay> {
-    const chave = hex(contato);
+    const chave = paraHex(contato);
     const existente = this.#depositos.get(chave);
     if (existente) return existente;
     const { transporte, relay, relogio } = this.#o;
@@ -1696,7 +1697,7 @@ export class Correio {
     const itens = await this.#exclusivo(() => itensDaFila(this.#o.banco));
     const porContato = new Map<string, ItemDaFila[]>();
     for (const item of itens) {
-      const chave = hex(item.contato);
+      const chave = paraHex(item.contato);
       porContato.set(chave, [...(porContato.get(chave) ?? []), item]);
     }
     await Promise.all([...porContato.values()].map((lista) => this.#entregarAoContato(lista)));
@@ -1843,7 +1844,7 @@ export class Correio {
     mensagem: Uint8Array,
     pedido: Omit<PedidoHttp, 'cancelar'>,
   ): Promise<RespostaHttp> {
-    const chave = hex(mensagem);
+    const chave = paraHex(mensagem);
     let cancelar: () => void = () => undefined;
     const cancelado = new Promise<void>((pronto) => {
       cancelar = pronto;
@@ -1885,7 +1886,7 @@ export class Correio {
   async #esperaSubir(item: ItemDaFila, mensagem: Uint8Array): Promise<boolean> {
     const anexo = await this.#exclusivo(() => anexoDe(this.#o.banco, mensagem));
     if (anexo?.estado !== 'enviar') return false;
-    const chave = hex(mensagem);
+    const chave = paraHex(mensagem);
     if (!this.#subindo.has(chave)) {
       this.#subindo.set(chave, item.contato);
       void this.#umEnvio(() => this.#subirAnexo(item, mensagem, anexo))
@@ -1911,7 +1912,7 @@ export class Correio {
     // Apagada enquanto esperava a vez: a mensagem também saiu da fila.
     if (!blob || this.#estaParado()) return;
     const endereco = enderecoDoAnexo(relay, anexo.token);
-    const circuito = this.#circuitoDe(hex(contato));
+    const circuito = this.#circuitoDe(paraHex(contato));
     let status = 0;
     try {
       ({ status } = await this.#pedirAnexo(mensagem, {

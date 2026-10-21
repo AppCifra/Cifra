@@ -34,7 +34,7 @@ export {
   type Taxa,
 } from './limites.ts';
 export type { Assinar, Hash, Verificador } from './verificador.ts';
-export { ErroDeFormato, Escritor, iguais, juntar, Leitor } from './bytes.ts';
+export { ascii, ErroDeFormato, Escritor, iguais, juntar, Leitor, paraHex } from './bytes.ts';
 export { CONTEXTOS, CONTEXTOS_DE_DERIVACAO } from './contextos.ts';
 export { enderecoDeRelayValido, LIMITE_DO_ENDERECO } from './endereco.ts';
 export { deUtf8, utf8 } from './utf8.ts';

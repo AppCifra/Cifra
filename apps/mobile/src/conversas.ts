@@ -44,7 +44,7 @@ import {
   type PreferenciasDoBackup,
   type Temporarias,
 } from '@cifra/core';
-import { formatarId, lerId, type TipoDeArquivo } from '@cifra/protocol';
+import { formatarId, lerId, paraHex, type TipoDeArquivo } from '@cifra/protocol';
 import { enderecoDeDados } from './adaptadores/formato.ts';
 
 /** `sem-tor`: o Orbot não está ligado; sem ele, o app não conecta (RF-44). */
@@ -197,9 +197,6 @@ const timerInvalido = (erro: unknown) =>
   (erro instanceof ErroDoCorreio || erro instanceof ErroDaAgenda) &&
   erro.codigo === 'timer-invalido';
 
-const hex = (bytes: Uint8Array) =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-
 /** Os padrões do banco (migração 7), até a leitura terminar. */
 const PRIVACIDADE_PADRAO: AjustesDePrivacidade = {
   confirmacoesDeLeitura: false,
@@ -289,11 +286,11 @@ export class ConversasDoApp {
       case 'cartao':
         return;
       case 'progresso':
-        this.#progresso.set(hex(evento.id), evento.fracao);
+        this.#progresso.set(paraHex(evento.id), evento.fracao);
         for (const ouvinte of [...this.#ouvintesDoProgresso]) ouvinte();
         return;
       case 'anexo':
-        this.#progresso.delete(hex(evento.id));
+        this.#progresso.delete(paraHex(evento.id));
         break;
       case 'apagadas':
       case 'conversaApagada':
@@ -573,7 +570,7 @@ export class ConversasDoApp {
 
   /** Quanto do anexo da mensagem já foi ou veio, de 0 a 1, ou `null` se não está a caminho. */
   progresso(mensagem: Uint8Array): number | null {
-    return this.#progresso.get(hex(mensagem)) ?? null;
+    return this.#progresso.get(paraHex(mensagem)) ?? null;
   }
 
   /**
@@ -722,7 +719,7 @@ export class ConversasDoApp {
 
   /** A foto aberta na memória, para a tela (data:); `null` se ela ainda não está aqui. */
   async imagem(id: string, mensagem: Uint8Array): Promise<string | null> {
-    return this.#imagemGuardada(`foto:${hex(mensagem)}`, async () => {
+    return this.#imagemGuardada(`foto:${paraHex(mensagem)}`, async () => {
       const aberto = await this.agendaDe(id).abrirAnexo(id, mensagem);
       return aberto?.arquivo === 'imagem' ? enderecoDeDados(aberto.formato, aberto.bytes) : null;
     });
@@ -730,7 +727,7 @@ export class ConversasDoApp {
 
   /** A capa do vídeo, para o balão; sai do primeiro pedaço, sem abrir o vídeo inteiro. */
   async capa(id: string, mensagem: Uint8Array): Promise<string | null> {
-    return this.#imagemGuardada(`capa:${hex(mensagem)}`, async () => {
+    return this.#imagemGuardada(`capa:${paraHex(mensagem)}`, async () => {
       const capa = await this.agendaDe(id).abrirCapa(id, mensagem);
       return capa ? enderecoDeDados('image/jpeg', capa) : null;
     });
@@ -754,7 +751,7 @@ export class ConversasDoApp {
     const { agenda, correio } = this.#lado(id);
     await agenda.pararDownload(id, mensagem);
     correio?.cancelarTransferencia(mensagem);
-    this.#progresso.delete(hex(mensagem));
+    this.#progresso.delete(paraHex(mensagem));
     this.#avisar();
   }
 
@@ -763,7 +760,7 @@ export class ConversasDoApp {
     const { agenda, correio } = this.#lado(id);
     await agenda.cancelarEnvio(id, mensagem);
     correio?.cancelarTransferencia(mensagem);
-    this.#progresso.delete(hex(mensagem));
+    this.#progresso.delete(paraHex(mensagem));
     this.#avisar();
   }
 
@@ -795,9 +792,9 @@ export class ConversasDoApp {
   async copiar(id: string, mensagens: readonly Uint8Array[]): Promise<boolean> {
     const { midia } = this.#o;
     if (!midia) return false;
-    const escolhidas = new Set(mensagens.map(hex));
+    const escolhidas = new Set(mensagens.map(paraHex));
     const textos = (await this.agendaDe(id).mensagens(id))
-      .filter((m) => escolhidas.has(hex(m.id)) && m.texto.trim() !== '')
+      .filter((m) => escolhidas.has(paraHex(m.id)) && m.texto.trim() !== '')
       .map((m) => m.texto);
     if (textos.length === 0) return false;
     await midia.copiar(textos.join('\n'));
@@ -817,10 +814,10 @@ export class ConversasDoApp {
     if (destinos.length > LIMITE_DO_ENCAMINHAR) return { enviadas: 0, falhas: mensagens.length };
     const agendaDaOrigem = this.agendaDe(origem);
     const ordem = await agendaDaOrigem.mensagens(origem);
-    const escolhidas = new Set(mensagens.map(hex));
+    const escolhidas = new Set(mensagens.map(paraHex));
     let enviadas = 0;
     let falhas = 0;
-    for (const mensagem of ordem.filter((m) => escolhidas.has(hex(m.id)))) {
+    for (const mensagem of ordem.filter((m) => escolhidas.has(paraHex(m.id)))) {
       const conteudo = await agendaDaOrigem.paraEncaminhar(origem, mensagem.id);
       for (const destino of destinos) {
         const resultado = !conteudo

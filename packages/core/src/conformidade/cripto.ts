@@ -1,8 +1,9 @@
 // Conformidade da porta Cripto. Os vetores vêm de fontes publicadas (RFCs, FIPS 180-2 e os testes
 // da própria libsodium 1.0.21) e foram conferidos contra a libsodium-wrappers-sumo. Um adaptador
 // que passa aqui devolve, byte a byte, o mesmo que a libsodium de referência (RNF-01, RNF-15).
+import { ascii, iguais } from '@cifra/protocol';
 import type { Cripto } from '../portas/cripto.ts';
-import { ascii, hex, iguais, lanca, rodar, type ResultadoDaVerificacao } from './resultado.ts';
+import { hex, lanca, rodar, type ResultadoDaVerificacao } from './resultado.ts';
 
 /** Ponto base da curva 25519 (u = 9): `crypto_scalarmult(sk, BASE)` dá a chave pública. */
 const BASE_X25519 = hex('09' + '00'.repeat(31));

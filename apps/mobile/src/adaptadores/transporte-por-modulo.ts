@@ -6,7 +6,8 @@
 // Tor só põe no mesmo circuito conexões com a mesma credencial (IsolateSOCKSAuth, ligado por
 // padrão), então o relay não liga a conexão da caixa às de depósito, nem uma conversa a outra.
 import type { Conexao, Cripto, Transporte } from '@cifra/core';
-import { deBase64, paraHex, problemaNoEndereco } from './formato.ts';
+import { paraHex } from '@cifra/protocol';
+import { deBase64, problemaNoEndereco } from './formato.ts';
 
 /** Os eventos do módulo nativo. */
 export interface EventosDoModulo {
