@@ -46,7 +46,7 @@ import {
 import type { Exclusivo } from '../banco/exclusivo.ts';
 import { exportarBackup, type PreferenciasDoBackup } from '../backup/backup.ts';
 import type { Identidade } from '../identidade/identidade.ts';
-import { consultaDaBusca } from '../mensagens/busca.ts';
+import { buscarMensagens } from '../mensagens/busca.ts';
 import { apagarDeVerdade, desfazerApagar, esconderParaApagar } from '../mensagens/exclusao.ts';
 import { esvaziarFilaDe } from '../mensagens/fila.ts';
 import { guardarNota, itensDa, type ItemDaConversa } from '../mensagens/notas.ts';
@@ -86,9 +86,6 @@ import {
   mudarApelido,
   type Contato,
 } from './repositorio.ts';
-
-/** Quantas mensagens a busca devolve, no máximo. */
-const LIMITE_DA_BUSCA = 50;
 
 /** Na busca pelo ID, só a partir de 4 caracteres: menos que isso acharia quase todo mundo. */
 const MINIMO_PARA_BUSCAR_ID = 4;
@@ -350,20 +347,9 @@ export class Agenda {
               );
             });
 
-      const consulta = consultaDaBusca(texto);
-      if (consulta === null) return { conversas, mensagens: [] };
-      // A nota pessoal entra pelo próprio ID; sem ela, nenhuma mensagem tem essa conversa.
-      const linhas = await banco.consultar(
-        `SELECT ${COLUNAS_DA_MENSAGEM} FROM mensagens
-          WHERE ordem IN (SELECT rowid FROM busca WHERE busca MATCH ?)
-            AND (conversa = ? OR conversa IN (SELECT contato FROM contatos WHERE aceito = 1))
-            AND ${visivel()}
-          ORDER BY ordem DESC LIMIT ?`,
-        [consulta, this.#comNota() ? this.#meuId : new Uint8Array(0), LIMITE_DA_BUSCA],
-      );
+      const achadas = await buscarMensagens(banco, texto, this.#comNota() ? this.#meuId : null);
       const porId = new Map(lista.map((resumo) => [resumo.id, resumo]));
-      const mensagens = linhas.flatMap((linha) => {
-        const mensagem = mensagemDaLinha(linha);
+      const mensagens = achadas.flatMap((mensagem) => {
         const conversa = porId.get(formatarId(mensagem.conversa));
         return conversa ? [{ mensagem, conversa }] : [];
       });

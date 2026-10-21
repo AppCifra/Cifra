@@ -134,11 +134,10 @@ export {
 export { celulasDoIdenticon, type Celula, type Grade } from './identidade/identicon.ts';
 export { carregarIdentidade, guardarIdentidade } from './identidade/repositorio.ts';
 
-// Banco principal: esquema versionado, conferência do que a exclusão real exige, busca local e
-// exclusão real (RNF-08, RF-12).
+// Banco principal: esquema versionado, conferência do que a exclusão real exige e exclusão real
+// (RNF-08).
 export { migrar, VERSAO_DO_ESQUEMA } from './banco/migracoes.ts';
 export { encolherBanco, prepararBanco, prepararCofre } from './banco/preparo.ts';
-export { buscarMensagens, LIMITE_DA_BUSCA } from './mensagens/busca.ts';
 export { apagarDeVerdade, type AlvoDaExclusao } from './mensagens/exclusao.ts';
 // A verificação técnica grava mensagens direto no banco para conferir a exclusão no aparelho.
 export { guardarMensagem } from './mensagens/repositorio.ts';

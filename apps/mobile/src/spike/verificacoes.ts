@@ -4,7 +4,6 @@
 import {
   apagarDeVerdade,
   BLOCO_DO_COFRE,
-  buscarMensagens,
   chaveDoCofre,
   completarBloco,
   Correio,
@@ -369,7 +368,8 @@ async function rastroDaExclusao(nome: string, seguro: boolean): Promise<Rastro> 
 /**
  * A mesma exclusão com o esquema do app: `prepararBanco`, 50 mensagens guardadas pelo núcleo e
  * `apagarDeVerdade`. O marcador é só de letras minúsculas: o texto da mensagem e o termo do índice
- * de busca são os mesmos bytes, e os dois precisam sumir.
+ * de busca são os mesmos bytes, e os dois precisam sumir. A busca pergunta direto ao índice: o
+ * termo que ficasse nele apontaria para uma mensagem que não existe mais.
  */
 async function rastroDoEsquemaDoApp(nome: string): Promise<Rastro & { readonly busca: boolean }> {
   apagarBanco(nome);
@@ -401,7 +401,8 @@ async function rastroDoEsquemaDoApp(nome: string): Promise<Rastro & { readonly b
     antes = contem(lerArquivo(caminho), ascii(alvo));
     const apagar = ids.slice(25, 26);
     await banco.transacao((t) => apagarDeVerdade(t, { mensagens: apagar }));
-    busca = (await buscarMensagens(banco, alvo)).length > 0;
+    busca =
+      (await banco.consultar('SELECT rowid FROM busca WHERE busca MATCH ?', [alvo])).length > 0;
   } finally {
     aberto.fechar();
   }

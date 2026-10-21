@@ -4,7 +4,6 @@ import { BYTES_DO_ID, TAMANHO_DO_PACOTE } from '@cifra/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   apagarDeVerdade,
-  buscarMensagens,
   guardarMensagem,
   migrar,
   prepararBanco,
@@ -12,6 +11,7 @@ import {
   type Armazenamento,
   type Mensagem,
 } from '../src/index.ts';
+import { consultaDaBusca } from '../src/mensagens/busca.ts';
 import { adiar, enfileirar, itensDaFila, tirarDaFila } from '../src/mensagens/fila.ts';
 import { guardarNota } from '../src/mensagens/notas.ts';
 import { cripto } from './adaptadores/sodium-node.ts';
@@ -72,8 +72,18 @@ async function guardar(banco: Armazenamento, nova: Mensagem): Promise<Mensagem> 
 
 const contar = async (banco: Armazenamento, sql: string) => (await banco.consultar(sql))[0]?.['n'];
 
+/**
+ * O que o índice de busca acha, das mais novas para as mais antigas. Um termo que ficasse nele, de
+ * uma mensagem apagada, viria como `null`.
+ */
 const textos = async (banco: Armazenamento, busca: string) =>
-  (await buscarMensagens(banco, busca)).map((m) => m.texto);
+  (
+    await banco.consultar(
+      `SELECT (SELECT texto FROM mensagens WHERE ordem = busca.rowid) AS texto FROM busca
+        WHERE busca MATCH ? ORDER BY rowid DESC`,
+      [consultaDaBusca(busca)],
+    )
+  ).map((linha) => linha['texto']);
 
 describe('exclusão real no arquivo do banco (RNF-08)', () => {
   /** Um arquivo novo, numa pasta apagada no fim do teste. */
@@ -130,7 +140,7 @@ describe('exclusão real no arquivo do banco (RNF-08)', () => {
     expect(depois).toEqual({ texto: false, termo: false });
     expect(journal).toBe(false);
     expect(await textos(banco, ALVO)).toEqual([]);
-    expect(await buscarMensagens(banco, 'comum')).toHaveLength(49);
+    expect(await textos(banco, 'comum')).toHaveLength(49);
   });
 
   it('controle: sem secure_delete e sem o secure-delete do FTS5, o apagado fica no arquivo', async () => {

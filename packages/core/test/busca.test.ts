@@ -1,15 +1,15 @@
 import { BYTES_DO_ID } from '@cifra/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  buscarMensagens,
   guardarMensagem,
-  LIMITE_DA_BUSCA,
   migrar,
   prepararBanco,
   type Armazenamento,
   type Mensagem,
 } from '../src/index.ts';
-import { consultaDaBusca } from '../src/mensagens/busca.ts';
+import { aceitarContato, registrarPedido } from '../src/contatos/repositorio.ts';
+import { buscarMensagens, consultaDaBusca, LIMITE_DA_BUSCA } from '../src/mensagens/busca.ts';
+import { esconderParaApagar } from '../src/mensagens/exclusao.ts';
 import { cripto } from './adaptadores/sodium-node.ts';
 import { abrirBancoDeTeste, type BancoDeTeste } from './adaptadores/sqlite-node.ts';
 
@@ -24,12 +24,14 @@ afterEach(() => {
 const ALICE = cripto.randombytes_buf(BYTES_DO_ID);
 const BOB = cripto.randombytes_buf(BYTES_DO_ID);
 
+/** Um banco com as mensagens recebidas, e a Alice e o Bob aceitos como contatos. */
 async function bancoCom(...lista: (readonly [Uint8Array, string])[]): Promise<Armazenamento> {
   const aberto = abrirBancoDeTeste();
   abertos.push(aberto);
   await prepararBanco(aberto.banco);
   // Numa transação só: uma gravação com journal por mensagem é lenta no Windows.
   await aberto.banco.transacao(async (t) => {
+    for (const contato of [ALICE, BOB]) await aceitarContato(t, contato, 0);
     for (const [conversa, texto] of lista) await guardarMensagem(t, recebida(conversa, texto));
   });
   return aberto.banco;
@@ -116,7 +118,25 @@ describe('busca local nas mensagens (RF-12)', () => {
       deMim: false,
       status: 'recebida',
     });
-    expect(await buscarMensagens(banco, 'aviso', 3)).toHaveLength(3);
+    expect(await buscarMensagens(banco, 'aviso', null, 3)).toHaveLength(3);
+  });
+
+  it('só nos contatos aceitos e na nota pessoal: pedidos e as apagadas só neste celular ficam de fora', async () => {
+    const pedido = cripto.randombytes_buf(BYTES_DO_ID);
+    const eu = cripto.randombytes_buf(BYTES_DO_ID);
+    const escondida = recebida(ALICE, 'aviso escondido');
+    const banco = await bancoCom(
+      [ALICE, 'aviso do contato'],
+      [pedido, 'aviso do pedido'],
+      [eu, 'aviso da nota'],
+    );
+    await guardarMensagem(banco, escondida);
+    await esconderParaApagar(banco, ALICE, [escondida.id], 1);
+    await registrarPedido(banco, pedido, 0);
+
+    expect(await textos(banco, 'aviso')).toEqual(['aviso do contato']);
+    const comANota = await buscarMensagens(banco, 'aviso', eu);
+    expect(comANota.map((m) => m.texto)).toEqual(['aviso da nota', 'aviso do contato']);
   });
 
   it('as mensagens de antes da busca existir entram no índice na migração', async () => {
