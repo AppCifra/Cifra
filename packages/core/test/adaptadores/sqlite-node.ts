@@ -85,6 +85,31 @@ export function abrirBancoNoArquivo(
   };
 }
 
+/**
+ * O mesmo banco, contando as idas a ele: cada instrução, dentro ou fora de transação. No aparelho,
+ * cada ida atravessa a ponte até o SQLCipher.
+ */
+export function contandoAsIdas(banco: Armazenamento): {
+  readonly banco: Armazenamento;
+  idas(): number;
+} {
+  let idas = 0;
+  const contar = (alvo: Armazenamento): Armazenamento => ({
+    executar(sql, parametros) {
+      idas++;
+      return alvo.executar(sql, parametros);
+    },
+    consultar(sql, parametros) {
+      idas++;
+      return alvo.consultar(sql, parametros);
+    },
+    transacao(operacao) {
+      return alvo.transacao((t) => operacao(contar(t)));
+    },
+  });
+  return { banco: contar(banco), idas: () => idas };
+}
+
 /** Abre um banco novo num arquivo temporário. */
 export function abrirBancoDeTeste(): BancoDeTeste {
   const pasta = pastaTemporaria();

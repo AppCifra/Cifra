@@ -1,6 +1,6 @@
 import { existsSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { iguais, lerId } from '@cifra/protocol';
+import { BYTES_DO_ID, iguais, lerId } from '@cifra/protocol';
 import { describe, expect, it } from 'vitest';
 import {
   Agenda,
@@ -9,18 +9,23 @@ import {
   cofreEmBlocos,
   completarBloco,
   criarExclusivo,
+  guardarMensagem,
   normalizarCodigo,
+  prepararBanco,
   prepararCofre,
   segredoDoCofre,
   verificarCofre,
   type ArquivoDoCofre,
   type Cripto,
 } from '../src/index.ts';
+import { aceitarContato } from '../src/contatos/repositorio.ts';
 import { apagarConversaDoBanco, copiarConversa } from '../src/ocultas/mudanca.ts';
 import { guardarCaixaOculta, marcarCopiada, marcarMudanca } from '../src/ocultas/repositorio.ts';
 import { cripto } from './adaptadores/sodium-node.ts';
 import {
+  abrirBancoDeTeste,
   abrirBancoNoArquivo,
+  contandoAsIdas,
   pastaTemporaria,
   type BancoNoArquivo,
 } from './adaptadores/sqlite-node.ts';
@@ -355,6 +360,42 @@ describe('a conversa muda de banco', () => {
     } finally {
       destino.fechar();
       temporario.apagar();
+    }
+  });
+
+  it('a cópia vai ao destino uma vez por mensagem', async () => {
+    const contato = cripto.randombytes_buf(BYTES_DO_ID);
+    const origem = abrirBancoDeTeste();
+    const destino = abrirBancoDeTeste();
+    try {
+      await prepararBanco(origem.banco);
+      await prepararBanco(destino.banco);
+      await origem.banco.transacao(async (t) => {
+        await aceitarContato(t, contato, 0);
+        for (let i = 0; i < 50; i++) {
+          await guardarMensagem(t, {
+            id: cripto.randombytes_buf(16),
+            conversa: contato,
+            deMim: false,
+            texto: `mensagem ${String(i)}`,
+            enviadaEm: i,
+            recebidaEm: i,
+            ttl: 0,
+            expiraEm: null,
+            status: 'recebida',
+          });
+        }
+      });
+      const contado = contandoAsIdas(destino.banco);
+      await copiarConversa(origem.banco, contado.banco, contato);
+      expect(await destino.banco.consultar('SELECT count(*) AS n FROM mensagens')).toEqual([
+        { n: 50 },
+      ]);
+      // O contato e uma ida por mensagem.
+      expect(contado.idas()).toBe(1 + 50);
+    } finally {
+      origem.fechar();
+      destino.fechar();
     }
   });
 });

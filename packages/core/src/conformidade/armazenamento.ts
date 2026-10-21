@@ -66,6 +66,20 @@ export async function verificarArmazenamento(
         return linhasAlteradas === 2;
       },
 
+      // A cópia de uma conversa para o cofre lê a ordem nova de cada mensagem na mesma ida.
+      'sql.insert-devolve-linhas': async () => {
+        const linhas = await banco.consultar(
+          `INSERT INTO ${TABELA} (id, texto) VALUES (30, ?) RETURNING id, texto`,
+          ['devolvida'],
+        );
+        return (
+          linhas.length === 1 &&
+          primeira(linhas)['id'] === 30 &&
+          primeira(linhas)['texto'] === 'devolvida' &&
+          (await contar(banco, `SELECT count(*) AS n FROM ${TABELA} WHERE id = 30`)) === 1
+        );
+      },
+
       'transacao.confirma': async () => {
         const devolvido = await banco.transacao(async (t) => {
           await t.executar(`INSERT INTO ${TABELA} (id) VALUES (10)`);

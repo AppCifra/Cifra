@@ -6,8 +6,8 @@
 // Cada nota guarda o instante e a última mensagem da conversa quando entrou (`depois_de`): ela
 // aparece antes das mensagens que entraram depois dela. No mesmo milissegundo, a última mensagem
 // desempata.
-import { anexoDe, type Anexo } from '../anexos/repositorio.ts';
-import { numeroDe, textoDe } from '../banco/linhas.ts';
+import { anexosDaConversa, type Anexo } from '../anexos/repositorio.ts';
+import { bytesDe, numeroDe, textoDe } from '../banco/linhas.ts';
 import type { Armazenamento, LinhaSql } from '../portas/armazenamento.ts';
 import {
   COLUNAS_DA_MENSAGEM,
@@ -131,25 +131,37 @@ function resumoDoAnexo(anexo: Anexo): ResumoDoAnexo {
   return { arquivo, formato, tamanho, capa, largura, altura, duracao, miniatura, sha256, estado };
 }
 
-/** A mensagem citada, pela cópia daqui, se ela é da mesma conversa e ainda aparece. */
-async function citacaoDe(
+/**
+ * As citações das respostas que aparecem na conversa, pela ordem da resposta: a mensagem citada,
+ * pela cópia daqui, se ela é da mesma conversa e ainda aparece.
+ */
+async function citacoesDa(
   banco: Armazenamento,
   conversa: Uint8Array,
-  id: Uint8Array,
-): Promise<Citacao> {
-  const [linha] = await banco.consultar(
-    `SELECT de_mim, tipo, texto FROM mensagens WHERE id = ? AND conversa = ? AND ${visivel()}`,
-    [id, conversa],
+): Promise<Map<number, Citacao>> {
+  const linhas = await banco.consultar(
+    `SELECT r.ordem, r.resposta, c.de_mim, c.tipo, c.texto FROM mensagens r
+       LEFT JOIN mensagens c ON c.id = r.resposta AND c.conversa = r.conversa AND ${visivel('c')}
+      WHERE r.conversa = ? AND r.resposta IS NOT NULL AND ${visivel('r')}`,
+    [conversa],
   );
-  if (!linha) return { id, mensagem: null };
-  return {
-    id,
-    mensagem: {
-      deMim: numeroDe(linha, 'de_mim') === 1,
-      tipo: tipoDe(textoDe(linha, 'tipo')),
-      texto: textoDe(linha, 'texto'),
-    },
-  };
+  return new Map(
+    linhas.map((linha) => {
+      const id = bytesDe(linha, 'resposta');
+      const citada: Citacao =
+        linha['tipo'] === null
+          ? { id, mensagem: null }
+          : {
+              id,
+              mensagem: {
+                deMim: numeroDe(linha, 'de_mim') === 1,
+                tipo: tipoDe(textoDe(linha, 'tipo')),
+                texto: textoDe(linha, 'texto'),
+              },
+            };
+      return [numeroDe(linha, 'ordem'), citada];
+    }),
+  );
 }
 
 /**
@@ -168,14 +180,9 @@ export async function itensDa(
       [conversa],
     )
   ).map((linha) => ({ ordem: numeroDe(linha, 'ordem'), mensagem: mensagemDaLinha(linha) }));
-  const extras = new Map<number, { anexo: ResumoDoAnexo | null; citada: Citacao | null }>();
-  for (const { ordem, mensagem } of mensagens) {
-    const anexo = mensagem.tipo === 'texto' ? null : await anexoDe(banco, mensagem.id);
-    const citada = mensagem.resposta ? await citacaoDe(banco, conversa, mensagem.resposta) : null;
-    if (anexo || citada) {
-      extras.set(ordem, { anexo: anexo ? resumoDoAnexo(anexo) : null, citada });
-    }
-  }
+  // Os anexos e as citações da conversa inteira, numa consulta cada, e não uma por mensagem.
+  const anexos = await anexosDaConversa(banco, conversa);
+  const citadas = await citacoesDa(banco, conversa);
   const notas: NotaNaOrdem[] = (
     await banco.consultar(
       `SELECT tipo, segundos, anteriores, instante, depois_de FROM notas WHERE conversa = ?
@@ -195,12 +202,12 @@ export async function itensDa(
       itens.push({ tipo: 'nota', nota: nota.nota });
       proxima++;
     }
-    const extra = extras.get(ordem);
+    const anexo = anexos.get(ordem);
     itens.push({
       tipo: 'mensagem',
       mensagem,
-      anexo: extra?.anexo ?? null,
-      citada: extra?.citada ?? null,
+      anexo: anexo ? resumoDoAnexo(anexo) : null,
+      citada: citadas.get(ordem) ?? null,
     });
   }
   for (const { nota } of notas.slice(proxima)) itens.push({ tipo: 'nota', nota });

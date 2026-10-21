@@ -166,6 +166,21 @@ describe('conformidade da porta Armazenamento (RNF-08, RF-12)', () => {
     ]);
   });
 
+  it('acusa consulta que não devolve as linhas de um INSERT com RETURNING', async () => {
+    aberto = abrirBancoDeTeste();
+    const { banco } = aberto;
+    // Como um adaptador que manda toda escrita pelo caminho que não lê linhas.
+    const semRetorno: Armazenamento = {
+      ...banco,
+      consultar: async (sql, parametros) => {
+        if (!sql.trimStart().startsWith('INSERT')) return banco.consultar(sql, parametros);
+        await banco.executar(sql, parametros);
+        return [];
+      },
+    };
+    expect(falhas(await verificarArmazenamento(semRetorno))).toEqual(['sql.insert-devolve-linhas']);
+  });
+
   it('acusa transação que não desfaz e BLOB devolvido em outro formato', async () => {
     aberto = abrirBancoDeTeste();
     const { banco } = aberto;

@@ -8,7 +8,20 @@
 // parar no meio, se a cópia já tinha entrado: a próxima abertura do cofre termina ou desfaz.
 import { bytesDe, numeroDe } from '../banco/linhas.ts';
 import { apagarDeVerdade } from '../mensagens/exclusao.ts';
-import type { Armazenamento, LinhaSql } from '../portas/armazenamento.ts';
+import type { Armazenamento, LinhaSql, ValorSql } from '../portas/armazenamento.ts';
+
+/** O INSERT da linha na tabela, com as mesmas colunas, menos as de `sem`, e os parâmetros dele. */
+function insercao(
+  tabela: string,
+  linha: LinhaSql,
+  sem: readonly string[] = [],
+): [string, ValorSql[]] {
+  const colunas = Object.keys(linha).filter((coluna) => !sem.includes(coluna));
+  return [
+    `INSERT INTO ${tabela} (${colunas.join(', ')}) VALUES (${colunas.map(() => '?').join(', ')})`,
+    colunas.map((coluna) => linha[coluna] ?? null),
+  ];
+}
 
 /** Insere a linha na tabela, com as mesmas colunas, menos as de `sem`. */
 async function inserir(
@@ -17,11 +30,7 @@ async function inserir(
   linha: LinhaSql,
   sem: readonly string[] = [],
 ): Promise<void> {
-  const colunas = Object.keys(linha).filter((coluna) => !sem.includes(coluna));
-  await banco.executar(
-    `INSERT INTO ${tabela} (${colunas.join(', ')}) VALUES (${colunas.map(() => '?').join(', ')})`,
-    colunas.map((coluna) => linha[coluna] ?? null),
-  );
+  await banco.executar(...insercao(tabela, linha, sem));
 }
 
 /** A nota que vinha depois da mensagem `antiga` vem, no destino, depois da cópia dela. */
@@ -84,10 +93,9 @@ async function inserirConversa(
   for (const cartao of conversa.destinos) await inserir(t, 'destinos', cartao);
   const mapa: [number, number][] = [];
   for (const mensagem of conversa.mensagens) {
-    await inserir(t, 'mensagens', mensagem, ['ordem']);
-    const [nova] = await t.consultar('SELECT ordem FROM mensagens WHERE id = ?', [
-      bytesDe(mensagem, 'id'),
-    ]);
+    // A ordem nova vem na mesma ida ao banco.
+    const [sql, parametros] = insercao('mensagens', mensagem, ['ordem']);
+    const [nova] = await t.consultar(`${sql} RETURNING ordem`, parametros);
     if (!nova) throw new Error('mensagem não entrou no destino');
     mapa.push([numeroDe(mensagem, 'ordem'), numeroDe(nova, 'ordem')]);
   }

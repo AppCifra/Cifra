@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { request } from 'node:http';
 import {
   BYTES_DO_CABECALHO_DO_FLUXO,
+  BYTES_DO_ID,
   BYTES_DO_PEDACO,
   caminhoDoAnexo,
   iguais,
@@ -18,11 +19,16 @@ import {
   decifrarAnexo,
   ErroDaAgenda,
   ErroDoCorreio,
+  guardarMensagem,
   prepararAnexo,
+  prepararBanco,
   type ArquivoParaEnviar,
   type EstadoDoAnexo,
 } from '../src/index.ts';
+import { guardarAnexo } from '../src/anexos/repositorio.ts';
+import { itensDa } from '../src/mensagens/notas.ts';
 import { cripto } from './adaptadores/sodium-node.ts';
+import { abrirBancoDeTeste, contandoAsIdas } from './adaptadores/sqlite-node.ts';
 import {
   andarAte,
   ate,
@@ -815,4 +821,58 @@ describe('responder e encaminhar (RF-54, RF-55)', () => {
     await recebeu(bob, alice, parado);
     expect(await bob.agenda.paraEncaminhar(alice.id, parado)).toBeNull();
   }, 30_000);
+});
+
+describe('a conversa aberta', () => {
+  it('vem com um número fixo de idas ao banco, e não uma por anexo ou por resposta', async () => {
+    const aberto = abrirBancoDeTeste();
+    try {
+      const { banco } = aberto;
+      await prepararBanco(banco);
+      const contato = cripto.randombytes_buf(BYTES_DO_ID);
+      const preparado = prepararAnexo(cripto, imagem());
+      if (!preparado) throw new Error('não preparou');
+      await banco.transacao(async (t) => {
+        for (let i = 0; i < 20; i++) {
+          const foto = cripto.randombytes_buf(16);
+          await guardarMensagem(t, {
+            id: foto,
+            conversa: contato,
+            deMim: false,
+            tipo: 'imagem',
+            texto: `foto ${String(i)}`,
+            enviadaEm: 2 * i,
+            recebidaEm: 2 * i,
+            ttl: 0,
+            expiraEm: null,
+            status: 'recebida',
+          });
+          await guardarAnexo(t, foto, preparado.anexo, 'baixar');
+          await guardarMensagem(t, {
+            id: cripto.randombytes_buf(16),
+            conversa: contato,
+            deMim: true,
+            texto: `resposta ${String(i)}`,
+            resposta: foto,
+            enviadaEm: 2 * i + 1,
+            recebidaEm: null,
+            ttl: 0,
+            expiraEm: null,
+            status: 'enviada',
+          });
+        }
+      });
+
+      const contado = contandoAsIdas(banco);
+      const itens = await itensDa(contado.banco, contato);
+      const mensagens = itens.flatMap((item) => (item.tipo === 'mensagem' ? [item] : []));
+      expect(mensagens).toHaveLength(40);
+      expect(mensagens.filter((item) => item.anexo?.arquivo === 'imagem')).toHaveLength(20);
+      expect(mensagens.filter((item) => item.citada?.mensagem?.tipo === 'imagem')).toHaveLength(20);
+      // As mensagens, os anexos, as citações e as notas.
+      expect(contado.idas()).toBe(4);
+    } finally {
+      aberto.fechar();
+    }
+  });
 });

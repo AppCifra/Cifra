@@ -4,6 +4,7 @@
 import type { DadosDoAnexo, TipoDeArquivo } from '@cifra/protocol';
 import { baixarSozinho } from '../ajustes/repositorio.ts';
 import { bytesDe, numeroDe, textoDe } from '../banco/linhas.ts';
+import { visivel } from '../mensagens/repositorio.ts';
 import type { Armazenamento, LinhaSql } from '../portas/armazenamento.ts';
 
 /**
@@ -136,17 +137,17 @@ export async function anexoDe(banco: Armazenamento, mensagem: Uint8Array): Promi
   return linha ? anexoDaLinha(linha) : null;
 }
 
-/** Os anexos das mensagens, sem o blob. */
-export async function anexosDe(
+/** Os anexos das mensagens que aparecem na conversa, sem o blob, pela ordem da mensagem. */
+export async function anexosDaConversa(
   banco: Armazenamento,
-  mensagens: readonly Uint8Array[],
-): Promise<Anexo[]> {
-  const anexos: Anexo[] = [];
-  for (const mensagem of mensagens) {
-    const anexo = await anexoDe(banco, mensagem);
-    if (anexo) anexos.push(anexo);
-  }
-  return anexos;
+  conversa: Uint8Array,
+): Promise<Map<number, Anexo>> {
+  const linhas = await banco.consultar(
+    `SELECT m.ordem, ${COLUNAS} FROM anexos a JOIN mensagens m ON m.id = a.mensagem
+      WHERE m.conversa = ? AND m.tipo <> 'texto' AND ${visivel('m')}`,
+    [conversa],
+  );
+  return new Map(linhas.map((linha) => [numeroDe(linha, 'ordem'), anexoDaLinha(linha)]));
 }
 
 /** O blob cifrado da mensagem, se ele está neste aparelho. */
