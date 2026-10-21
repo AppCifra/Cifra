@@ -5,7 +5,11 @@
 export const LIMITE_DO_ENDERECO = 255;
 
 const ROTULO = '[a-z0-9](?:[a-z0-9-]*[a-z0-9])?';
-const ENDERECO = new RegExp(`^(wss?)://((?:${ROTULO}\\.)*${ROTULO})(?::([0-9]{1,5}))?(/[!-~]*)?$`);
+// O caminho é ASCII visível, sem `?` e sem `#`: o endereço dos anexos vem colado depois dele.
+const CAMINHO = '/(?:(?![?#])[!-~])*';
+const ENDERECO = new RegExp(
+  `^(wss?)://((?:${ROTULO}\\.)*${ROTULO})(?::([0-9]{1,5}))?(${CAMINHO})?$`,
+);
 
 export function enderecoDeRelayValido(endereco: string): boolean {
   if (endereco.length > LIMITE_DO_ENDERECO) return false;
