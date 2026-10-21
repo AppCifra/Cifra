@@ -67,7 +67,7 @@ interface Uso extends EmUso {
   prazoDoBloqueio: number;
 }
 
-async function montar({ prazo = 300 } = {}) {
+async function montar({ prazo = 300, pararFalha = false } = {}) {
   const teste = plataformaDeTeste();
   testes.push(teste);
   (
@@ -87,7 +87,7 @@ async function montar({ prazo = 300 } = {}) {
       get prazoDoBloqueio() {
         return ajuste.prazo;
       },
-      parar: () => Promise.resolve(),
+      parar: () => (pararFalha ? Promise.reject(new Error('falhou')) : Promise.resolve()),
       fecharOcultas: () => {
         ocultas.fechadas++;
         return Promise.resolve();
@@ -263,6 +263,21 @@ describe('vigia do app bloqueado (RF-42)', () => {
     await sair();
     await esperar();
     expect(vigias.ligados).toBe(0);
+  });
+
+  it('um erro ao parar as conversas não segura o bloqueio: o banco fecha e o vigia liga', async () => {
+    const { controle, vigias, teste, esperar } = await montar({ pararFalha: true });
+    await controle.abrir();
+    const estado = controle.estado;
+    if (estado.tipo !== 'pronto') throw new Error('não abriu');
+    const toques = teste.contagem.tocar;
+    await controle.bloquear();
+    await esperar();
+    expect(controle.estado.tipo).toBe('bloqueado');
+    await expect(estado.sessao.banco.banco.consultar('SELECT 1')).rejects.toThrow();
+    // A data do cofre muda a cada bloqueio.
+    expect(teste.contagem.tocar).toBeGreaterThan(toques);
+    expect(vigias.ativos).toBe(1);
   });
 });
 

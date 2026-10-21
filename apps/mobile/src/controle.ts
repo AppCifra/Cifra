@@ -439,6 +439,8 @@ export class ControleDoApp<U extends EmUso = EmUso> {
     this.#mudar(proximo);
     try {
       await estado.uso.parar();
+    } catch {
+      // O que usava a sessão para de qualquer jeito: o banco fecha logo abaixo.
     } finally {
       encerrarSessao(this.#o.plataforma.cripto, estado.sessao);
     }

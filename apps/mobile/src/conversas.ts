@@ -588,7 +588,8 @@ export class ConversasDoApp {
 
   /**
    * Para o correio e a limpeza; o que estava apagado só neste celular sai de verdade. As fotos
-   * abertas saem da memória, e a plataforma esquece as que decodificou.
+   * abertas saem da memória, e a plataforma esquece as que decodificou. Cada parte para mesmo que
+   * outra falhe.
    */
   async parar(): Promise<void> {
     this.#parado = true;
@@ -602,8 +603,8 @@ export class ConversasDoApp {
     for (const cancelar of this.#cancelar) cancelar();
     this.#esquecerImagens();
     this.#o.midia?.esquecerImagens();
-    await this.#o.correio?.parar();
-    await this.#o.temporarias.parar();
+    await this.#o.correio?.parar().catch(() => undefined);
+    await this.#o.temporarias.parar().catch(() => undefined);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   andarAte,
   ate,
@@ -159,6 +159,19 @@ describe('temporárias e apagar, pela tela', () => {
     const [oi] = await alice.agenda.mensagens(bob.id);
     if (!oi) throw new Error('sem mensagens');
     await app.apagarSoAqui(bob.id, [oi.id]);
+    await app.parar();
+    expect(await app.desfazer(bob.id, [oi.id])).toBe(false);
+  });
+
+  it('um erro ao parar o correio não segura a limpeza: o apagado só aqui sai de vez', async () => {
+    const [alice, bob] = await conversa();
+    const app = conversasDe(alice);
+    app.iniciar();
+    await app.enviar(bob.id, 'oi');
+    const [oi] = await alice.agenda.mensagens(bob.id);
+    if (!oi) throw new Error('sem mensagens');
+    await app.apagarSoAqui(bob.id, [oi.id]);
+    vi.spyOn(alice.correio, 'parar').mockRejectedValueOnce(new Error('falhou'));
     await app.parar();
     expect(await app.desfazer(bob.id, [oi.id])).toBe(false);
   });
