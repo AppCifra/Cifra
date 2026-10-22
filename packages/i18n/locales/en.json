@@ -133,7 +133,7 @@
   },
   "doacao": {
     "titulo": "Support Cifra",
-    "descricao": "Cifra is made with no ads and no data collection. If you want to help, donate in Monero: it does not link the donor to the recipient.",
+    "descricao": "Cifra is made with no ads and no tracking. If you want to help, donate in Monero: it does not link the donor to the recipient.",
     "rotulo": "monero address",
     "copiar": "Copy address",
     "copiado": "address copied"

@@ -133,7 +133,7 @@
   },
   "doacao": {
     "titulo": "Apoiar o Cifra",
-    "descricao": "O Cifra é feito sem anúncio e sem coleta de dados. Se quiser ajudar, doe em Monero: ele não liga quem doou a quem recebeu.",
+    "descricao": "O Cifra é feito sem anúncio e sem rastreamento. Se quiser ajudar, doe em Monero: ele não liga quem doou a quem recebeu.",
     "rotulo": "endereço monero",
     "copiar": "Copiar endereço",
     "copiado": "endereço copiado"

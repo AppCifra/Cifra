@@ -101,8 +101,11 @@ describe('voz dos textos (RNF-17)', () => {
     expect(voltaTextoCorrigido('Irreversível — não há backup em lugar nenhum.')).toBe(true);
     expect(voltaTextoCorrigido('cifra 0.1.0 · GPLv3 · build reproduzível')).toBe(true);
     expect(voltaTextoCorrigido('Também oculta o app no multitarefa')).toBe(true);
+    expect(voltaTextoCorrigido('O Cifra é feito sem anúncio e sem coleta de dados.')).toBe(true);
+    expect(voltaTextoCorrigido('Cifra is made with no ads and no data collection.')).toBe(true);
 
     expect(voltaTextoCorrigido('Sem número. Sem e-mail.')).toBe(false);
+    expect(voltaTextoCorrigido('O Cifra é feito sem anúncio e sem rastreamento.')).toBe(false);
     expect(voltaTextoCorrigido('cifra 0.1.0 · GPLv3')).toBe(false);
     expect(
       voltaTextoCorrigido('Prints e gravações saem em branco. Também oculta o app no multitarefa.'),

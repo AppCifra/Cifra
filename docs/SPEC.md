@@ -583,6 +583,7 @@ Promessas e textos imprecisos que o app não usa (RNF-17), e o que vai no lugar.
 | "Também oculta o app no multitarefa" | "Prints e gravações saem em branco. Também oculta o app no multitarefa." |
 | Notificações cegas, no iPhone | acrescentar: "No iPhone, passam pelos servidores da Apple, que registram quando cada uma chega." |
 | Timers de 10 s e 5 min | acrescentar: "Só chega se a outra pessoa estiver com a conversa aberta." |
+| "O Cifra é feito sem anúncio e sem coleta de dados." | "O Cifra é feito sem anúncio e sem rastreamento." |
 
 ## Stack e estrutura do projeto
 
