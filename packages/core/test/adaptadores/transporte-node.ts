@@ -31,6 +31,11 @@ export interface TransporteDeTeste extends Transporte {
    * continua: como um pacote que o relay mandou e não chegou, sem ninguém perceber.
    */
   sumirAoReceber: ((dados: Uint8Array, circuito: string) => boolean) | null;
+  /**
+   * Quando devolve uma lista para uma mensagem que chega pela conexão do circuito, é a lista que
+   * chega no lugar dela: como um relay que responde outra coisa, ou manda um aviso a mais.
+   */
+  trocarAoReceber: ((dados: Uint8Array, circuito: string) => Uint8Array[] | null) | null;
   /** Quando devolve `true` para uma mensagem que sai, ela não sai e a conexão cai. */
   perderAoEnviar: ((dados: Uint8Array) => boolean) | null;
   /** Quando devolve `true` para o circuito pedido, a conexão falha antes de abrir. */
@@ -65,6 +70,7 @@ export function transporteNode(rota: (endereco: string) => string = (e) => e): T
     conexoes: [],
     perderAoReceber: null,
     sumirAoReceber: null,
+    trocarAoReceber: null,
     perderAoEnviar: null,
     falharAoConectar: null,
     semTor: false,
@@ -168,7 +174,9 @@ export function transporteNode(rota: (endereco: string) => string = (e) => e): T
           return;
         }
         if (transporte.sumirAoReceber?.(dados, circuito)) return;
-        for (const ouvinte of [...aoReceber]) ouvinte(dados);
+        for (const cada of transporte.trocarAoReceber?.(dados, circuito) ?? [dados]) {
+          for (const ouvinte of [...aoReceber]) ouvinte(cada);
+        }
       });
 
       const conexao: Conexao = {

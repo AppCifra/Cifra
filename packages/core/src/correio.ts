@@ -110,6 +110,7 @@ import {
   adiar,
   intervaloDeReenvio,
   itensDaFila,
+  MAIOR_INTERVALO,
   naFila,
   proximaTentativa,
   tentarDeNovo,
@@ -319,6 +320,13 @@ interface EstadoDaCaixa {
   cancelarReconexao: (() => void) | null;
   /** A conversa deixou de ser oculta: a caixa não abre mais. */
   removida: boolean;
+  /**
+   * O relay avisou que a caixa foi substituída: a próxima reconexão é na hora, para conferir pelo
+   * próprio cartão, em vez de esperar o intervalo.
+   */
+  conferirAgora: boolean;
+  /** Quando veio o último aviso de substituição; um relay que repete o aviso espera o intervalo. */
+  avisadoEm: number | null;
 }
 
 function novaCaixa(
@@ -336,6 +344,8 @@ function novaCaixa(
     tentativas: 0,
     cancelarReconexao: null,
     removida: false,
+    conferirAgora: false,
+    avisadoEm: null,
   };
 }
 
@@ -1171,6 +1181,7 @@ export class Correio {
     estado.conectando = true;
     const principal = estado.contato === null;
     let conexao: ConexaoComORelay | null = null;
+    let reconectarAgora = false;
     try {
       const { transporte, relay, relogio } = this.#o;
       conexao = await ConexaoComORelay.abrir(transporte, relay, estado.circuito, relogio);
@@ -1209,9 +1220,14 @@ export class Correio {
         this.#emitir({ tipo: 'caixa', aberta: false, semTor: true });
       }
       if (erro instanceof Substituido) void this.#substituir();
-      else this.#agendarReconexao(estado);
+      else if (estado.conferirAgora) {
+        // O aviso de substituição chegou antes de a caixa contar como aberta: confere na hora.
+        estado.conferirAgora = false;
+        reconectarAgora = true;
+      } else this.#agendarReconexao(estado);
     } finally {
       estado.conectando = false;
+      if (reconectarAgora) void this.#conectarCaixa(estado);
     }
   }
 
@@ -1224,6 +1240,13 @@ export class Correio {
       this.#cancelarConferencia?.();
       this.#cancelarConferencia = null;
       this.#emitir({ tipo: 'caixa', aberta: false });
+    }
+    // Depois do aviso de substituição, a reconexão é na hora: ou a caixa sumiu e o próprio cartão
+    // aponta outra (RF-05), ou o aviso não valia e a caixa abre de novo.
+    if (estado.conferirAgora) {
+      estado.conferirAgora = false;
+      void this.#conectarCaixa(estado);
+      return;
     }
     this.#agendarReconexao(estado);
   }
@@ -1302,8 +1325,14 @@ export class Correio {
       });
       if (resposta.tipo !== 'cartao-publicado') {
         await this.#exclusivo(() => banco.transacao((t) => descartarPublicacao(t, preparada)));
-        // O cartão do relay aponta a caixa de outro aparelho com esta identidade (RF-05).
-        if (codigoDe(resposta) === 'caixa-substituida') throw new Substituido();
+        // O relay diz que o cartão dele aponta a caixa de outro aparelho com esta identidade
+        // (RF-05). A resposta não vem assinada: a prova é o próprio cartão, conferido, apontar
+        // outra caixa. Sem ela, a conexão cai e volta como depois de uma queda.
+        if (codigoDe(resposta) === 'caixa-substituida') {
+          if (await this.#cartaoApontaOutraCaixa(conexao)) throw new Substituido();
+          await conexao.fechar();
+          throw new Error('substituição sem prova');
+        }
         return;
       }
       estado = await this.#exclusivo(() =>
@@ -1374,9 +1403,19 @@ export class Correio {
     return this.#cartaoConfere(resposta.cartao, this.#meuId) ? resposta.cartao : null;
   }
 
+  /**
+   * A prova da restauração em outro aparelho (RF-05): o próprio cartão, assinado pela identidade,
+   * aponta outra caixa principal e é mais novo que o último que este aparelho publicou. Um cartão
+   * antigo apontando outra caixa é o relay repetindo um que já valeu, e não prova nada.
+   */
   async #cartaoApontaOutraCaixa(conexao: ConexaoComORelay): Promise<boolean> {
     const cartao = await this.#proprioCartao(conexao);
-    return cartao !== null && !!this.#caixa && !iguais(cartao.caixaPrincipal, this.#caixa);
+    if (cartao === null || !this.#caixa || iguais(cartao.caixaPrincipal, this.#caixa)) return false;
+    const { banco, relay } = this.#o;
+    const estado = await this.#exclusivo(() => estadoDoCartao(banco, relay));
+    // Sem publicação aceita neste aparelho, não há com o que comparar: um cartão de outro aparelho
+    // pode ser só o anterior à restauração.
+    return estado.data !== null && cartao.data > estado.data;
   }
 
   #aoAvisar(
@@ -1386,9 +1425,17 @@ export class Correio {
     aviso: Aviso,
   ): void {
     if (aviso.tipo === 'caixa-substituida') {
-      // O relay apagou esta caixa e vai fechar a conexão: outro aparelho restaurou a identidade. Só
-      // acontece com a caixa do cartão.
-      if (estado.contato === null) void this.#substituir();
+      // O relay diz que outro aparelho restaurou a identidade e vai fechar a conexão. O aviso não
+      // vem assinado, então não decide nada: a conexão cai e volta na hora, e é a reconexão que
+      // confere pelo próprio cartão (RF-05). Só acontece com a caixa do cartão. Um relay que repete
+      // o aviso espera o intervalo normal, como depois de qualquer queda.
+      if (estado.contato === null) {
+        const agora = this.#o.relogio.agora();
+        estado.conferirAgora =
+          estado.avisadoEm === null || agora - estado.avisadoEm >= MAIOR_INTERVALO;
+        estado.avisadoEm = agora;
+        void conexao.fechar();
+      }
       return;
     }
     if (aviso.tipo === 'em-dia') {

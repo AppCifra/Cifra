@@ -1,9 +1,11 @@
+import { codificarMensagemDoRelay, lerMensagemDoRelay } from '@cifra/protocol';
 import { describe, expect, it } from 'vitest';
 import { Correio, ErroDoCorreio, type EventoDoCorreio } from '../src/index.ts';
 import { cripto } from './adaptadores/sodium-node.ts';
 import {
   ate,
   avancarAte,
+  caixaAberta,
   conversa,
   DIA,
   online,
@@ -183,5 +185,136 @@ describe('um aparelho por ID (RF-05)', () => {
         (await bob.banco.banco.consultar('SELECT count(*) AS n FROM fila'))[0]?.['n'] === 0,
       'fila vazia',
     );
+  }, 30_000);
+});
+
+// O aviso `caixa-substituida` e a resposta de mesmo código não vêm assinados: um relay modificado
+// mandaria qualquer um deles e pararia o app de vez. A prova é o próprio cartão, assinado pela
+// identidade, apontar outra caixa e ser mais novo que o último publicado por este aparelho.
+describe('substituição sem prova (RF-05)', () => {
+  const contar = (p: Pessoa, tipo: string) =>
+    pedidos(p).filter(({ pedido }) => pedido.tipo === tipo).length;
+  const substituidoNoBanco = (p: Pessoa) =>
+    p.banco.banco.consultar('SELECT substituido FROM cartao');
+
+  it('o aviso que o próprio cartão desmente não para o aparelho: a caixa cai e abre de novo na hora', async () => {
+    const [alice, bob] = await conversa();
+    const aberturas = contar(alice, 'abrir-caixa');
+    alice.eventos.length = 0;
+    // O relay manda o aviso forjado antes do próximo pacote da caixa.
+    let forjado = false;
+    alice.transporte.trocarAoReceber = (dados) => {
+      if (forjado || lerMensagemDoRelay(dados)?.tipo !== 'pacote') return null;
+      forjado = true;
+      return [codificarMensagemDoRelay({ tipo: 'caixa-substituida' }), dados];
+    };
+    await bob.correio.enviarTexto(alice.id, 'depois do aviso');
+    // Sem andar o relógio: a reconexão depois do aviso é imediata.
+    await ate(() => contar(alice, 'abrir-caixa') === aberturas + 1, 'a caixa abre de novo');
+    await ate(
+      async () => (await textos(alice, bob)).includes('depois do aviso'),
+      'o pacote chega pela caixa reaberta',
+    );
+    expect(substituido(alice)).toBe(false);
+    expect(await substituidoNoBanco(alice)).toEqual([{ substituido: 0 }]);
+    expect(caixasNoRelay(alice.caixa)).toBe(1);
+    expect(alice.eventos.filter((e) => e.tipo === 'caixa').map((e) => e.aberta)).toEqual([
+      false,
+      true,
+    ]);
+  }, 30_000);
+
+  it('o aviso repetido logo depois espera o intervalo de reconexão', async () => {
+    const alice = await pessoa();
+    await online(alice);
+    const aberturas = contar(alice, 'abrir-caixa');
+    // Todo `em-dia` vem com o aviso forjado: a primeira reconexão é na hora, a segunda espera.
+    alice.transporte.trocarAoReceber = (dados) =>
+      lerMensagemDoRelay(dados)?.tipo === 'em-dia'
+        ? [codificarMensagemDoRelay({ tipo: 'caixa-substituida' }), dados]
+        : null;
+    await alice.correio.parar();
+    alice.eventos.length = 0;
+    alice.correio.iniciar();
+    await ate(() => contar(alice, 'abrir-caixa') === aberturas + 2, 'abre, cai e abre de novo');
+    await redeParada();
+    expect(contar(alice, 'abrir-caixa')).toBe(aberturas + 2);
+    alice.transporte.trocarAoReceber = null;
+    await avancarAte(
+      () => contar(alice, 'abrir-caixa') === aberturas + 3,
+      'a terceira, no intervalo',
+    );
+    await ate(() => caixaAberta(alice), 'a caixa fica aberta');
+    expect(substituido(alice)).toBe(false);
+  }, 30_000);
+
+  it('a resposta `caixa-substituida` ao cartão, sem o cartão apontar outra caixa, só derruba a conexão', async () => {
+    const alice = await pessoa();
+    await online(alice);
+    await alice.correio.parar();
+    relogio.avancar(2 * DIA);
+    const [publicacoes, buscas] = [
+      contar(alice, 'publicar-cartao'),
+      contar(alice, 'buscar-cartao'),
+    ];
+    // O relay aceita a renovação, mas responde como se outro aparelho tivesse o cartão.
+    let forjado = false;
+    alice.transporte.trocarAoReceber = (dados) => {
+      const mensagem = lerMensagemDoRelay(dados);
+      if (forjado || mensagem?.tipo !== 'cartao-publicado') return null;
+      forjado = true;
+      return [
+        codificarMensagemDoRelay({
+          tipo: 'resposta',
+          numero: mensagem.numero,
+          codigo: 'caixa-substituida',
+        }),
+      ];
+    };
+    alice.eventos.length = 0;
+    alice.correio.iniciar();
+    await avancarAte(() => caixaAberta(alice), 'a caixa abre depois da queda');
+    expect(substituido(alice)).toBe(false);
+    expect(await substituidoNoBanco(alice)).toEqual([{ substituido: 0 }]);
+    // Conferiu o próprio cartão uma vez, caiu, e na volta tentou publicar de novo. O relay já tinha
+    // aceitado a primeira: a segunda recebe `cartao-antigo`, e a conferência da hora seguinte acerta.
+    expect(contar(alice, 'buscar-cartao')).toBe(buscas + 1);
+    expect(contar(alice, 'publicar-cartao')).toBe(publicacoes + 2);
+  }, 30_000);
+
+  it('um cartão antigo apontando outra caixa não prova nada: o aparelho novo não para', async () => {
+    const alice = await pessoa();
+    await online(alice);
+    const publicacao = pedidos(alice).find(({ pedido }) => pedido.tipo === 'publicar-cartao');
+    if (!publicacao || publicacao.pedido.tipo !== 'publicar-cartao') throw new Error('sem cartão');
+    const cartaoAntigo = publicacao.pedido.publicacao.cartao;
+    await alice.correio.parar();
+    const aliceNova = await pessoa(alice.identidade);
+    await online(aliceNova);
+
+    // A caixa do aparelho novo some do relay e, quando ele busca o próprio cartão para entender,
+    // o relay devolve o cartão do aparelho antigo, que valeu um dia.
+    relay.adulterar('DELETE FROM caixas WHERE chave = ?', aliceNova.caixa);
+    aliceNova.transporte.trocarAoReceber = (dados) => {
+      const mensagem = lerMensagemDoRelay(dados);
+      if (mensagem?.tipo !== 'cartao-encontrado') return null;
+      return [
+        codificarMensagemDoRelay({
+          tipo: 'cartao-encontrado',
+          numero: mensagem.numero,
+          cartao: cartaoAntigo,
+          prekey: null,
+        }),
+      ];
+    };
+    await relay.derrubar();
+    await relay.voltar();
+    aliceNova.eventos.length = 0;
+    await avancarAte(() => caixaAberta(aliceNova), 'a caixa volta');
+    await redeParada();
+    expect(substituido(aliceNova)).toBe(false);
+    expect(await substituidoNoBanco(aliceNova)).toEqual([{ substituido: 0 }]);
+    expect(caixasNoRelay(aliceNova.caixa)).toBe(1);
+    expect(contar(aliceNova, 'buscar-cartao')).toBeGreaterThan(0);
   }, 30_000);
 });
