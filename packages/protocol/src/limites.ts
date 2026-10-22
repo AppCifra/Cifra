@@ -34,6 +34,17 @@ export const ESPACO_DOS_ANEXOS_EM_MB = 4096;
 /** Transferência de anexo que fica este tempo sem receber nada cai. */
 export const PARADA_DO_ANEXO_EM_SEGUNDOS = 60;
 
+/**
+ * Ritmo mínimo da transferência de anexo: em cada janela deste tamanho ela precisa andar pelo menos
+ * `RITMO_MINIMO_DO_ANEXO_EM_BYTES` (ou o que falta), senão cai. Um byte de vez em quando não segura
+ * uma vaga de transferência para sempre. Pouco mais de 1 KiB/s: o Tor passa disso com folga.
+ */
+export const JANELA_DO_RITMO_DO_ANEXO_EM_SEGUNDOS = 60;
+export const RITMO_MINIMO_DO_ANEXO_EM_BYTES = 64 * 1024;
+
+/** Nenhuma transferência de anexo, subindo ou descendo, passa deste tempo. */
+export const DURACAO_MAXIMA_DO_ANEXO_EM_MINUTOS = 30;
+
 /** Cartão sem renovação é apagado do relay depois deste prazo. */
 export const RETENCAO_DO_CARTAO_EM_DIAS = 90;
 

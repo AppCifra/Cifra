@@ -1,3 +1,4 @@
+import { randomFillSync } from 'node:crypto';
 import { request } from 'node:http';
 import {
   caminhoDoAnexo,
@@ -18,10 +19,18 @@ afterEach(async () => {
   await relay.fechar();
 });
 
-const LIMITES: Partial<LimitesDoRelay> = {
-  ...TAXAS_LIVRES,
-  anexos: { subindo: 4, transferencias: 8, espaco: 64 * 1024 * 1024, parada: 5000 },
+// Janela curta e ritmo baixo, para o teste medir em décimos de segundo; o envio normal passa com folga.
+const ANEXOS = {
+  subindo: 4,
+  transferencias: 8,
+  espaco: 64 * 1024 * 1024,
+  parada: 5000,
+  janelaDoRitmo: 200,
+  ritmoMinimo: 1024,
+  duracao: 20_000,
 };
+
+const LIMITES: Partial<LimitesDoRelay> = { ...TAXAS_LIVRES, anexos: ANEXOS };
 
 async function subir(limites: Partial<LimitesDoRelay> = LIMITES) {
   relay = await subirRelay(limites);
@@ -85,6 +94,168 @@ function subirCortado(t: Uint8Array, declarado: number, enviado: number): Promis
     });
   });
 }
+
+/**
+ * Manda `dados` aos poucos: `pedaco` bytes a cada `intervalo` ms. Resolve com o status, ou 0 se a
+ * conexão caiu antes da resposta.
+ */
+function subirNoRitmo(
+  t: Uint8Array,
+  dados: Uint8Array,
+  pedaco: number,
+  intervalo: number,
+): Promise<number> {
+  return new Promise((pronto) => {
+    const pedido = request(url(t), { method: 'PUT', headers: { 'Content-Length': dados.length } });
+    let encerrou = false;
+    const terminar = (status: number) => {
+      if (encerrou) return;
+      encerrou = true;
+      clearInterval(passo);
+      pronto(status);
+    };
+    pedido.on('response', (resposta) => {
+      resposta.resume();
+      resposta.on('end', () => {
+        terminar(resposta.statusCode ?? 0);
+      });
+    });
+    pedido.on('error', () => {
+      terminar(0);
+    });
+    pedido.on('close', () => {
+      terminar(0);
+    });
+    let posicao = 0;
+    const passo = setInterval(() => {
+      if (encerrou) return;
+      const fim = Math.min(posicao + pedaco, dados.length);
+      pedido.write(dados.subarray(posicao, fim));
+      posicao = fim;
+      if (posicao === dados.length) {
+        clearInterval(passo);
+        pedido.end();
+      }
+    }, intervalo);
+  });
+}
+
+/**
+ * Baixa devagar: pede um byte a cada 250 ms, e o Node puxa um pedaço do socket (uns 64 KiB) a cada
+ * pedido, como um cliente que lê sem parar, mas pouco. `comecou` resolve com o status quando o relay
+ * começa a responder; `fim`, com quantos bytes chegaram, quando a conexão acaba.
+ */
+function baixarDevagar(t: Uint8Array): {
+  comecou: Promise<number>;
+  fim: Promise<number>;
+  desistir: () => void;
+} {
+  const pedido = request(url(t), { method: 'GET' });
+  let recebidos = 0;
+  let encerrar: (quantos: number) => void = () => undefined;
+  const fim = new Promise<number>((pronto) => {
+    encerrar = pronto;
+  });
+  const comecou = new Promise<number>((pronto) => {
+    pedido.on('response', (resposta) => {
+      pronto(resposta.statusCode ?? 0);
+      resposta.pause();
+      const passo = setInterval(() => {
+        const byte: unknown = resposta.read(1);
+        if (byte instanceof Uint8Array) recebidos += byte.length;
+      }, 250);
+      const acabou = () => {
+        clearInterval(passo);
+        encerrar(recebidos);
+      };
+      resposta.on('close', acabou);
+      resposta.on('error', acabou);
+    });
+    pedido.on('error', () => {
+      pronto(0);
+      encerrar(recebidos);
+    });
+    pedido.end();
+  });
+  return {
+    comecou,
+    fim,
+    desistir: () => {
+      pedido.destroy();
+    },
+  };
+}
+
+/** Espera, em tempo de verdade, até a condição valer. */
+async function ate(condicao: () => boolean | Promise<boolean>, oQue: string): Promise<void> {
+  const limite = Date.now() + 5000;
+  while (!(await condicao())) {
+    if (Date.now() > limite) throw new Error(`não aconteceu: ${oQue}`);
+    await new Promise((pronto) => setTimeout(pronto, 20));
+  }
+}
+
+describe('ritmo mínimo da transferência (RNF-13)', () => {
+  it('download que lê devagar demais cai pelo ritmo, e a vaga volta', async () => {
+    // O cliente lê uns 64 KiB a cada 250 ms, sem parar: a parada não corta, e o ritmo pedido aqui
+    // (128 KiB por janela de 200 ms) não é alcançado. Uma vaga só, para ver que ela volta.
+    await subir({
+      ...LIMITES,
+      anexos: { ...ANEXOS, transferencias: 1, parada: 30_000, ritmoMinimo: 128 * 1024 },
+    });
+    const t = token();
+    // Blob grande sem passar pelo sodium, que leva segundos para gerar megabytes aleatórios.
+    const dados = randomFillSync(new Uint8Array(tamanhoDoAnexo(2 * 1024 * 1024)));
+    expect((await pedir('PUT', t, dados)).status).toBe(201);
+
+    const lento = baixarDevagar(t);
+    expect(await lento.comecou).toBe(200);
+    // A única vaga está com o download lento.
+    expect((await pedir('GET', t)).status).toBe(503);
+    // Em poucas janelas abaixo do ritmo, o relay corta, e a vaga volta.
+    await ate(async () => (await pedir('GET', t)).status === 200, 'a vaga volta');
+    lento.desistir();
+    expect(await lento.fim).toBeLessThan(dados.length);
+  });
+
+  it('envio que manda um byte de vez em quando cai, e o que subiu não fica', async () => {
+    await subir({ ...LIMITES, anexos: { ...ANEXOS, subindo: 1, parada: 30_000 } });
+    const t = token();
+    // Um byte a cada 50 ms zera a parada o tempo todo, mas não chega a 1 KiB por janela.
+    expect(await subirNoRitmo(t, blob(tamanhoDoAnexo(300_000)), 1, 50)).toBe(0);
+    await ate(
+      () => relay.consultar('SELECT count(*) AS n FROM anexos')[0]?.['n'] === 0,
+      'o anexo pela metade sai',
+    );
+    expect(relay.consultar('SELECT count(*) AS n FROM pedacos')[0]?.['n']).toBe(0);
+    expect((await pedir('GET', t)).status).toBe(404);
+    // A vaga de envio voltou.
+    expect((await pedir('PUT', token(), blob(4096))).status).toBe(201);
+  });
+
+  it('a transferência que anda no ritmo não cai', async () => {
+    await subir();
+    const t = token();
+    const dados = blob(tamanhoDoAnexo(200_000));
+    // 8 KiB a cada 20 ms: uns 80 KiB por janela, bem acima do mínimo.
+    expect(await subirNoRitmo(t, dados, 8192, 20)).toBe(201);
+    const baixado = await pedir('GET', t);
+    expect(baixado.status).toBe(200);
+    expect(baixado.corpo).toEqual(dados);
+  });
+
+  it('nenhuma transferência passa da duração, mesmo andando', async () => {
+    await subir({ ...LIMITES, anexos: { ...ANEXOS, duracao: 300 } });
+    const t = token();
+    // No ritmo, mas levaria mais de 1 s: cai aos 300 ms, e nada fica.
+    expect(await subirNoRitmo(t, blob(tamanhoDoAnexo(512 * 1024)), 8192, 20)).toBe(0);
+    await ate(
+      () => relay.consultar('SELECT count(*) AS n FROM anexos')[0]?.['n'] === 0,
+      'o anexo pela metade sai',
+    );
+    expect((await pedir('GET', t)).status).toBe(404);
+  });
+});
 
 describe('anexos no relay (RF-35)', () => {
   it('sobe, baixa igual e, depois de apagado, não existe mais', async () => {
@@ -202,7 +373,7 @@ describe('o relay não confia no cliente nos anexos (RNF-13)', () => {
   it('espaço cheio: o relay recusa o anexo novo (507), e o app tenta depois', async () => {
     await subir({
       ...LIMITES,
-      anexos: { subindo: 4, transferencias: 8, espaco: 8192, parada: 5000 },
+      anexos: { ...ANEXOS, espaco: 8192 },
     });
     expect((await pedir('PUT', token(), blob(4096))).status).toBe(201);
     expect((await pedir('PUT', token(), blob(4096))).status).toBe(201);
@@ -212,7 +383,7 @@ describe('o relay não confia no cliente nos anexos (RNF-13)', () => {
   it('acima dos envios ao mesmo tempo, recusa (503); baixar continua', async () => {
     await subir({
       ...LIMITES,
-      anexos: { subindo: 0, transferencias: 8, espaco: 8192, parada: 5000 },
+      anexos: { ...ANEXOS, subindo: 0, espaco: 8192 },
     });
     expect((await pedir('PUT', token(), blob(4096))).status).toBe(503);
     expect((await pedir('GET', token())).status).toBe(404);

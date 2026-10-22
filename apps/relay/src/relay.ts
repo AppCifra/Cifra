@@ -17,11 +17,13 @@ import {
   CONEXOES_SIMULTANEAS,
   ESPACO_DOS_ANEXOS_EM_MB,
   ESPACO_DOS_PACOTES_EM_MB,
+  DURACAO_MAXIMA_DO_ANEXO_EM_MINUTOS,
   FECHAMENTOS,
   idDaChave,
   idDoCartao,
   idDoPacote,
   JANELA_DE_ENTREGA,
+  JANELA_DO_RITMO_DO_ANEXO_EM_SEGUNDOS,
   lerCartao,
   lerPedido,
   MAXIMO_DE_PREKEYS,
@@ -34,6 +36,7 @@ import {
   RETENCAO_DO_ANEXO_EM_DIAS,
   RETENCAO_DO_CARTAO_EM_DIAS,
   RETENCAO_DO_PACOTE_EM_DIAS,
+  RITMO_MINIMO_DO_ANEXO_EM_BYTES,
   SAIDA_POR_CONEXAO,
   TAMANHO_DO_PACOTE,
   TAMANHO_MAXIMO_DO_PEDIDO,
@@ -97,11 +100,17 @@ const LIMITES: LimitesDoRelay = {
     transferencias: TRANSFERENCIAS_DE_ANEXOS,
     espaco: ESPACO_DOS_ANEXOS_EM_MB * 1024 * 1024,
     parada: PARADA_DO_ANEXO_EM_SEGUNDOS * 1000,
+    janelaDoRitmo: JANELA_DO_RITMO_DO_ANEXO_EM_SEGUNDOS * 1000,
+    ritmoMinimo: RITMO_MINIMO_DO_ANEXO_EM_BYTES,
+    duracao: DURACAO_MAXIMA_DO_ANEXO_EM_MINUTOS * 60_000,
   },
 };
 
-/** Um anexo de 25 MiB pelo Tor pode levar minutos; quem fica parado cai pelo prazo de parada. */
-const PRAZO_DO_PEDIDO_HTTP = 30 * 60_000;
+/**
+ * Um anexo de 25 MiB pelo Tor pode levar minutos; quem fica parado ou devagar demais cai antes,
+ * pelos limites dos anexos. Este prazo é o do Node para o pedido inteiro, o mesmo da duração.
+ */
+const PRAZO_DO_PEDIDO_HTTP = DURACAO_MAXIMA_DO_ANEXO_EM_MINUTOS * 60_000;
 
 export interface OpcoesDoRelay {
   readonly banco: Banco;

@@ -11,7 +11,8 @@
 // - GET: devolve o blob, um pedaço de cada vez, sem ler o anexo inteiro para a memória.
 // - DELETE: apaga. Quem recebe apaga depois de baixar e conferir o hash.
 //
-// Limites (RNF-13): transferências e envios ao mesmo tempo, espaço total e transferência parada.
+// Limites (RNF-13): transferências e envios ao mesmo tempo, espaço total, transferência parada ou
+// devagar demais e a duração de cada uma.
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { BYTES_DO_PEDACO, lerCaminhoDoAnexo, tamanhoDeAnexoValido } from '@cifra/protocol';
 import type { Banco } from './banco.ts';
@@ -26,6 +27,12 @@ export interface LimitesDosAnexos {
   readonly espaco: number;
   /** Milissegundos sem receber nem mandar nada até a transferência cair. */
   readonly parada: number;
+  /** A janela, em milissegundos, em que a transferência precisa andar `ritmoMinimo` ou o que falta. */
+  readonly janelaDoRitmo: number;
+  /** Bytes que a transferência precisa mover em cada janela, senão cai. */
+  readonly ritmoMinimo: number;
+  /** Milissegundos que uma transferência pode durar ao todo. */
+  readonly duracao: number;
 }
 
 export interface OpcoesDosAnexos {
@@ -40,6 +47,11 @@ export type AtendenteDeAnexos = (pedido: IncomingMessage, resposta: ServerRespon
 
 /** Pedaços gravados numa transação: até 1 MiB de cada envio fica na memória. */
 const PEDACOS_POR_GRAVACAO = 16;
+
+/** O que a transferência tem para mover ao todo, quando se sabe: o corpo do PUT ou o blob do GET. */
+interface Andamento {
+  total: number;
+}
 
 function responder(resposta: ServerResponse, status: number, fechar = false): void {
   if (resposta.headersSent) {
@@ -56,7 +68,12 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
   /** O ID guardado é o BLAKE2b do token: o banco do relay não tem o que baixaria o anexo. */
   const idDe = (token: Uint8Array) => o.sodium.crypto_generichash(32, token, null);
 
-  function subir(id: Uint8Array, pedido: IncomingMessage, resposta: ServerResponse): void {
+  function subir(
+    id: Uint8Array,
+    pedido: IncomingMessage,
+    resposta: ServerResponse,
+    andamento: Andamento,
+  ): void {
     const cabecalho = pedido.headers['content-length'];
     const tamanho = Number(cabecalho);
     if (pedido.headers['transfer-encoding'] !== undefined || cabecalho === undefined) {
@@ -67,6 +84,7 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
       responder(resposta, 413, true);
       return;
     }
+    andamento.total = tamanho;
     const inicio = o.banco.comecarAnexo(id, tamanho, o.prazo(), o.limites.espaco);
     if (inicio === 'sem-espaco') {
       responder(resposta, 507, true);
@@ -154,12 +172,13 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
     pedido.on('close', desistir);
   }
 
-  function baixar(id: Uint8Array, resposta: ServerResponse): void {
+  function baixar(id: Uint8Array, resposta: ServerResponse, andamento: Andamento): void {
     const anexo = o.banco.anexo(id);
     if (!anexo) {
       responder(resposta, 404);
       return;
     }
+    andamento.total = anexo.tamanho;
     resposta.writeHead(200, {
       'Content-Type': 'application/octet-stream',
       'Content-Length': anexo.tamanho,
@@ -213,17 +232,39 @@ export function criarAnexos(o: OpcoesDosAnexos): AtendenteDeAnexos {
       transferencias--;
       if (metodo === 'PUT') subindo--;
     });
+    // Cortar é destruir pela resposta, que derruba o socket sempre; destruir o pedido só derruba
+    // enquanto o corpo dele ainda chega, e o de um GET já chegou inteiro.
+    const cortar = () => {
+      resposta.destroy();
+    };
     // Sem receber nem mandar nada por este tempo, a transferência cai.
-    pedido.setTimeout(o.limites.parada, () => {
-      pedido.destroy();
+    pedido.setTimeout(o.limites.parada, cortar);
+    // Um byte de vez em quando segura a vaga sem parar: em cada janela a transferência precisa
+    // andar o ritmo mínimo (ou o que falta), e nenhuma passa da duração. Conta no socket, que é o
+    // que de fato chegou e saiu; os cabeçalhos entram na conta, e isso só pede um pouco a mais.
+    const socket = pedido.socket;
+    const andamento: Andamento = { total: Infinity };
+    const movidos = () => socket.bytesRead + socket.bytesWritten;
+    const inicio = movidos();
+    let marca = inicio;
+    const ritmo = setInterval(() => {
+      const agora = movidos();
+      const faltam = andamento.total - (agora - inicio);
+      if (agora - marca < Math.min(o.limites.ritmoMinimo, faltam)) cortar();
+      marca = agora;
+    }, o.limites.janelaDoRitmo);
+    const duracao = setTimeout(cortar, o.limites.duracao);
+    resposta.on('close', () => {
+      clearInterval(ritmo);
+      clearTimeout(duracao);
     });
     const id = idDe(token);
     try {
       if (metodo === 'PUT') {
-        subir(id, pedido, resposta);
+        subir(id, pedido, resposta, andamento);
       } else if (metodo === 'GET') {
         pedido.resume();
-        baixar(id, resposta);
+        baixar(id, resposta, andamento);
       } else {
         pedido.resume();
         responder(resposta, o.banco.apagarAnexo(id) ? 204 : 404);

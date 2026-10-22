@@ -412,8 +412,8 @@ Cada caixa tem um par de chaves próprio: quem tem a chave da caixa lê a caixa.
 | Anexos subindo ao mesmo tempo | 16; acima disso, 503, e o app tenta depois |
 | Transferências de anexo ao mesmo tempo | 64 |
 | Espaço dos anexos | 4 GB, ajustável por quem opera (`CIFRA_ESPACO_DOS_ANEXOS`, em MB); cheio, 507 |
-| Transferência de anexo parada | cai depois de 60 s sem receber nem mandar nada |
-| Pedido HTTP | no máximo 30 min |
+| Transferência de anexo parada ou lenta | cai depois de 60 s sem receber nem mandar nada, ou quando anda menos de 64 KiB (ou o que falta) em 60 s: um byte de vez em quando não segura uma vaga |
+| Pedido HTTP | no máximo 30 min, subindo ou baixando |
 | Cartão sem renovação | apagado após 90 dias |
 | Caixa sem abertura | apagada após 90 dias, com o que houver nela; vale também para as caixas das conversas ocultas |
 | Pacotes à espera por caixa | 1000 (4 MB); acima disso, `caixa-cheia`, e o remetente tenta depois |
@@ -448,7 +448,10 @@ Docker Compose com dois serviços, o relay e o Tor, no mesmo namespace de rede. 
 ```
 HiddenServiceDir /var/lib/tor/cifra-relay/
 HiddenServicePort 80 127.0.0.1:8080
+HiddenServiceEnableIntroDoSDefense 1
 ```
+
+A defesa contra inundação dos pontos de introdução limita, no próprio Tor, quantos pedidos de conexão chegam ao relay por segundo. A prova de trabalho do onion service (`HiddenServicePoWDefensesEnabled`) exige um Tor compilado com a parte GPL, o que a imagem ainda não confirma; fica para depois.
 
 O app só conecta pelo Tor (RF-44), e o relay oficial é só onion, como os da comunidade (fase 2). O compose expõe o relay em 127.0.0.1:8080 só para quem opera, no próprio host (testes e a sonda). As imagens saem para amd64 e arm64, travadas pelo digest.
 

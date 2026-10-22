@@ -4,6 +4,8 @@ SocksPort 0
 DataDirectory /var/lib/tor
 HiddenServiceDir /var/lib/tor/cifra-relay/
 HiddenServicePort 80 127.0.0.1:8080
+# Contra inundação de pedidos de conexão: os pontos de introdução limitam a taxa antes de chegar aqui.
+HiddenServiceEnableIntroDoSDefense 1
 # Só avisos e erros, sem endereço nenhum no texto (RNF-05).
 SafeLogging 1
 Log warn stdout
