@@ -515,5 +515,101 @@
     "definido": "code set",
     "trocado": "code changed",
     "falhou": "couldn't do it now. try again in a moment."
+  },
+  "politica": {
+    "titulo": "Privacy policy",
+    "documento": "Cifra privacy policy",
+    "atualizada": "updated 10/22/2026",
+    "secoes": {
+      "resumo": {
+        "titulo": "In short",
+        "semDados": "Cifra does not ask for your name, phone number or e-mail. It has no ads, does not measure how you use the app and does not send crash reports.",
+        "servidor": "For your messages to arrive, your ID and your public keys stay on the Cifra server. Messages and files pass through it encrypted: only you and the person you talk to can read them.",
+        "tor": "Everything goes through the Tor network. The server does not see your IP and does not know who sent each message.",
+        "celular": "Your chats, contacts and settings stay only on your phone."
+      },
+      "responsavel": {
+        "titulo": "Who is responsible for this policy",
+        "quem": "Cifra is published by Gabriel Cirilo Erani, who runs the official server and is responsible for this policy. For privacy matters, write to appcifra@proton.me."
+      },
+      "celular": {
+        "titulo": "On your phone",
+        "guardado": "Your chats, contacts, nicknames and settings are stored encrypted on the phone. To open Cifra, you use your phone's biometrics or passcode, and it locks by itself after some time without use.",
+        "backupDoAndroid": "Cifra is left out of Android backups: nothing from it goes to Google's cloud or moves to another phone that way.",
+        "anexos": "Before sending, Cifra removes the location, the phone model and the date from photos and videos. Documents go as they are and may contain information about the author.",
+        "salvar": "A file only goes to the gallery or to the Download folder when you ask. There, other apps can see it."
+      },
+      "saida": {
+        "titulo": "What leaves your phone",
+        "servidor": "In this version, Cifra only connects to the official server, and always through Orbot, which carries the connection over the Tor network. Without Orbot, the app does not connect.",
+        "cartao": "Your card goes to the server: your ID and your public keys, so that anyone with your ID can write to you. Anyone with your ID can fetch your card.",
+        "mensagens": "Everything you send to another person leaves the phone encrypted: messages, photos, videos, documents and also read receipts and “typing”, when they are on.",
+        "orbot": "Orbot is another app, from another project, with its own privacy rules. It does not receive the content of your messages, which is already encrypted.",
+        "internet": "Whoever provides your internet, such as your carrier or the Wi-Fi network, sees that you use Tor and when, but not which service you talk to."
+      },
+      "servidor": {
+        "titulo": "On the server",
+        "finalidade": "The server only keeps what it needs to deliver messages, which is the service you ask for when you use Cifra.",
+        "cartao": "Your card stays there while you use Cifra. Without use, it is removed after 90 days.",
+        "mensagens": "Messages wait encrypted, all the same size, until the recipient's phone fetches them. They are removed as soon as it confirms they arrived. Those that nobody fetches are removed after 14 days.",
+        "arquivos": "Files wait encrypted, with their size rounded, until the other person downloads them. Those that nobody downloads are removed after 14 days.",
+        "caixa": "The box where your messages wait is removed after 90 days without being opened, with whatever is in it.",
+        "datas": "Dates are stored only to the hour, with no minutes or seconds.",
+        "registros": "The server does not keep IPs, access logs or who sent each message. To limit abuse, it counts the requests for each box and each ID, only in memory, and forgets the count in about an hour.",
+        "visto": "Even without storing it, whoever runs the server can see, as it happens, that an ID exists, when its box receives something, when its app is connected and the rounded size of files. They do not see the content, who sent it, your IP or your contact list.",
+        "codigo": "The server's code is open, but you cannot check from outside what runs on it. That is why the content of your messages and your IP do not depend on it: they stay protected even from whoever runs the server."
+      },
+      "notificacoes": {
+        "titulo": "Notifications",
+        "ligadas": "Notifications are on by default, if you allow them in Android. They only show “New message”, without saying who sent it or what it says.",
+        "bloqueado": "To tell you about messages while the app is locked, Cifra stays connected to the server through Tor and keeps a permanent notification in the notification bar. It does not use Google services. With notifications off, Cifra only stays connected while the app is unlocked."
+      },
+      "permissoes": {
+        "titulo": "Permissions",
+        "pede": "Cifra asks to show notifications, which you can refuse; to use biometrics, to unlock the app (Android does the check, and Cifra only learns whether it worked); to use the internet, only to talk to Orbot on the phone itself; and to keep a service running, for the notification while the app is locked.",
+        "naoPede": "Cifra does not ask for access to your contacts, location, camera, microphone or your photos and files. To attach something, you pick it in Android's picker, and Cifra only receives what you picked."
+      },
+      "backup": {
+        "titulo": "Backup",
+        "arquivo": "A backup only exists if you export one. It is a file with your contacts, blocked IDs, timers and settings, which only opens with your 12 words. Messages are not included.",
+        "onde": "You choose where to save it. If you choose a cloud folder, the file goes there, still encrypted. The suggested name starts with “Cifra”, and you can change it."
+      },
+      "doacoes": {
+        "titulo": "Donations",
+        "monero": "The heart at the top of the list shows a Monero address to copy. Cifra does not process payments and does not know whether you donated."
+      },
+      "apagar": {
+        "titulo": "How to erase your data",
+        "panico": "Holding the button in Settings > Panic erases everything on this phone and asks the server to erase your card and your box, with whatever is waiting in it.",
+        "semCelular": "If you lost your phone, restore your identity with your 12 words on another device and use the panic there.",
+        "prazos": "If there is no connection at the time of the panic, or if you uninstall the app without using the panic, the card and the box are removed on their own after 90 days without use, and messages after 14 days. The boxes of hidden chats are not removed by the panic: they are removed after 90 days without being opened.",
+        "fora": "The panic does not erase what you saved outside Cifra: the gallery, the Download folder and the backup file.",
+        "prova": "The server does not know who each ID belongs to. Only the app with your identity proves that an ID is yours, so the server does not erase an ID on request, without that proof: this way, nobody can erase someone else's ID."
+      },
+      "compartilhamento": {
+        "titulo": "Who the data is shared with",
+        "ninguem": "Cifra does not sell data or pass it to anyone. The official server runs at a hosting provider, which may be outside Brazil. The server's files are on its machines: your card and your box, the encrypted messages and files still waiting for delivery, and the dates, only to the hour. The provider can see this, like whoever runs the server, but not the content of messages, who sent them or your IP.",
+        "autoridade": "If an authority asks for data, the server only has what this policy describes: nothing that says who you are or what you wrote.",
+        "play": "If you installed from the Play Store, Google receives the installation and update data, under its own rules. If Android is allowed to send usage data to Google, a crash of Cifra may produce a report that reaches whoever publishes the app, without saying whose it is."
+      },
+      "direitos": {
+        "titulo": "Your rights",
+        "lgpd": "Under Brazil's General Data Protection Law (LGPD), you can ask for confirmation that there is data about you, access to it, correction, anonymization, blocking or deletion, portability to another service and the list of who it was shared with, and you can object to its use. You can also file a complaint with the National Data Protection Agency (ANPD).",
+        "noCifra": "In Cifra, most of this is in your hands: the data on your phone is yours, the backup takes your contacts, and the panic erases everything. On the server, your card is public to anyone with your ID, and the rest is encrypted. For any other request, write to appcifra@proton.me."
+      },
+      "limites": {
+        "titulo": "Limits",
+        "outraPessoa": "The person you talk to can keep what they receive. Disappearing messages, delete for everyone and screenshot blocking depend on their app, and a photo of the screen taken with another device is always possible.",
+        "palavras": "Anyone who has your 12 words takes over your identity. With the backup file, they also have your contacts.",
+        "teclado": "The keyboard is another app. Cifra asks it not to learn what you type, but does not control what it does.",
+        "android": "Android records when each app opens and closes. Anyone who picks up your phone while it is unlocked, with Cifra open, sees what is on the screen.",
+        "copiar": "Text you copy from Cifra leaves the clipboard after 60 seconds, but only while you have Cifra open.",
+        "revisao": "Cifra's code is open and has not had an independent security audit yet."
+      },
+      "mudancas": {
+        "titulo": "Changes",
+        "versao": "When this policy changes, the new version comes with the app, with the date at the top. Earlier versions stay in the history of Cifra's repository."
+      }
+    }
   }
 }

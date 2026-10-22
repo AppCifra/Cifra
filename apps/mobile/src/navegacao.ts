@@ -1,6 +1,6 @@
 // A pilha de telas da identidade aberta, sem React: a lista de conversas embaixo, e por cima a
-// conversa, a segurança do contato, os pedidos, os ajustes, o código secreto e o encaminhar. O
-// voltar do Android tira a de cima.
+// conversa, a segurança do contato, os pedidos, os ajustes, o código secreto, a política de
+// privacidade e o encaminhar. O voltar do Android tira a de cima.
 
 export type TelaDoApp =
   | { readonly tipo: 'conversas' }
@@ -10,6 +10,8 @@ export type TelaDoApp =
   | { readonly tipo: 'ajustes' }
   /** O código secreto das conversas ocultas. */
   | { readonly tipo: 'codigo' }
+  /** A política de privacidade (RF-61). */
+  | { readonly tipo: 'politica' }
   /** Encaminhar as mensagens da conversa `id` (os IDs em hexadecimal). */
   | { readonly tipo: 'encaminhar'; readonly id: string; readonly mensagens: readonly string[] };
 

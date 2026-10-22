@@ -41,6 +41,23 @@ const semLog: LoggerModule = {
   error: () => undefined,
 };
 
+/** Uma seção da política de privacidade (RF-61): o título e os parágrafos, na ordem dos textos. */
+export interface SecaoDaPolitica {
+  readonly titulo: string;
+  readonly paragrafos: readonly string[];
+}
+
+/**
+ * A política de privacidade num idioma, seção por seção. É o texto da tela do app e o de
+ * docs/PRIVACIDADE.md, que sai daqui.
+ */
+export function secoesDaPolitica(idioma: Idioma): SecaoDaPolitica[] {
+  return Object.values(TRADUCOES[idioma].politica.secoes).map(({ titulo, ...paragrafos }) => ({
+    titulo,
+    paragrafos: Object.values(paragrafos),
+  }));
+}
+
 /**
  * Cria uma instância isolada do i18next, já pronta para uso. `changeLanguage` troca os textos
  * na hora, na mesma instância, sem reiniciar nada (RF-49).

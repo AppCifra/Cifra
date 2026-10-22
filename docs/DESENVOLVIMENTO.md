@@ -63,4 +63,5 @@ Os 12 testes do SPEC e o resultado deles estão em `docs/VERIFICACAO.md`. As fer
 - O relay roda o TypeScript direto no Node, sem build, e só importa o `@cifra/protocol`. O `@cifra/core` não entra: ele importa JSON sem atributo de importação, o que o Node não aceita.
 - Os testes do correio (`packages/core/test/correio.test.ts`) sobem o relay de `apps/relay` no mesmo processo e conversam com ele pelo WebSocket que vem no Node 24. O relógio é o do teste: ele só anda com a rede parada, senão o prazo de um pedido a caminho venceria antes da resposta.
 - Problema achado que fica para depois entra no `docs/SPEC.md` no mesmo commit, na tabela de riscos, com a mitigação e o requisito que vai tratar.
+- A política de privacidade fica nos textos do app (`politica`, em `packages/i18n`), e o `docs/PRIVACIDADE.md` sai deles. Depois de mudar o texto, gere o arquivo de novo com `pnpm exec vitest run tests/politica.test.ts -u`. O teste falha quando os dois diferem e confere os prazos e os números contra o código.
 - Dependência nova, patch em `patches/` ou script de instalação liberado em `allowBuilds` só entram com registro em `docs/DEPENDENCIAS.md`; o teste falha sem isso.

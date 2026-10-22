@@ -515,5 +515,101 @@
     "definido": "código definido",
     "trocado": "código trocado",
     "falhou": "não foi possível agora. tente de novo em instantes."
+  },
+  "politica": {
+    "titulo": "Política de privacidade",
+    "documento": "Política de privacidade do Cifra",
+    "atualizada": "atualizada em 22/10/2026",
+    "secoes": {
+      "resumo": {
+        "titulo": "Em resumo",
+        "semDados": "O Cifra não pede nome, número de telefone nem e-mail. Não tem anúncio, não mede o uso do app e não manda relatório de erro.",
+        "servidor": "Para as suas mensagens chegarem, o seu ID e as suas chaves públicas ficam no servidor do Cifra. As mensagens e os arquivos passam por lá cifrados: só você e a pessoa com quem você conversa conseguem ler.",
+        "tor": "Tudo passa pela rede Tor. O servidor não vê o seu IP e não sabe quem mandou cada mensagem.",
+        "celular": "As conversas, os contatos e os ajustes ficam só no seu celular."
+      },
+      "responsavel": {
+        "titulo": "Quem responde por esta política",
+        "quem": "O Cifra é publicado por Gabriel Cirilo Erani, que opera o servidor oficial e responde por esta política. Para falar sobre privacidade, escreva para appcifra@proton.me."
+      },
+      "celular": {
+        "titulo": "No seu celular",
+        "guardado": "As conversas, os contatos, os apelidos e os ajustes ficam guardados cifrados no celular. Para abrir o Cifra, você usa a biometria ou a senha do celular, e ele bloqueia sozinho depois de um tempo parado.",
+        "backupDoAndroid": "O Cifra fica fora do backup do Android: nada dele vai para a nuvem do Google nem passa para outro celular por esse caminho.",
+        "anexos": "Antes de enviar, o Cifra tira das fotos e dos vídeos a localização, o modelo do celular e a data. Os documentos vão como estão e podem ter informações do autor.",
+        "salvar": "Um arquivo só vai para a galeria ou para a pasta Download quando você pede. Lá, outros apps podem ver."
+      },
+      "saida": {
+        "titulo": "O que sai do celular",
+        "servidor": "Nesta versão, o Cifra só se conecta ao servidor oficial, e sempre pelo Orbot, que leva a conexão pela rede Tor. Sem o Orbot, o app não se conecta.",
+        "cartao": "Vai para o servidor o seu cartão: o seu ID e as suas chaves públicas, para quem tem o seu ID conseguir te escrever. Quem tem o seu ID consegue buscar o seu cartão.",
+        "mensagens": "Tudo o que você manda para outra pessoa sai cifrado do celular: mensagens, fotos, vídeos, documentos e também a confirmação de leitura e o “digitando”, quando estão ligados.",
+        "orbot": "O Orbot é outro app, de outro projeto, com as próprias regras de privacidade. Ele não recebe o conteúdo das mensagens, que já sai cifrado.",
+        "internet": "Quem cuida da sua internet, como a operadora ou o Wi-Fi, vê que você usa o Tor e quando, mas não com que serviço você fala."
+      },
+      "servidor": {
+        "titulo": "No servidor",
+        "finalidade": "O servidor guarda só o que precisa para entregar as mensagens, que é o serviço que você pede ao usar o Cifra.",
+        "cartao": "O seu cartão fica lá enquanto você usa o Cifra. Sem uso, ele sai depois de 90 dias.",
+        "mensagens": "As mensagens esperam cifradas, todas do mesmo tamanho, até o celular de quem recebe buscar. Saem assim que ele confirma que recebeu. As que ninguém busca saem depois de 14 dias.",
+        "arquivos": "Os arquivos esperam cifrados, com o tamanho arredondado, até a outra pessoa baixar. Os que ninguém baixa saem depois de 14 dias.",
+        "caixa": "A caixa onde as suas mensagens esperam sai depois de 90 dias sem ser aberta, com o que houver nela.",
+        "datas": "As datas ficam guardadas só na hora cheia, sem minuto nem segundo.",
+        "registros": "O servidor não guarda IP, registro de acesso nem quem mandou cada mensagem. Para limitar abuso, ele conta os pedidos de cada caixa e de cada ID, só na memória, e esquece a conta em cerca de uma hora.",
+        "visto": "Mesmo sem guardar, quem opera o servidor consegue ver, na hora, que um ID existe, quando a caixa dele recebe alguma coisa, quando o app dele está conectado e o tamanho arredondado dos arquivos. Não vê o conteúdo, quem mandou, o seu IP nem a sua lista de contatos.",
+        "codigo": "O código do servidor é aberto, mas você não tem como conferir de fora o que roda nele. Por isso, o conteúdo das mensagens e o seu IP não dependem dele: ficam protegidos mesmo de quem opera o servidor."
+      },
+      "notificacoes": {
+        "titulo": "Notificações",
+        "ligadas": "As notificações vêm ligadas, se você permitir no Android. Elas mostram só “Nova mensagem”, sem dizer quem mandou nem o que diz.",
+        "bloqueado": "Para avisar com o app bloqueado, o Cifra continua conectado ao servidor pelo Tor e deixa um aviso fixo na barra de notificações. Ele não usa os serviços do Google. Com as notificações desligadas, o Cifra só fica conectado com o app desbloqueado."
+      },
+      "permissoes": {
+        "titulo": "Permissões",
+        "pede": "O Cifra pede para mostrar notificações, que você pode negar; usar a biometria, para desbloquear o app (quem confere é o Android, e o Cifra só sabe se deu certo); usar a internet, só para falar com o Orbot no próprio celular; e manter um serviço ativo, para o aviso com o app bloqueado.",
+        "naoPede": "O Cifra não pede acesso aos contatos, à localização, à câmera, ao microfone nem às suas fotos e arquivos. Para anexar, você escolhe pelo seletor do Android, e o Cifra recebe só o que você escolheu."
+      },
+      "backup": {
+        "titulo": "Backup",
+        "arquivo": "O backup só existe se você exportar. É um arquivo com os seus contatos, bloqueados, timers e ajustes, que só abre com as suas 12 palavras. As mensagens não vão.",
+        "onde": "Você escolhe onde salvar. Se escolher uma pasta na nuvem, o arquivo vai para lá, ainda cifrado. O nome sugerido começa com “Cifra”, e você pode trocar."
+      },
+      "doacoes": {
+        "titulo": "Doações",
+        "monero": "O coração no alto da lista mostra um endereço Monero para copiar. O Cifra não processa pagamento e não fica sabendo se você doou."
+      },
+      "apagar": {
+        "titulo": "Como apagar os seus dados",
+        "panico": "Segurar o botão em Ajustes > Pânico apaga tudo deste celular e pede ao servidor para apagar o seu cartão e a sua caixa, com o que estiver esperando nela.",
+        "semCelular": "Se você perdeu o celular, restaure a identidade com as 12 palavras em outro aparelho e use o pânico nele.",
+        "prazos": "Sem conexão na hora do pânico, ou se você desinstalar o app sem usar o pânico, o cartão e a caixa saem sozinhos depois de 90 dias sem uso, e as mensagens, depois de 14 dias. As caixas das conversas ocultas não saem pelo pânico: saem depois de 90 dias sem ser abertas.",
+        "fora": "O pânico não apaga o que você salvou fora do Cifra: a galeria, a pasta Download e o arquivo do backup.",
+        "prova": "O servidor não sabe de quem é cada ID. Só o app com a sua identidade prova que um ID é seu, então o servidor não apaga um ID a pedido, sem essa prova: assim ninguém apaga o ID de outra pessoa."
+      },
+      "compartilhamento": {
+        "titulo": "Com quem os dados são compartilhados",
+        "ninguem": "O Cifra não vende dados nem os passa a ninguém. O servidor oficial roda num provedor de hospedagem, que pode estar fora do Brasil. Nas máquinas dele ficam os arquivos do servidor: o seu cartão e a sua caixa, as mensagens e os arquivos cifrados que ainda esperam entrega e as datas, só na hora cheia. O provedor consegue ver isso, como quem opera o servidor, mas não o conteúdo das mensagens, quem mandou nem o seu IP.",
+        "autoridade": "Se uma autoridade pedir dados, o servidor só tem o que esta política descreve: nada que diga quem você é nem o que você escreveu.",
+        "play": "Se você instalou pela Play Store, o Google recebe os dados da instalação e das atualizações, pelas regras dele. Se o Android puder mandar dados de uso ao Google, um travamento do Cifra pode gerar um relatório que chega a quem publica o app, sem dizer de quem é."
+      },
+      "direitos": {
+        "titulo": "Seus direitos",
+        "lgpd": "Pela Lei Geral de Proteção de Dados (LGPD), você pode pedir confirmação de que há dados seus, acesso a eles, correção, anonimização, bloqueio ou eliminação, portabilidade para outro serviço e a lista de com quem eles foram compartilhados, e pode se opor ao uso deles. Também pode reclamar na Agência Nacional de Proteção de Dados (ANPD).",
+        "noCifra": "No Cifra, quase tudo isso está com você: os dados do celular são seus, o backup leva os contatos, e o pânico apaga tudo. No servidor, o seu cartão é público para quem tem o seu ID, e o resto está cifrado. Para qualquer outro pedido, escreva para appcifra@proton.me."
+      },
+      "limites": {
+        "titulo": "Limites",
+        "outraPessoa": "A pessoa com quem você conversa pode guardar o que recebe. Mensagens temporárias, apagar para todos e o bloqueio de print dependem do app dela, e uma foto da tela com outro aparelho sempre é possível.",
+        "palavras": "Quem tiver as suas 12 palavras assume a sua identidade. Com o arquivo do backup, também tem os seus contatos.",
+        "teclado": "O teclado é outro app. O Cifra pede para ele não aprender o que você digita, mas não controla o que ele faz.",
+        "android": "O Android registra quando cada app abre e fecha. Quem pegar o celular desbloqueado, com o Cifra aberto, vê o que está na tela.",
+        "copiar": "O texto que você copia do Cifra sai da área de transferência depois de 60 segundos, mas só quando você está com o Cifra aberto.",
+        "revisao": "O código do Cifra é aberto e ainda não passou por uma auditoria de segurança independente."
+      },
+      "mudancas": {
+        "titulo": "Mudanças",
+        "versao": "Quando esta política mudar, a versão nova vem junto com o app, com a data no topo. As anteriores ficam no histórico do repositório do Cifra."
+      }
+    }
   }
 }

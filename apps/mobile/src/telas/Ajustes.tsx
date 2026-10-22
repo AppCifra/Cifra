@@ -1,8 +1,9 @@
 // Os ajustes, como no design: o cartão do próprio ID, que copia (RF-45); a aparência (RF-39) e o
 // idioma (RF-49); a privacidade: o bloqueio sozinho (RF-40), as notificações cegas (RF-42), o
-// bloqueio de prints (RF-41), a confirmação de leitura (RF-17) e o indicador de digitação (RF-18);
-// as mensagens temporárias (RF-50); os anexos (RF-57); o backup (RF-46), que sai pelo "salvar como"
-// do sistema; e o pânico (RF-48): segurar 1,6 s apaga tudo deste celular.
+// bloqueio de prints (RF-41), a confirmação de leitura (RF-17), o indicador de digitação (RF-18) e
+// a política de privacidade (RF-61); as mensagens temporárias (RF-50); os anexos (RF-57); o backup
+// (RF-46), que sai pelo "salvar como" do sistema; e o pânico (RF-48): segurar 1,6 s apaga tudo
+// deste celular.
 //
 // Tema, idioma e notificações valem com o app bloqueado e ficam nas preferências do Keystore; o
 // resto fica no banco cifrado.
@@ -37,7 +38,7 @@ interface PropsDosAjustes {
   /** Ligar pede a permissão do sistema; devolve se ficaram ligadas. */
   readonly aoMudarNotificacoes: (ligar: boolean) => Promise<boolean>;
   readonly aoVoltar: () => void;
-  /** Abre outra tela por cima: o código secreto. */
+  /** Abre outra tela por cima: o código secreto e a política de privacidade. */
   readonly abrir: (tela: TelaDoApp) => void;
   /** Pânico (RF-48): apaga tudo deste celular. */
   readonly aoApagarTudo: () => void;
@@ -184,6 +185,12 @@ export function Ajustes({
               ligado={privacidade.indicadorDeDigitacao}
               aoMudar={(indicadorDeDigitacao) => {
                 mudarPrivacidade({ indicadorDeDigitacao });
+              }}
+            />
+            <LinhaDeValor
+              rotulo={t('politica.titulo')}
+              aoTocar={() => {
+                abrir({ tipo: 'politica' });
               }}
             />
           </GrupoDeLinhas>

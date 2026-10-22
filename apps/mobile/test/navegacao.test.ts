@@ -24,6 +24,13 @@ describe('pilha de telas', () => {
     expect(voltar(voltar(voltar(seguranca)))).toEqual(PILHA_INICIAL);
   });
 
+  it('a política de privacidade abre por cima dos ajustes e volta para eles (RF-61)', () => {
+    const ajustes = empilhar(PILHA_INICIAL, { tipo: 'ajustes' });
+    const politica = empilhar(ajustes, { tipo: 'politica' });
+    expect(politica.map((tela) => tela.tipo)).toEqual(['conversas', 'ajustes', 'politica']);
+    expect(voltar(politica)).toEqual(ajustes);
+  });
+
   it('um pedido recusado sai da pilha com a segurança dele', () => {
     const pilha = empilhar(
       empilhar(empilhar(PILHA_INICIAL, { tipo: 'pedidos' }), { tipo: 'conversa', id: ID }),
