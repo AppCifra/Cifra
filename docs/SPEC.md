@@ -706,7 +706,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e sessenta e seis riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e sessenta e sete riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -725,7 +725,8 @@ Quatro decisões ainda abertas e sessenta e seis riscos com mitigação. O maior
 | Tamanho do cofre das ocultas indicar uso | o cofre nasce com um bloco de 16 MiB e cresce de 16 em 16, com as datas tocadas a cada abertura e bloqueio; passar de um bloco (muitas mensagens ou anexos ocultos) mostra que há uso. Limite documentado |
 | Spam contra IDs públicos | pedidos de conversa e bloqueio; prova de trabalho na fase 2 |
 | Quem busca muitas vezes o cartão de um ID gasta a cota de prekeys dele: quem buscar em seguida recebe o cartão sem prekey, e a primeira mensagem tem menos proteção | a cota é de 10 por hora por ID, e o app repõe as prekeys de hora em hora; prova de trabalho na fase 2 |
-| Cartões, caixas e pacotes criados em massa enchem os tetos do relay, e ele recusa o novo até o prazo do que entrou vencer | tetos ajustáveis por quem opera, taxas por conexão e por caixa; prova de trabalho na fase 2 |
+| Cartões, caixas, pacotes e anexos criados em massa enchem os tetos do relay, e ele recusa o novo até o prazo do que entrou vencer. Os anexos não têm taxa, só vagas e espaço: uns 164 envios anônimos de 25 MB tomam os 4 GB por 14 dias, e uma taxa por conexão não ajudaria, porque pelo Tor cada circuito é uma conexão nova e o relay não liga um anexo a ninguém | tetos ajustáveis por quem opera, taxas por conexão e por caixa; espaço dos anexos cheio responde 507, e o app tenta depois; a defesa do Tor contra inundação dos pontos de introdução; prova de trabalho na fase 2 |
+| A porta SOCKS do Orbot (127.0.0.1:9050) não pede senha: com o Orbot parado, outro app do aparelho escutando nela receberia o endereço .onion do relay e o WebSocket sem a camada do Tor, e veria que caixas o app abre e onde deposita | o conteúdo é cifrado de ponta a ponta e o relay não vê IP; o app só fala com 127.0.0.1, e o Tor Browser tem o mesmo limite. Aceito |
 | Relay único no MVP | fila de saída; relays da comunidade na fase 2 |
 | Orbot configurado sem isolamento por credencial SOCKS juntaria os circuitos da caixa e dos depósitos | o Tor isola por padrão (`IsolateSOCKSAuth`); a tela de verificação técnica mede o tempo de circuito novo, reaproveitado e de outra credencial |
 | Contato que reinstala ou restaura sem escrever primeiro não recebe o que foi mandado para a caixa antiga | a restauração apaga a caixa antiga: quem escreve depois acha a caixa nova no cartão, abre sessão nova e cifra de novo o que esperava na fila. O que já estava na caixa antiga se perde (linha seguinte) |
