@@ -682,6 +682,7 @@ Cada fase só começa quando o portão anterior é cumprido.
 - **ID do pacote:** `org.cifra.app`. Mudar depois quebraria a atualização de quem já instalou.
 - **Assinatura:** chave própria do Cifra (RSA de 4096 bits, válida por 30 anos), a mesma em todas as versões, também no pacote da Play Store, para as duas instalações se atualizarem entre si. Impressão digital SHA-256 do certificado: `C5:C9:9C:2A:3D:D4:59:54:7F:1C:30:3B:DA:A9:4D:85:92:6B:D1:0C:65:4B:A5:15:01:21:9B:73:09:5D:70:53`.
 - **Doações:** em Monero, no endereço `86QtU9BtiGzRdwNZo5yd9eTbH4EHVd8xd1Cr2DpHLeBJe7Kqiz4JrzzDjq9F79XuTcGuFGi1TnouYX7deAkS7Zr4K1Hmxak` (RF-60).
+- **Permissões:** notificações, biometria, internet (só para o SOCKS do Orbot, no próprio aparelho) e o serviço em primeiro plano dos avisos. As outras ficam bloqueadas no manifesto, inclusive agenda, fotos, arquivos, sobreposição e vibração.
 
 ## Testes e verificação
 
