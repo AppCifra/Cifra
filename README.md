@@ -33,10 +33,10 @@ O que sai do celular, o que o servidor guarda e por quanto tempo estão na [pol�
 Antes de instalar, confira a assinatura do APK. Rode `apksigner verify --print-certs cifra.apk`, do Android SDK. A linha `certificate SHA-256 digest` precisa mostrar:
 
 ```
-c5c99c2a3dd459547f1c303bdaa94d85926bd10c654ba51501219b73095d7053
+52c06a21d4db825afac264c3c587e471069abd5fc7446bdc3c6cd8a1bc6a33f4
 ```
 
-É a impressão digital do certificado do Cifra (`C5:C9:9C:2A:3D:D4:59:54:7F:1C:30:3B:DA:A9:4D:85:92:6B:D1:0C:65:4B:A5:15:01:21:9B:73:09:5D:70:53`), a mesma em todas as versões.
+É a impressão digital do certificado do Cifra (`52:C0:6A:21:D4:DB:82:5A:FA:C2:64:C3:C5:87:E4:71:06:9A:BD:5F:C7:44:6B:DC:3C:6C:D8:A1:BC:6A:33:F4`), a mesma em todas as versões.
 
 ## Doações
 
