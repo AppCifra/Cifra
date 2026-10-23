@@ -2,14 +2,20 @@
 // que avisa que, sem elas, perder o celular é perder a identidade. A tela nasce com o bloqueio de
 // print ligado, como todo o app.
 import { useEffect } from 'react';
-import { BackHandler, Text, View } from 'react-native';
+import { BackHandler, Text, useWindowDimensions, View } from 'react-native';
+import { colunasDasPalavras } from '../colunas-das-palavras.ts';
 import { Botao } from '../componentes/Botao.tsx';
 import { Marca } from '../componentes/Marca.tsx';
 import { Painel } from '../componentes/Painel.tsx';
 import { RotuloDeSecao } from '../componentes/RotuloDeSecao.tsx';
 import { Tela } from '../componentes/Tela.tsx';
 import { useTextos } from '../i18n.ts';
-import { criarEstilos, raios, tipos } from '../tema.ts';
+import { criarEstilos, MARGEM_DO_ONBOARDING, raios, tipos } from '../tema.ts';
+
+/** O respiro do cartão e os espaços entre as colunas e entre o número e a palavra, do design. */
+const RESPIRO = 18;
+const ENTRE_COLUNAS = 12;
+const ENTRE_NUMERO_E_PALAVRA = 10;
 
 interface PropsDasPalavras {
   readonly palavras: readonly string[];
@@ -27,6 +33,7 @@ export function Palavras(props: PropsDasPalavras) {
   const estilos = useEstilos();
   const { palavras, confirmandoPulo, naoGuardou, guardando, aoVoltar } = props;
   const t = useTextos();
+  const { width: largura, fontScale } = useWindowDimensions();
 
   useEffect(() => {
     if (confirmandoPulo || guardando) return;
@@ -40,10 +47,19 @@ export function Palavras(props: PropsDasPalavras) {
   }, [confirmandoPulo, guardando, aoVoltar]);
 
   // Duas colunas: de 1 a 6 à esquerda e de 7 a 12 à direita, para copiar no papel de cima a baixo.
+  // Com a fonte do celular grande, uma coluna só, para nenhuma palavra passar por cima de um número.
   // Cada coluna fica uma View de verdade (sem `collapsable`), senão o React Native achata as duas
   // num mesmo pai e o leitor de tela lê na ordem da tela, linha por linha: 1, 7, 2, 8…
+  const duas =
+    colunasDasPalavras(palavras, {
+      coluna: (largura - 2 * MARGEM_DO_ONBOARDING - 2 * RESPIRO - ENTRE_COLUNAS) / 2,
+      numero: tipos.monoPequeno,
+      palavra: tipos.mono,
+      espaco: ENTRE_NUMERO_E_PALAVRA,
+      escala: fontScale,
+    }) === 2;
   const metade = Math.ceil(palavras.length / 2);
-  const colunas = [palavras.slice(0, metade), palavras.slice(metade)];
+  const colunas = duas ? [palavras.slice(0, metade), palavras.slice(metade)] : [palavras];
 
   return (
     <Tela
@@ -120,13 +136,13 @@ const useEstilos = criarEstilos((cores) => ({
   descricao: { ...tipos.corpoGrande, color: cores.secundario },
   cartao: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 18,
+    gap: ENTRE_COLUNAS,
+    padding: RESPIRO,
     borderRadius: raios.cartao,
     backgroundColor: cores.superficie,
   },
   coluna: { flex: 1, gap: 10 },
-  palavra: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  palavra: { flexDirection: 'row', alignItems: 'baseline', gap: ENTRE_NUMERO_E_PALAVRA },
   numero: { ...tipos.monoPequeno, color: cores.secundario },
   texto: { ...tipos.mono, color: cores.texto },
   aviso: { ...tipos.monoPequeno, color: cores.texto },
