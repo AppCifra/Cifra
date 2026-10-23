@@ -2,6 +2,7 @@
 // onboarding e, menor e com a dica "toque para copiar", no topo dos ajustes (RF-45).
 import { celulasDoIdenticon, type Celula } from '@cifra/core';
 import { Pressable, Text, View } from 'react-native';
+import { idNaTela } from '../formato-do-id.ts';
 import { criarEstilos, raios, tipos } from '../tema.ts';
 import { Identicon } from './Identicon.tsx';
 
@@ -31,7 +32,7 @@ export function CartaoDeIdentidade({ id, legenda, tamanho = 92, dica, aoTocar }:
       />
       <View style={estilos.textos}>
         <Text style={estilos.legenda}>{legenda}</Text>
-        <Text style={estilos.id}>{id ?? SEM_ID}</Text>
+        <Text style={estilos.id}>{idNaTela(id ?? SEM_ID)}</Text>
         {dica !== undefined && <Text style={estilos.dica}>{dica}</Text>}
       </View>
     </>

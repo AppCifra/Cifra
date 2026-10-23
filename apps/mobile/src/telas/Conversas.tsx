@@ -28,6 +28,7 @@ import { PontoDeStatus } from '../componentes/Topo.tsx';
 import type { ConversasDoApp, ErroAoAdicionar } from '../conversas.ts';
 import { ENDERECO_MONERO } from '../doacao.ts';
 import { horarioDaLista, nomeDaConversa, previaDaConversa } from '../formato-da-conversa.ts';
+import { idNaTela } from '../formato-do-id.ts';
 import { rotuloCurto } from '../formato-do-timer.ts';
 import { idiomaAtivo, useTextos, type Traduzir } from '../i18n.ts';
 import type { TelaDoApp } from '../navegacao.ts';
@@ -409,7 +410,7 @@ function NovaConversa({
         style={({ pressed }) => [estilos.seuId, pressed && estilos.tocado]}
       >
         <Text style={estilos.rotuloDoSeuId}>{t('nova.seuId')}</Text>
-        <Text style={estilos.valorDoSeuId}>{conversas.meuId}</Text>
+        <Text style={estilos.valorDoSeuId}>{idNaTela(conversas.meuId)}</Text>
       </Pressable>
     </Painel>
   );
@@ -534,7 +535,14 @@ const useEstilos = criarEstilos((cores) => ({
     borderColor: cores.linha,
   },
   rotuloDoSeuId: { fontFamily: fontes.regular, fontSize: 14, color: cores.secundario },
-  valorDoSeuId: { fontFamily: fontes.mono, fontSize: 13.5, color: cores.texto },
+  // Com a fonte do celular grande, o ID quebra a linha dentro da caixa em vez de sair dela.
+  valorDoSeuId: {
+    flexShrink: 1,
+    fontFamily: fontes.mono,
+    fontSize: 13.5,
+    color: cores.texto,
+    textAlign: 'right',
+  },
   endereco: {
     gap: 8,
     paddingHorizontal: 16,
