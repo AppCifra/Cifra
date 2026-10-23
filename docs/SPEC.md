@@ -450,9 +450,10 @@ Docker Compose com dois serviços, o relay e o Tor, no mesmo namespace de rede. 
 HiddenServiceDir /var/lib/tor/cifra-relay/
 HiddenServicePort 80 127.0.0.1:8080
 HiddenServiceEnableIntroDoSDefense 1
+HiddenServicePoWDefensesEnabled 1
 ```
 
-A defesa contra inundação dos pontos de introdução limita, no próprio Tor, quantos pedidos de conexão chegam ao relay por segundo. A prova de trabalho do onion service (`HiddenServicePoWDefensesEnabled`) exige um Tor compilado com a parte GPL, o que a imagem ainda não confirma; fica para depois.
+A defesa contra inundação dos pontos de introdução limita, no próprio Tor, quantos pedidos de conexão chegam ao relay por segundo. Com a prova de trabalho, sob ataque, o Tor do relay passa na frente os pedidos de quem resolve um desafio, e o Tor de quem conecta resolve sozinho; sem ataque, o desafio fica desligado. Ela só existe no Tor compilado com a parte GPL, como o do Alpine na imagem, e o CI confere.
 
 O app só conecta pelo Tor (RF-44), e o relay oficial é só onion, como os da comunidade (fase 2). O compose expõe o relay em 127.0.0.1:8080 só para quem opera, no próprio host (testes e a sonda). As imagens saem para amd64 e arm64, travadas pelo digest.
 
@@ -731,7 +732,7 @@ Quatro decisões ainda abertas e sessenta e nove riscos com mitigação. O maior
 | Tamanho do cofre das ocultas indicar uso | o cofre nasce com um bloco de 16 MiB e cresce de 16 em 16, com as datas tocadas a cada abertura e bloqueio; passar de um bloco (muitas mensagens ou anexos ocultos) mostra que há uso. Limite documentado |
 | Spam contra IDs públicos | pedidos de conversa e bloqueio; prova de trabalho na fase 2 |
 | Quem busca muitas vezes o cartão de um ID gasta a cota de prekeys dele: quem buscar em seguida recebe o cartão sem prekey, e a primeira mensagem tem menos proteção | a cota é de 10 por hora por ID, e o app repõe as prekeys de hora em hora; prova de trabalho na fase 2 |
-| Cartões, caixas, pacotes e anexos criados em massa enchem os tetos do relay, e ele recusa o novo até o prazo do que entrou vencer. Os anexos não têm taxa, só vagas e espaço: uns 164 envios anônimos de 25 MB tomam os 4 GB por 14 dias, e uma taxa por conexão não ajudaria, porque pelo Tor cada circuito é uma conexão nova e o relay não liga um anexo a ninguém | tetos ajustáveis por quem opera, taxas por conexão e por caixa; espaço dos anexos cheio responde 507, e o app tenta depois; a defesa do Tor contra inundação dos pontos de introdução; prova de trabalho na fase 2 |
+| Cartões, caixas, pacotes e anexos criados em massa enchem os tetos do relay, e ele recusa o novo até o prazo do que entrou vencer. Os anexos não têm taxa, só vagas e espaço: uns 164 envios anônimos de 25 MB tomam os 4 GB por 14 dias, e uma taxa por conexão não ajudaria, porque pelo Tor cada circuito é uma conexão nova e o relay não liga um anexo a ninguém | tetos ajustáveis por quem opera, taxas por conexão e por caixa; espaço dos anexos cheio responde 507, e o app tenta depois; as defesas do Tor contra inundação (nos pontos de introdução e a prova de trabalho do onion service); prova de trabalho no app na fase 2 |
 | A porta SOCKS do Orbot (127.0.0.1:9050) não pede senha: com o Orbot parado, outro app do aparelho escutando nela receberia o endereço .onion do relay e o WebSocket sem a camada do Tor, e veria que caixas o app abre e onde deposita | o conteúdo é cifrado de ponta a ponta e o relay não vê IP; o app só fala com 127.0.0.1, e o Tor Browser tem o mesmo limite. Aceito |
 | Relay único no MVP | fila de saída; relays da comunidade na fase 2 |
 | Orbot configurado sem isolamento por credencial SOCKS juntaria os circuitos da caixa e dos depósitos | o Tor isola por padrão (`IsolateSOCKSAuth`); a tela de verificação técnica mede o tempo de circuito novo, reaproveitado e de outra credencial |

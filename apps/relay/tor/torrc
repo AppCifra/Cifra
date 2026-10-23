@@ -6,6 +6,10 @@ HiddenServiceDir /var/lib/tor/cifra-relay/
 HiddenServicePort 80 127.0.0.1:8080
 # Contra inundação de pedidos de conexão: os pontos de introdução limitam a taxa antes de chegar aqui.
 HiddenServiceEnableIntroDoSDefense 1
+# Prova de trabalho: sob ataque, os pedidos de quem resolve o desafio passam na frente; sem ataque, o
+# desafio fica desligado. Só existe no Tor compilado com a parte GPL (`pow: yes` em
+# `tor --list-modules`), como o do Alpine; sem ela, o Tor recusa esta linha.
+HiddenServicePoWDefensesEnabled 1
 # Só avisos e erros, sem endereço nenhum no texto (RNF-05).
 SafeLogging 1
 Log warn stdout

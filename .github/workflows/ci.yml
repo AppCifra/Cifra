@@ -50,6 +50,12 @@ jobs:
         run: docker run --privileged --rm tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 --install arm64
       - run: docker build --platform ${{ matrix.plataforma }} -f apps/relay/Dockerfile -t cifra-relay .
       - run: docker build --platform ${{ matrix.plataforma }} -t cifra-relay-tor apps/relay/tor
+      # A prova de trabalho do onion service só existe no Tor compilado com a parte GPL; sem ela, o
+      # Tor recusa o torrc.
+      - name: tor com prova de trabalho
+        run: |
+          docker run --rm --platform ${{ matrix.plataforma }} cifra-relay-tor tor --list-modules | grep -x 'pow: yes'
+          docker run --rm --platform ${{ matrix.plataforma }} cifra-relay-tor tor --verify-config -f /etc/tor/torrc
       - name: sonda
         run: |
           docker run -d --platform ${{ matrix.plataforma }} --name relay cifra-relay
