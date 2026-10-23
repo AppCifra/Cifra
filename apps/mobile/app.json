@@ -8,6 +8,7 @@
     "backgroundColor": "#0B0C0B",
     "android": {
       "package": "org.cifra.app",
+      "versionCode": 1,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.READ_CONTACTS",

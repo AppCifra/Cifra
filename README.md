@@ -30,7 +30,7 @@ O que sai do celular, o que o servidor guarda e por quanto tempo estão na [pol�
 - Android 10 ou mais novo, com bloqueio de tela (PIN, padrão ou senha).
 - O [Orbot](https://orbot.app) ligado: o Cifra só conecta pelo Tor.
 
-Antes de instalar, confira a assinatura do APK. Rode `apksigner verify --print-certs cifra.apk`, do Android SDK. A linha `certificate SHA-256 digest` precisa mostrar:
+O APK de cada versão está nas [Releases](https://github.com/AppCifra/Cifra/releases) deste repositório. Antes de instalar, confira a assinatura do APK. Rode `apksigner verify --print-certs cifra.apk`, do Android SDK. A linha `certificate SHA-256 digest` precisa mostrar:
 
 ```
 52c06a21d4db825afac264c3c587e471069abd5fc7446bdc3c6cd8a1bc6a33f4

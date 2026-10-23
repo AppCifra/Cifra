@@ -688,6 +688,7 @@ Cada fase só começa quando o portão anterior é cumprido.
 
 - **ID do pacote:** `org.cifra.app`. Mudar depois quebraria a atualização de quem já instalou.
 - **Assinatura:** chave própria do Cifra (RSA de 4096 bits, válida por 30 anos), a mesma em todas as versões, também no pacote da Play Store, para as duas instalações se atualizarem entre si. Impressão digital SHA-256 do certificado: `52:C0:6A:21:D4:DB:82:5A:FA:C2:64:C3:C5:87:E4:71:06:9A:BD:5F:C7:44:6B:DC:3C:6C:D8:A1:BC:6A:33:F4`.
+- **Versões:** o número da versão (`version` do app, no formato X.Y.Z) e o `android.versionCode`, que sobe um a cada versão publicada: o Android só aceita como atualização um versionCode maior. Cada versão publicada tem uma tag `vX.Y.Z` e uma Release imutável no repositório, com o APK.
 - **Servidor oficial:** `ws://fmkanegcrocf53hmd7xnz4gnrjkewk4oo4bixebrrlxxrs4u4gpxviyd.onion`, o endereço que o release leva em `EXPO_PUBLIC_CIFRA_RELAY`. Ele vem da chave do onion service, que tem cópia cifrada fora do servidor: trocar de servidor não muda o endereço.
 - **Doações:** em Monero, no endereço `86QtU9BtiGzRdwNZo5yd9eTbH4EHVd8xd1Cr2DpHLeBJe7Kqiz4JrzzDjq9F79XuTcGuFGi1TnouYX7deAkS7Zr4K1Hmxak` (RF-60).
 - **Permissões:** notificações, biometria, internet (só para o SOCKS do Orbot, no próprio aparelho) e o serviço em primeiro plano dos avisos. As outras ficam bloqueadas no manifesto, inclusive agenda, fotos, arquivos, sobreposição e vibração.
