@@ -204,8 +204,10 @@ describe('ritmo mínimo da transferência (RNF-13)', () => {
       anexos: { ...ANEXOS, transferencias: 1, parada: 30_000, ritmoMinimo: 128 * 1024 },
     });
     const t = token();
-    // Blob grande sem passar pelo sodium, que leva segundos para gerar megabytes aleatórios.
-    const dados = randomFillSync(new Uint8Array(tamanhoDoAnexo(2 * 1024 * 1024)));
+    // Maior do que o TCP do loopback guarda (no Linux, uns 10 MiB entre o envio e a recepção): com
+    // menos, o relay entrega tudo ao kernel, a resposta termina e a vaga volta antes da hora. Sem
+    // passar pelo sodium, que leva segundos para gerar megabytes aleatórios.
+    const dados = randomFillSync(new Uint8Array(tamanhoDoAnexo(20 * 1024 * 1024)));
     expect((await pedir('PUT', t, dados)).status).toBe(201);
 
     const lento = baixarDevagar(t);
@@ -216,7 +218,7 @@ describe('ritmo mínimo da transferência (RNF-13)', () => {
     await ate(async () => (await pedir('GET', t)).status === 200, 'a vaga volta');
     lento.desistir();
     expect(await lento.fim).toBeLessThan(dados.length);
-  });
+  }, 30_000);
 
   it('envio que manda um byte de vez em quando cai, e o que subiu não fica', async () => {
     await subir({ ...LIMITES, anexos: { ...ANEXOS, subindo: 1, parada: 30_000 } });
