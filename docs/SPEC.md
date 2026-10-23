@@ -717,7 +717,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e setenta riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e setenta e um riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -793,6 +793,7 @@ Quatro decisões ainda abertas e setenta riscos com mitigação. O maior risco t
 | Com o TalkBack, segurar o botão do pânico é tocar duas vezes e segurar, e não há outro caminho | o emulador não deixa conferir o foco do TalkBack; conferir num aparelho |
 | A perícia (IPED) só rodou no emulador: um celular de verdade tem chip de memória, Keystore em hardware e sistema do fabricante | o emulador roda o Android oficial, e a cifra não depende do aparelho; repetir num celular de verdade |
 | Perder a chave de assinatura impede atualizar o app de quem já instalou; vazar deixa outra pessoa publicar uma atualização falsa | a chave fica fora do repositório e do projeto gerado, com cópia guardada em outro lugar e senha num gerenciador; o build lê do ambiente. A Play Store recebe a mesma chave, para o APK baixado fora da loja e o da loja se atualizarem entre si |
+| O Android passa a exigir desenvolvedor verificado: no Brasil, desde 30/09/2026, para apps instalados pelas lojas participantes (a Play entre elas); em 2027, para todo app num aparelho certificado, inclusive o APK baixado direto | registrar `org.cifra.app` com a impressão digital da chave pelo Play Console antes de 2027. Sem o registro, quem baixa o APK precisa do fluxo avançado do Android (uma espera de 24 horas) ou do ADB |
 | Depois do pânico, ficam na pasta do app o arquivo do keychain com 0 byte, o marcador de perfil do Android e o estado dos pedidos de permissão do Expo | nenhum tem dado da pessoa; mostram só que o app está instalado, o que já se vê |
 | Alguém divulgar fora do app um endereço de doação falso | o app assinado e o código mostram o endereço certo (RF-60) |
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
