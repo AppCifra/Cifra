@@ -364,7 +364,7 @@ São 22 requisitos. Os de segurança e anti-forense são verificados com as ferr
 | RNF-15 | Núcleo sem dependência de plataforma: protocolo e regras rodam em Node, Android, iOS e web. | Os testes do núcleo rodam em Node. |
 | RNF-16 | Dependências mínimas, com versões travadas. | Lockfile; revisão a cada dependência nova. |
 | RNF-17 | Textos honestos: nenhuma promessa que o sistema não cumpre. | Revisão contra a lista de textos da seção de design. |
-| RNF-18 | Acessibilidade: toque ≥ 44 px, contraste 4,5:1 e modo de movimento reduzido. | Revisão de interface. |
+| RNF-18 | Acessibilidade: toque ≥ 44 px, contraste 4,5:1, modo de movimento reduzido e, com a fonte do celular até 200%, nenhum texto cortado nem por cima de outro. | Revisão de interface, também numa tela de 360 dp com a fonte em 130%, 150% e 200%. |
 | RNF-19 | O relay roda em Raspberry Pi 4 (ARM64) via Docker. | Build de imagem multi-arquitetura. |
 | RNF-20 | Licença GPLv3 no app e no relay. | Arquivo LICENSE nos dois. |
 | RNF-21 | Entrega em até 5 s com os dois online via Tor (meta inicial). | Medição no app, pelo Tor. |
