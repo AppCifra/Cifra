@@ -3,7 +3,8 @@
 #   docker compose exec tor cat /var/lib/tor/cifra-relay/hostname
 # O relay é só onion (RF-44); a porta 127.0.0.1:8080 é só para quem opera, no próprio host (testes e
 # a sonda). Guarde o volume `onion`: é a chave do endereço .onion. O relay não escreve nada, e o
-# Docker não guarda log dele; o Tor só escreve avisos, sem endereços (RNF-05).
+# Docker não guarda log de nenhum dos dois. O Tor só escreve avisos, sem endereços, que quem opera
+# vê ao vivo, sem gravar: docker attach --no-stdin --sig-proxy=false cifra-relay-tor-1 (RNF-05).
 name: cifra-relay
 
 services:
@@ -14,6 +15,8 @@ services:
     volumes:
       - onion:/var/lib/tor
     read_only: true
+    logging:
+      driver: none
     cap_drop: [ALL]
     security_opt: ['no-new-privileges:true']
     restart: unless-stopped

@@ -436,7 +436,7 @@ As datas ficam no banco do relay só na hora cheia, sem minuto nem segundo. A da
 
 ### Registros
 
-Nenhum log de acesso, IP ou conteúdo. O processo do relay não escreve nada, nem quando falha: o motivo de uma saída fica no código de saída. O código do relay não lê o endereço de quem conecta nem cabeçalho de proxy. Métricas, se houver, são só agregadas, como contagens por hora. No compose, o Docker não guarda log do relay, e o Tor só escreve avisos, com `SafeLogging`.
+Nenhum log de acesso, IP ou conteúdo. O processo do relay não escreve nada, nem quando falha: o motivo de uma saída fica no código de saída. O código do relay não lê o endereço de quem conecta nem cabeçalho de proxy. Métricas, se houver, são só agregadas, como contagens por hora. No compose, o Docker não guarda log do relay nem do Tor. O Tor só escreve avisos, com `SafeLogging`, que quem opera acompanha ao vivo (`docker attach`), sem gravar.
 
 ### Protocolo
 
