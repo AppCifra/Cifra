@@ -1,5 +1,6 @@
 // O alto das telas empilhadas: voltar e título (Header do design), e o ponto de status da rede
-// (StatusDot), em mono e minúsculas.
+// (StatusDot), em mono e minúsculas. Sem espaço, o rótulo do status quebra a linha em vez de
+// empurrar para fora da tela o que vem ao lado.
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useTextos } from '../i18n.ts';
@@ -61,10 +62,10 @@ const useEstilos = criarEstilos((cores) => ({
     paddingRight: 12,
   },
   titulo: { flex: 1, fontFamily: fontes.seminegrito, fontSize: 16, color: cores.texto },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   marca: { width: 13, height: 13, alignItems: 'center', justifyContent: 'center' },
   // O halo de 3 px do design, em 22% da cor.
   halo: { position: 'absolute', width: 13, height: 13, borderRadius: 6.5, opacity: 0.22 },
   ponto: { width: 7, height: 7, borderRadius: 3.5 },
-  rotulo: { fontFamily: fontes.mono, fontSize: 12, color: cores.secundario },
+  rotulo: { flexShrink: 1, fontFamily: fontes.mono, fontSize: 12, color: cores.secundario },
 }));

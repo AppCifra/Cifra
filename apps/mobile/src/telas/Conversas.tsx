@@ -463,6 +463,7 @@ const useEstilos = criarEstilos((cores) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
     paddingLeft: 20,
     paddingRight: 12,
     paddingTop: 10,
