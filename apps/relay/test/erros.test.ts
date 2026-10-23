@@ -153,35 +153,31 @@ describe('uma conexão que não lê (RNF-13)', () => {
       'cartao-publicado',
     );
 
-    // Milhares de buscas, cada resposta com o cartão inteiro, sem ler nenhuma.
+    // Milhares de buscas, cada resposta com o cartão inteiro, sem ler nenhuma. O kernel guarda alguns
+    // MiB da saída antes de ela esperar no relay (no Linux, uns 4 MiB), e quanto o relay já produziu
+    // depende da CPU: em vez de esperar um tempo fixo, a conexão segue pedindo até cair.
     const socket = await conexaoQueNaoLe(relay.endereco);
-    for (let numero = 1; numero <= 20_000; numero++) {
-      socket.write(quadro(codificarPedido({ tipo: 'buscar-cartao', numero, id: bob.id })));
+    socket.on('error', () => undefined);
+    let numero = 0;
+    const buscar = (quantas: number) => {
+      for (let i = 0; i < quantas; i++) {
+        socket.write(
+          quadro(codificarPedido({ tipo: 'buscar-cartao', numero: ++numero, id: bob.id })),
+        );
+      }
+    };
+    buscar(20_000);
+    const limite = Date.now() + 15_000;
+    while (Date.now() < limite) {
+      await new Promise((pronto) => setTimeout(pronto, 50));
+      if (socket.destroyed) break;
+      buscar(1000);
     }
-    await new Promise((pronto) => setTimeout(pronto, 1000));
-
-    // Lendo agora, chega o que já tinha saído e, depois, o fim da conexão.
-    let recebidos = 0;
-    const fechou = new Promise<boolean>((pronto) => {
-      socket.on('data', (dados: Buffer) => {
-        recebidos += dados.length;
-      });
-      socket.on('close', () => {
-        pronto(true);
-      });
-      socket.on('error', () => undefined);
-      setTimeout(() => {
-        pronto(false);
-      }, 3000);
-    });
-    socket.resume();
-    expect(await fechou).toBe(true);
-    expect(recebidos).toBeLessThan(20_000 * publicacao.cartao.bytes.length);
-    socket.destroy();
+    expect(socket.destroyed).toBe(true);
 
     const outro = await relay.conectar();
     expect(codigo(await outro.pedir({ tipo: 'buscar-cartao', id: bob.id }))).toBe(
       'cartao-encontrado',
     );
-  });
+  }, 30_000);
 });
