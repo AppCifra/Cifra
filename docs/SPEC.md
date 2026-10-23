@@ -712,7 +712,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e sessenta e oito riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e sessenta e nove riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -743,6 +743,7 @@ Quatro decisões ainda abertas e sessenta e oito riscos com mitigação. O maior
 | App falso com backdoor | APK assinado com impressão digital publicada, F-Droid, marca registrada |
 | Dependência npm comprometida | poucas dependências, versões travadas, revisão a cada entrada |
 | O OpenSSL do SQLCipher precisa acompanhar as correções de segurança | compilado do fonte oficial na imagem do release, na versão de suporte longo (3.5, até 04/2030), conferido pelo SHA-256 e pela assinatura do OpenSSL; a versão sobe a cada correção (`docs/DEPENDENCIAS.md`) |
+| As imagens do relay ficam travadas (o `tor` do Alpine na versão exata, o Node pelo digest): uma correção de segurança deles só entra com commit novo e imagem nova no servidor | o Alpine só guarda a última versão do pacote: quando sai uma correção do Tor, a versão travada some, e o CI, que gera as imagens do zero toda semana, falha. É o aviso para subir a versão e atualizar o servidor. O digest do Node não some: acompanhar as versões de segurança do Node 24 |
 | libsodium do celular é binário pré-compilado pelo mantenedor da react-native-libsodium | conformidade com vetores a cada atualização; compilar do fonte junto com o build reproduzível (fase 3) |
 | Patch próprio na react-native-libsodium | patch pequeno e revisado, conformidade no aparelho; PR para o projeto original e o patch sai quando entrar |
 | react-native-keychain sem versão nova desde março de 2025 | adaptador atrás da porta `CofreDeChaves`; se quebrar, troca por módulo próprio sobre o Keystore |

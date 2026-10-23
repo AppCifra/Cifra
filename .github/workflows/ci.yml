@@ -3,6 +3,11 @@ name: ci
 on:
   push:
   pull_request:
+  # Toda semana, as imagens saem do zero: o Alpine só guarda a última versão do tor, e quando sai uma
+  # correção a versão travada some e o build falha. É o aviso para trocar a versão e atualizar o
+  # servidor.
+  schedule:
+    - cron: '0 6 * * 1'
 
 permissions:
   contents: read
