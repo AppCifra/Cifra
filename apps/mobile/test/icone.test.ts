@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-// O ícone do app é o quadrado do wordmark (SPEC, design): o comum e as duas camadas do ícone
+// O ícone do app é o wordmark inteiro (SPEC, design): o comum e as duas camadas do ícone
 // adaptável estão no app.json, e cada arquivo é um PNG quadrado de 1024 px.
 
 interface AppJson {
