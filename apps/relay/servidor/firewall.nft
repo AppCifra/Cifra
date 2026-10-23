@@ -1,0 +1,17 @@
+#!/usr/sbin/nft -f
+# Firewall do servidor do relay: entra só SSH. O relay é só onion: o Tor dele só abre conexões para
+# fora, e a porta do relay fica no loopback. Uma tabela só, sem `flush ruleset`, que apagaria também
+# as regras do Docker. Recarregar troca a tabela inteira de uma vez.
+table inet cifra
+delete table inet cifra
+
+table inet cifra {
+  chain entrada {
+    type filter hook input priority filter; policy drop;
+    iif "lo" accept
+    ct state established,related accept
+    ct state invalid drop
+    meta l4proto { icmp, ipv6-icmp } accept
+    tcp dport 22 accept
+  }
+}

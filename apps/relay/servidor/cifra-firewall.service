@@ -1,0 +1,19 @@
+# Firewall do servidor do relay (/etc/cifra/firewall.nft), carregado antes da rede. Parar apaga só a
+# tabela do Cifra: as regras do Docker ficam.
+[Unit]
+Description=Firewall do relay do Cifra
+DefaultDependencies=no
+Wants=network-pre.target
+Before=network-pre.target shutdown.target
+After=nftables.service
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/cifra/firewall.nft
+ExecReload=/usr/sbin/nft -f /etc/cifra/firewall.nft
+ExecStop=-/usr/sbin/nft delete table inet cifra
+
+[Install]
+WantedBy=sysinit.target

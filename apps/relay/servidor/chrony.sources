@@ -1,0 +1,5 @@
+# Hora por NTS (Network Time Security): autenticada, ninguém no caminho atrasa ou adianta o relógio,
+# de que o Tor depende para aceitar o consenso da rede. Três operadores diferentes.
+server nts.netnod.se iburst nts
+server time.cloudflare.com iburst nts
+server ptbtime1.ptb.de iburst nts

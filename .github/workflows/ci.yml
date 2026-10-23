@@ -32,6 +32,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      # O shellcheck já vem na imagem do runner.
+      - run: shellcheck apps/relay/servidor/preparar.sh
 
   # Imagens do relay para amd64 e arm64, a do Raspberry Pi 4 (RNF-19). A sonda roda dentro da
   # própria imagem, contra o relay que ela sobe: no arm64, tudo sob emulação.

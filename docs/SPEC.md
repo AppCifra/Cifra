@@ -457,6 +457,8 @@ A defesa contra inundação dos pontos de introdução limita, no próprio Tor, 
 
 O app só conecta pelo Tor (RF-44), e o relay oficial é só onion, como os da comunidade (fase 2). O compose expõe o relay em 127.0.0.1:8080 só para quem opera, no próprio host (testes e a sonda). As imagens saem para amd64 e arm64, travadas pelo digest.
 
+**Servidor:** o relay oficial roda num Debian estável preparado por `apps/relay/servidor/preparar.sh`. Entra só SSH, com chave e sem root, e nenhuma conta tem senha. As atualizações de segurança do sistema e do Docker entram sozinhas, com reinício de madrugada quando alguma pede. A hora vem por NTS, autenticada, porque o Tor precisa do relógio certo. Os registros do sistema ficam só na memória, e o Docker não guarda log de nenhum container. Não há cópia do disco nem do volume `dados`: ela guardaria o que o relay já apagou. A chave do .onion tem uma cópia cifrada fora do servidor; com ela, outro servidor, em qualquer provedor ou país, responde no mesmo endereço, sem versão nova do app.
+
 ## Armazenamento local e anti-forense
 
 Com o app bloqueado, o conteúdo do Cifra é inútil para a perícia, e o que é apagado some de verdade.
@@ -713,7 +715,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e sessenta e nove riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Quatro decisões ainda abertas e setenta riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -735,6 +737,7 @@ Quatro decisões ainda abertas e sessenta e nove riscos com mitigação. O maior
 | Cartões, caixas, pacotes e anexos criados em massa enchem os tetos do relay, e ele recusa o novo até o prazo do que entrou vencer. Os anexos não têm taxa, só vagas e espaço: uns 164 envios anônimos de 25 MB tomam os 4 GB por 14 dias, e uma taxa por conexão não ajudaria, porque pelo Tor cada circuito é uma conexão nova e o relay não liga um anexo a ninguém | tetos ajustáveis por quem opera, taxas por conexão e por caixa; espaço dos anexos cheio responde 507, e o app tenta depois; as defesas do Tor contra inundação (nos pontos de introdução e a prova de trabalho do onion service); prova de trabalho no app na fase 2 |
 | A porta SOCKS do Orbot (127.0.0.1:9050) não pede senha: com o Orbot parado, outro app do aparelho escutando nela receberia o endereço .onion do relay e o WebSocket sem a camada do Tor, e veria que caixas o app abre e onde deposita | o conteúdo é cifrado de ponta a ponta e o relay não vê IP; o app só fala com 127.0.0.1, e o Tor Browser tem o mesmo limite. Aceito |
 | Relay único no MVP | fila de saída; relays da comunidade na fase 2 |
+| Quem hospeda o servidor oficial tem o disco e a memória dele: vê o que quem opera vê, pode copiar a chave do .onion e se passar pelo relay, e o SSD pode guardar o que o `secure_delete` sobrescreveu | o conteúdo é cifrado de ponta a ponta e o cartão é assinado: quem se passa pelo relay só consegue atrasar ou perder entregas e ver quando as caixas recebem, como quem opera. A chave do .onion tem cópia fora do servidor, para trocar de provedor sem mudar o endereço |
 | Orbot configurado sem isolamento por credencial SOCKS juntaria os circuitos da caixa e dos depósitos | o Tor isola por padrão (`IsolateSOCKSAuth`); a tela de verificação técnica mede o tempo de circuito novo, reaproveitado e de outra credencial |
 | Contato que reinstala ou restaura sem escrever primeiro não recebe o que foi mandado para a caixa antiga | a restauração apaga a caixa antiga: quem escreve depois acha a caixa nova no cartão, abre sessão nova e cifra de novo o que esperava na fila. O que já estava na caixa antiga se perde (linha seguinte) |
 | O que esperava na caixa do aparelho antigo some na restauração, e quem enviou continua vendo "enviada" | o aparelho novo não tem as sessões para decifrar. Quem enviou não é avisado: risco aceito |
