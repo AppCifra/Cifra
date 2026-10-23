@@ -551,7 +551,7 @@ A interface segue o design system do Cifra: os tokens e a voz abaixo, e os ícon
 - **Política de privacidade (RF-61):** a data em mono e as seções, cada uma com o rótulo e os parágrafos. O texto fica nos arquivos de tradução, e o `docs/PRIVACIDADE.md` sai dele. Sem link: o navegador sairia do Tor.
 - **Avisos:** dados perdidos e outro aparelho, que levam ao onboarding.
 - **Notificações:** o aviso fixo do serviço ("Pronto para avisar de mensagem nova.", canal de importância mínima) e "Nova mensagem"; o ícone é o quadrado do wordmark, em branco, com o fósforo de destaque.
-- **Ícone do app:** o quadrado do wordmark, em fósforo, sobre o fundo escuro; no ícone adaptável do Android, com uma versão de uma cor só para os ícones com o tema do sistema. Não há símbolo próprio enquanto não existir um logo.
+- **Ícone do app:** o wordmark inteiro (o quadrado fósforo e "cifra" em Geist Mono) sobre o fundo escuro; no ícone adaptável do Android, dentro da área que nenhuma máscara corta, com uma versão de uma cor só para os ícones com o tema do sistema. Não há símbolo próprio enquanto não existir um logo.
 - **Tema (RF-39):** escuro por padrão; o sol ou a lua da lista troca na hora, sem remontar as telas, com o véu do fundo anterior esmaecendo em 500 ms (200 ms com movimento reduzido). No claro, o identicon inverte, e os ícones da barra de navegação ficam escuros. O ícone de tocar, sobre o véu escuro do vídeo, fica claro nos dois temas.
 
 ### Tokens
