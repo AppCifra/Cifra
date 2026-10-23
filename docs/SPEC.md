@@ -717,7 +717,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Quatro decisões ainda abertas e setenta e um riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Cinco decisões ainda abertas e setenta e um riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -725,6 +725,7 @@ Quatro decisões ainda abertas e setenta e um riscos com mitigação. O maior ri
 - [ ] Registro da marca "Cifra", que é uma palavra comum.
 - [ ] Exigir chave em hardware (TEE ou StrongBox) no Keystore. O spike só rodou em emulador, que não tem.
 - [ ] Parâmetros do Argon2id do código secreto. Hoje, o nível INTERACTIVE (64 MB): no emulador, de 0,2 a 0,3 s por tentativa no release; o MODERATE (256 MB) levou de 4,5 s a 11 s. Medir em aparelho real.
+- [ ] Como quem instala pelo APK fica sabendo de uma versão nova. Hoje, só pelo site e pelas Releases, e uma correção de segurança pode demorar a chegar. Na Play, a loja atualiza sozinha. Opções: indicar o Obtainium, que acompanha as Releases mas consulta o GitHub fora do Tor; um aviso no app, com a versão mais recente informada pelo relay; ou os dois.
 
 ### Riscos
 
