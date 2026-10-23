@@ -4,11 +4,17 @@
     "slug": "cifra",
     "version": "0.1.1",
     "orientation": "portrait",
+    "icon": "./assets/icone.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0B0C0B",
     "android": {
       "package": "org.cifra.app",
       "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icone-frente.png",
+        "monochromeImage": "./assets/icone-mono.png",
+        "backgroundColor": "#0B0C0B"
+      },
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.READ_CONTACTS",
