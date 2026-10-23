@@ -1,5 +1,6 @@
 // Campo de texto do design: fundo da tela, linha fina e raio 15. Em mono para colar IDs, chaves e
-// palavras. O teclado não aprende nem sugere nada do que é digitado aqui.
+// palavras. O teclado não aprende nem sugere nada do que é digitado aqui. A altura do design é o
+// mínimo: com a fonte do celular grande, o campo cresce em vez de cortar o texto.
 import { TextInput } from 'react-native';
 import { marcarUso } from '../uso.ts';
 import { criarEstilos, fontes, raios, useCores } from '../tema.ts';
@@ -64,7 +65,7 @@ const useEstilos = criarEstilos((cores) => ({
     color: cores.texto,
     paddingHorizontal: 16,
   },
-  linhaUnica: { height: 50 },
+  linhaUnica: { minHeight: 50 },
   multilinha: { minHeight: 132, paddingVertical: 14 },
   texto: { fontFamily: fontes.regular, fontSize: 15 },
   mono: { fontFamily: fontes.mono, fontSize: 15, letterSpacing: 0.45, lineHeight: 24 },

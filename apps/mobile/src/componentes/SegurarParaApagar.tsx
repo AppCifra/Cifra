@@ -1,7 +1,8 @@
 // O HoldToConfirm do design: a ação que destrói tudo só acontece depois de segurar, no lugar de um
 // painel de confirmação (o pânico, RF-48). Borda e texto na cor de perigo; segurando, o fundo enche
 // da esquerda para a direita em 1,6 s, e o texto fica branco quando passa de 45%. Soltar antes volta
-// ao começo. Com movimento reduzido, o enchimento continua: é ele que mostra quanto falta.
+// ao começo. Com movimento reduzido, o enchimento continua: é ele que mostra quanto falta. Com a
+// fonte do celular grande, o texto quebra a linha e o botão cresce, como o Botao.
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, Text } from 'react-native';
 import { criarEstilos, fontes, raios } from '../tema.ts';
@@ -84,7 +85,7 @@ export function SegurarParaApagar({ rotulo, segurando, aoConfirmar }: PropsDoSeg
 const useEstilos = criarEstilos((cores) => ({
   botao: {
     alignSelf: 'stretch',
-    height: 56,
+    minHeight: 56,
     borderRadius: raios.botao,
     borderWidth: 1,
     borderColor: cores.perigo,
@@ -99,6 +100,14 @@ const useEstilos = criarEstilos((cores) => ({
     bottom: 0,
     backgroundColor: cores.perigo,
   },
-  texto: { fontFamily: fontes.seminegrito, fontSize: 15.5, color: cores.perigo },
+  // O respiro fica no texto, não no botão: o enchimento, por cima, ocupa o botão inteiro.
+  texto: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    fontFamily: fontes.seminegrito,
+    fontSize: 15.5,
+    color: cores.perigo,
+    textAlign: 'center',
+  },
   textoVirado: { color: BRANCO },
 }));

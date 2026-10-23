@@ -1,5 +1,6 @@
 // Botão de largura total do design. Primário (fósforo) para a ação principal da tela; secundário
-// (invertido) para confirmações sérias; fantasma para o resto; perigo só para destruir.
+// (invertido) para confirmações sérias; fantasma para o resto; perigo só para destruir. A altura é
+// a do design no mínimo: com a fonte do celular grande, o texto quebra a linha e o botão cresce.
 import { Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 import { fontes, raios, useCores, type Cores } from '../tema.ts';
 
@@ -71,12 +72,13 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 22,
+    paddingVertical: 10,
     borderWidth: 1,
   },
-  medio: { height: 56, borderRadius: raios.botao },
-  pequeno: { height: 50, borderRadius: raios.campo },
+  medio: { minHeight: 56, borderRadius: raios.botao },
+  pequeno: { minHeight: 50, borderRadius: raios.campo },
   desativado: { opacity: 0.4 },
   pressionado: { transform: [{ scale: 0.98 }] },
-  texto: { fontFamily: fontes.seminegrito, fontSize: 16 },
-  textoPequeno: { fontFamily: fontes.seminegrito, fontSize: 15.5 },
+  texto: { fontFamily: fontes.seminegrito, fontSize: 16, textAlign: 'center' },
+  textoPequeno: { fontFamily: fontes.seminegrito, fontSize: 15.5, textAlign: 'center' },
 });

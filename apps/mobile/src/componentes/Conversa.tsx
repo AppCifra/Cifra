@@ -48,20 +48,31 @@ export function CampoDeBusca({
   return (
     <View style={estilos.busca}>
       <Icone nome="buscar" tamanho={17} cor={cores.secundario} />
-      <TextInput
-        {...SEM_APRENDER}
-        value={valor}
-        onChangeText={(texto) => {
-          marcarUso();
-          aoMudar(texto);
-        }}
-        accessibilityLabel={rotulo}
-        placeholder={rotulo}
-        placeholderTextColor={cores.secundario}
-        cursorColor={cores.acento}
-        selectionColor={cores.acento}
-        style={estilos.campoDaBusca}
-      />
+      <View style={estilos.areaDaBusca}>
+        {/* A dica fica num texto por cima, numa linha só, terminando em "…" se não couber: a dica do
+            próprio campo quebra a linha com a fonte do celular grande e sai cortada pela metade. */}
+        {valor === '' && (
+          <Text
+            numberOfLines={1}
+            importantForAccessibility="no-hide-descendants"
+            style={estilos.dicaDaBusca}
+          >
+            {rotulo}
+          </Text>
+        )}
+        <TextInput
+          {...SEM_APRENDER}
+          value={valor}
+          onChangeText={(texto) => {
+            marcarUso();
+            aoMudar(texto);
+          }}
+          accessibilityLabel={rotulo}
+          cursorColor={cores.acento}
+          selectionColor={cores.acento}
+          style={estilos.campoDaBusca}
+        />
+      </View>
     </View>
   );
 }
@@ -423,18 +434,28 @@ export function Compositor({
 }
 
 const useEstilos = criarEstilos((cores) => ({
+  // A altura do design é o mínimo: com a fonte do celular grande, a busca cresce em vez de cortar.
   busca: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    height: 44,
+    minHeight: 44,
     paddingHorizontal: 14,
     borderRadius: 14,
     backgroundColor: cores.superficie,
   },
+  areaDaBusca: { flex: 1, justifyContent: 'center' },
+  dicaDaBusca: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    pointerEvents: 'none',
+    fontFamily: fontes.regular,
+    fontSize: 15,
+    color: cores.secundario,
+  },
   campoDaBusca: {
-    flex: 1,
-    height: 44,
+    minHeight: 44,
     padding: 0,
     fontFamily: fontes.regular,
     fontSize: 15,
