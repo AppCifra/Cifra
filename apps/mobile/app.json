@@ -36,6 +36,7 @@
       "./plugins/sem-backup.js",
       "./plugins/cmake-local.js",
       "./plugins/fontes.js",
+      "./plugins/abertura.js",
       "./plugins/android-minimo.js",
       "./plugins/release-sem-log.js",
       "./plugins/assinatura.js",
