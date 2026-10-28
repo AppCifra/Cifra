@@ -2,7 +2,7 @@
 
 # Política de privacidade do Cifra
 
-atualizada em 22/10/2026
+atualizada em 28/10/2026
 
 ## Em resumo
 
@@ -37,6 +37,8 @@ Vai para o servidor o seu cartão: o seu ID e as suas chaves públicas, para que
 Tudo o que você manda para outra pessoa sai cifrado do celular: mensagens, fotos, vídeos, documentos e também a confirmação de leitura e o “digitando”, quando estão ligados.
 
 O Orbot é outro app, de outro projeto, com as próprias regras de privacidade. Ele não recebe o conteúdo das mensagens, que já sai cifrado.
+
+O “?” ao lado do status da conexão tem o botão de baixar o Orbot, que abre a página dele na loja de apps do celular. A loja fica sabendo dessa visita, como em qualquer download.
 
 Quem cuida da sua internet, como a operadora ou o Wi-Fi, vê que você usa o Tor e quando, mas não com que serviço você fala.
 
@@ -130,7 +132,7 @@ Quando esta política mudar, a versão nova vem junto com o app, com a data no t
 
 # Cifra privacy policy
 
-updated 10/22/2026
+updated 10/28/2026
 
 ## In short
 
@@ -165,6 +167,8 @@ Your card goes to the server: your ID and your public keys, so that anyone with 
 Everything you send to another person leaves the phone encrypted: messages, photos, videos, documents and also read receipts and “typing”, when they are on.
 
 Orbot is another app, from another project, with its own privacy rules. It does not receive the content of your messages, which is already encrypted.
+
+The “?” next to the connection status has a button to get Orbot, which opens its page in the phone's app store. The store learns about that visit, as with any download.
 
 Whoever provides your internet, such as your carrier or the Wi-Fi network, sees that you use Tor and when, but not which service you talk to.
 

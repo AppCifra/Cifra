@@ -115,7 +115,14 @@
     "conectado": "tor · conectado",
     "conectando": "tor · conectando…",
     "semConexao": "sem conexão",
-    "semTor": "tor · indisponível. abra o orbot"
+    "semTor": "tor · indisponível. abra o orbot",
+    "ajuda": "Como o Cifra se conecta"
+  },
+  "conexao": {
+    "titulo": "Conexão pelo Tor",
+    "descricao": "O Cifra só se conecta pela rede Tor, com o app Orbot. Instale o Orbot, abra e toque em Conectar. Depois, volte ao Cifra: o status aqui em cima passa para “tor · conectado”. O Orbot também está em orbot.app.",
+    "baixar": "Baixar o Orbot",
+    "semLoja": "nenhuma loja de apps abriu. baixe o orbot em orbot.app."
   },
   "nova": {
     "titulo": "Nova conversa",
@@ -532,7 +539,7 @@
   "politica": {
     "titulo": "Política de privacidade",
     "documento": "Política de privacidade do Cifra",
-    "atualizada": "atualizada em 22/10/2026",
+    "atualizada": "atualizada em 28/10/2026",
     "secoes": {
       "resumo": {
         "titulo": "Em resumo",
@@ -558,6 +565,7 @@
         "cartao": "Vai para o servidor o seu cartão: o seu ID e as suas chaves públicas, para quem tem o seu ID conseguir te escrever. Quem tem o seu ID consegue buscar o seu cartão.",
         "mensagens": "Tudo o que você manda para outra pessoa sai cifrado do celular: mensagens, fotos, vídeos, documentos e também a confirmação de leitura e o “digitando”, quando estão ligados.",
         "orbot": "O Orbot é outro app, de outro projeto, com as próprias regras de privacidade. Ele não recebe o conteúdo das mensagens, que já sai cifrado.",
+        "loja": "O “?” ao lado do status da conexão tem o botão de baixar o Orbot, que abre a página dele na loja de apps do celular. A loja fica sabendo dessa visita, como em qualquer download.",
         "internet": "Quem cuida da sua internet, como a operadora ou o Wi-Fi, vê que você usa o Tor e quando, mas não com que serviço você fala."
       },
       "servidor": {

@@ -1,8 +1,9 @@
-// A lista de conversas (RF-11), como no design: status da rede, busca só neste aparelho (RF-12),
-// a entrada dos pedidos de conversa (RF-07), a lista com a nota pessoal (RF-19) e o "+", que abre
-// o painel "Nova conversa" para colar um ID (RF-06), com o próprio ID, que copia (RF-45). O sol ou a
-// lua troca o tema (RF-39), e o ícone de ajustes abre os ajustes. O coração abre o painel das
-// doações, com o endereço Monero, que copia (RF-60).
+// A lista de conversas (RF-11), como no design: status da rede, com o "?" que explica a conexão e
+// abre o Orbot na loja de apps (RF-64), busca só neste aparelho (RF-12), a entrada dos pedidos de
+// conversa (RF-07), a lista com a nota pessoal (RF-19) e o "+", que abre o painel "Nova conversa"
+// para colar um ID (RF-06), com o próprio ID, que copia (RF-45). O sol ou a lua troca o tema
+// (RF-39), e o ícone de ajustes abre os ajustes. O coração abre o painel das doações, com o
+// endereço Monero, que copia (RF-60).
 //
 // Conversas ocultas: o texto da busca que pode ser o código secreto, parado por 0,8 s, tenta abrir
 // o cofre (RF-22). Abriu: a busca é limpa, e a seção "ocultas" aparece no topo, com a linha que
@@ -10,7 +11,7 @@
 import { codigoAceito, type ResultadoDaBusca } from '@cifra/core';
 import { lerId } from '@cifra/protocol';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Linking, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ResumoDaConversa } from '@cifra/core';
 
@@ -32,6 +33,7 @@ import { idNaTela } from '../formato-do-id.ts';
 import { rotuloCurto } from '../formato-do-timer.ts';
 import { idiomaAtivo, useTextos, type Traduzir } from '../i18n.ts';
 import type { TelaDoApp } from '../navegacao.ts';
+import { ORBOT_NA_LOJA } from '../orbot.ts';
 import type { PreferenciasDoApp } from '../preferencias.ts';
 import { criarEstilos, fontes, raios, tipos, useTema } from '../tema.ts';
 import { rotuloDaRede, useLeitura, useVersao } from './dados.ts';
@@ -95,6 +97,7 @@ export function Conversas({ conversas, preferencias, abrir }: PropsDasConversas)
   const [busca, setBusca] = useState('');
   const [novaAberta, setNovaAberta] = useState(false);
   const [doacaoAberta, setDoacaoAberta] = useState(false);
+  const [conexaoAberta, setConexaoAberta] = useState(false);
   const { agenda } = conversas;
   const agora = Date.now();
 
@@ -157,6 +160,12 @@ export function Conversas({ conversas, preferencias, abrir }: PropsDasConversas)
         <PontoDeStatus
           ligado={conversas.rede === 'conectado'}
           rotulo={rotuloDaRede(t, conversas.rede)}
+          ajuda={{
+            rotulo: t('rede.ajuda'),
+            aoTocar: () => {
+              setConexaoAberta(true);
+            },
+          }}
         />
         <View style={estilos.icones}>
           <BotaoDeIcone
@@ -332,6 +341,27 @@ export function Conversas({ conversas, preferencias, abrir }: PropsDasConversas)
           mostrarRecado(t('doacao.copiado'));
         }}
       />
+      <Painel
+        visivel={conexaoAberta}
+        aoFechar={() => {
+          setConexaoAberta(false);
+        }}
+        rolavel
+        titulo={t('conexao.titulo')}
+        descricao={t('conexao.descricao')}
+      >
+        <Botao
+          titulo={t('conexao.baixar')}
+          pequeno
+          aoTocar={() => {
+            setConexaoAberta(false);
+            // Sem loja de apps no celular, não abre nada: o recado diz o site do Orbot.
+            Linking.openURL(ORBOT_NA_LOJA).catch(() => {
+              mostrarRecado(t('conexao.semLoja'));
+            });
+          }}
+        />
+      </Painel>
       <Recado visivel={recado !== null} texto={recado ?? ''} embaixo={margens.bottom + 24} />
     </View>
   );

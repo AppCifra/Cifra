@@ -115,7 +115,14 @@
     "conectado": "tor · connected",
     "conectando": "tor · connecting…",
     "semConexao": "offline",
-    "semTor": "tor · unavailable. open orbot"
+    "semTor": "tor · unavailable. open orbot",
+    "ajuda": "How Cifra connects"
+  },
+  "conexao": {
+    "titulo": "Connecting through Tor",
+    "descricao": "Cifra only connects through the Tor network, using the Orbot app. Install Orbot, open it and tap Connect. Then come back to Cifra: the status up here changes to “tor · connected”. Orbot is also at orbot.app.",
+    "baixar": "Get Orbot",
+    "semLoja": "no app store opened. get orbot at orbot.app."
   },
   "nova": {
     "titulo": "New chat",
@@ -532,7 +539,7 @@
   "politica": {
     "titulo": "Privacy policy",
     "documento": "Cifra privacy policy",
-    "atualizada": "updated 10/22/2026",
+    "atualizada": "updated 10/28/2026",
     "secoes": {
       "resumo": {
         "titulo": "In short",
@@ -558,6 +565,7 @@
         "cartao": "Your card goes to the server: your ID and your public keys, so that anyone with your ID can write to you. Anyone with your ID can fetch your card.",
         "mensagens": "Everything you send to another person leaves the phone encrypted: messages, photos, videos, documents and also read receipts and “typing”, when they are on.",
         "orbot": "Orbot is another app, from another project, with its own privacy rules. It does not receive the content of your messages, which is already encrypted.",
+        "loja": "The “?” next to the connection status has a button to get Orbot, which opens its page in the phone's app store. The store learns about that visit, as with any download.",
         "internet": "Whoever provides your internet, such as your carrier or the Wi-Fi network, sees that you use Tor and when, but not which service you talk to."
       },
       "servidor": {
