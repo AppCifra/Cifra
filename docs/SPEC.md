@@ -216,7 +216,7 @@ Uma chave mestra aleatória de 256 bits cifra o banco. Ela fica embrulhada no Ke
 
 ## Requisitos funcionais
 
-São 61 requisitos em 9 grupos. Cada um tem um critério de aceite que vira teste.
+São 63 requisitos em 9 grupos. Cada um tem um critério de aceite que vira teste.
 
 ### Identidade
 
@@ -237,6 +237,7 @@ São 61 requisitos em 9 grupos. Cada um tem um critério de aceite que vira test
 | RF-08 | Bloquear e desbloquear um ID. | Mensagens de ID bloqueado são descartadas sem aviso a quem enviou. |
 | RF-09 | Renomear contato com apelido local. | O apelido nunca sai do aparelho. |
 | RF-10 | Guardar contatos só no Cifra. | Nada vai para a agenda do sistema. |
+| RF-63 | Denunciar um abuso. | Na segurança do contato (também num pedido) e nos ajustes, o painel manda os crimes direto às autoridades (Disque 100, SaferNet, delegacia online), mostra o e-mail do projeto e copia o e-mail e o ID do contato; o app não abre o e-mail nem o navegador. |
 
 ### Conversas e mensagens
 
@@ -315,6 +316,7 @@ São 61 requisitos em 9 grupos. Cada um tem um critério de aceite que vira test
 | RF-49 | Idioma do app: português ou inglês. | Na primeira abertura segue o idioma do sistema (em qualquer outro idioma, abre em inglês); trocar nos ajustes muda a interface na hora, sem reiniciar. |
 | RF-60 | Apoiar o projeto: o coração da lista abre o painel com o endereço Monero das doações, que copia. | O endereço é o mesmo deste documento; o texto copiado expira da área de transferência. |
 | RF-61 | Mostrar a política de privacidade no app. | Abre sem rede, pelos ajustes; o texto é o mesmo de `docs/PRIVACIDADE.md`, nos dois idiomas, e os prazos dele são os do código. |
+| RF-62 | Termos de uso, aceitos ao usar o app. | A abertura diz que usar o Cifra é aceitar os termos e abre o texto, sem rede, também pelos ajustes; o texto é o mesmo de `docs/TERMOS.md`, nos dois idiomas, com o que é proibido, como denunciar e a proteção de crianças. |
 
 ### Backup e pânico
 
@@ -534,7 +536,7 @@ A interface segue o design system do Cifra: os tokens e a voz abaixo, e os ícon
 
 ### Telas
 
-- **Onboarding:** gerar a identidade, com o cartão do ID; as 12 palavras, com pular sempre confirmado num painel; restaurar com as palavras. Na identidade restaurada, "Usar um backup", abaixo de "Entrar", e uma linha em mono com o resumo do backup escolhido ("backup de 15/10/2026 · 12 contatos"), o aviso de que o arquivo não abre com estas palavras ou a dica de que os contatos voltam com um backup. Depois do pânico, a abertura mostra o recado "tudo apagado.".
+- **Onboarding:** gerar a identidade, com o cartão do ID; as 12 palavras, com pular sempre confirmado num painel; restaurar com as palavras. Embaixo dos botões da abertura, a frase "Ao usar o Cifra, você aceita os termos de uso.", em que "termos de uso" abre o texto por cima (RF-62). Na identidade restaurada, "Usar um backup", abaixo de "Entrar", e uma linha em mono com o resumo do backup escolhido ("backup de 15/10/2026 · 12 contatos"), o aviso de que o arquivo não abre com estas palavras ou a dica de que os contatos voltam com um backup. Depois do pânico, a abertura mostra o recado "tudo apagado.".
 - **Conversas:** o estado da conexão, a busca só neste aparelho, a linha dos pedidos de conversa com a contagem, a lista e o "+", que abre o painel "Nova conversa" (colar o ID e, embaixo, o próprio ID, que copia). No alto, o coração das doações, o sol ou a lua do tema e os ajustes. O código secreto vai no mesmo campo da busca: abriu, a busca é limpa e a seção "ocultas" aparece no topo, com as conversas ocultas, o texto de vazia ("nenhuma conversa oculta. para ocultar, abra a segurança do contato.") e a linha "Fechar ocultas"; com elas abertas, a busca mostra os resultados delas sob "ocultas".
 - **Pedidos de conversa:** a linha da lista abre a tela de pedidos, onde também ficam os IDs bloqueados que vieram de pedidos. O pedido abre como conversa, com aceitar, recusar e bloquear no lugar do campo.
 - **Conversa:** no cabeçalho, o nome, o selo de verificado e, embaixo, o estado da conexão ou "digitando…"; sem o Orbot, "tor · indisponível. abra o orbot". A pílula do timer abre o painel "Mensagens temporárias", com o aviso de "só chega com a conversa aberta" nos timers de até 5 min e o "Personalizado" (um número e a unidade); ao ligar numa conversa com mensagens sem timer, o painel pergunta se as anteriores também somem. Balões com o status em mono depois da hora ("pendente", "enviada" ou "lida"), notas de sistema no meio da conversa e o balão "digitando…" no fim. O balão temporário mostra o anel e quanto falta, e se desfaz (desfoque, escala e esmaecer) nos últimos 600 ms. No campo de escrever, a versão discreta da pílula mostra o timer da próxima mensagem, e o clipe abre o painel "Anexar" ("Foto ou vídeo" e "Arquivo", com o aviso de que documentos podem conter informações do autor); os seletores são os do sistema, sem permissão de fotos nem de arquivos.
@@ -543,12 +545,14 @@ A interface segue o design system do Cifra: os tokens e a voz abaixo, e os ícon
 - **Seleção:** segurar o balão seleciona; a barra do alto troca o cabeçalho pela contagem e pelas ações (responder, copiar, encaminhar, salvar e apagar). Apagar oferece "para todos" ou "só neste celular", que mostra um recado com "desfazer" por 5 s.
 - **Responder:** a citação fica acima do campo e no alto do balão. Arrastar o balão para a direita também responde: ele segue o dedo até um limite, o ícone de responder aparece onde ele estava e, solto depois do limiar, ele volta ao lugar com a citação no campo. Só onde dá para responder (nem em pedido, nem em bloqueado, nem com a seleção aberta) e sem vibrar, para não pedir permissão. Com movimento reduzido, o balão fica parado e só o ícone aparece ao lado dele.
 - **Encaminhar:** tela com as conversas (contatos e nota pessoal), até 5.
-- **Segurança do contato:** identicon, ID e número de segurança, com "Copiar o número", o texto de colar e o campo: "os números batem.", com o "Marcar como verificado" ali mesmo, ou "os números não batem.". Em linhas, como nos ajustes: apelido, mensagens temporárias, bloquear prints nesta conversa, bloquear (confirmado num painel), "Ocultar conversa" ou "Reexibir conversa" (com um painel que confirma; com as ocultas fechadas, o painel diz para digitar o código na busca ou criar um em Ajustes) e "Apagar conversa".
-- **Ajustes:** o cartão "seu id · toque para copiar"; Aparência (Escuro/Claro) e Idioma (Português/English) em segmentos; Privacidade com "Bloquear sozinho ›" (painel com as opções), "Código secreto", "Notificações cegas", "Bloquear capturas de tela", "Confirmações de leitura", "Indicador de digitação" e "Política de privacidade"; Mensagens temporárias, com o timer padrão; Fotos, vídeos e arquivos, com "Baixar sozinho"; Backup, com "Exportar backup" e o que ele leva; e, no fim, Pânico. No pé, "cifra 0.1.0 · GPLv3". Leitura e digitação valem só entre quem liga: desligadas, você também não vê as dos outros. O bloqueio do app é criptográfico e não desliga; o ajuste é o prazo.
+- **Segurança do contato:** identicon, ID e número de segurança, com "Copiar o número", o texto de colar e o campo: "os números batem.", com o "Marcar como verificado" ali mesmo, ou "os números não batem.". Em linhas, como nos ajustes: apelido, mensagens temporárias, bloquear prints nesta conversa, "Denunciar" (RF-63), bloquear (confirmado num painel), "Ocultar conversa" ou "Reexibir conversa" (com um painel que confirma; com as ocultas fechadas, o painel diz para digitar o código na busca ou criar um em Ajustes) e "Apagar conversa".
+- **Ajustes:** o cartão "seu id · toque para copiar"; Aparência (Escuro/Claro) e Idioma (Português/English) em segmentos; Privacidade com "Bloquear sozinho ›" (painel com as opções), "Código secreto", "Notificações cegas", "Bloquear capturas de tela", "Confirmações de leitura", "Indicador de digitação", "Política de privacidade", "Termos de uso" e "Denunciar abuso"; Mensagens temporárias, com o timer padrão; Fotos, vídeos e arquivos, com "Baixar sozinho"; Backup, com "Exportar backup" e o que ele leva; e, no fim, Pânico. No pé, "cifra 0.1.0 · GPLv3". Leitura e digitação valem só entre quem liga: desligadas, você também não vê as dos outros. O bloqueio do app é criptográfico e não desliga; o ajuste é o prazo.
 - **Pânico:** o rótulo na cor de perigo e o botão de segurar ("Segure para apagar tudo", "continue segurando…", 1,6 s): o fundo enche da esquerda para a direita, e o texto fica branco depois de 45%. Com movimento reduzido, o enchimento continua, porque é ele que mostra quanto falta. Sem vibrar.
 - **Código secreto:** o texto (diferente com as ocultas abertas ou fechadas), dois campos em mono ("Código" e "Repita o código") e "Definir código" ou "Trocar código".
 - **Doações (RF-60):** o coração abre o painel "Apoiar o Cifra": o texto, o endereço Monero inteiro em mono, numa caixa com o rótulo "endereço monero", e "Copiar endereço", que copia como o ID (sensível, sai da área de transferência em 60 s), fecha o painel e mostra o recado "endereço copiado". Sem QR: o próprio celular não lê a própria tela, e o print fica bloqueado.
 - **Política de privacidade (RF-61):** a data em mono e as seções, cada uma com o rótulo e os parágrafos. O texto fica nos arquivos de tradução, e o `docs/PRIVACIDADE.md` sai dele. Sem link: o navegador sairia do Tor.
+- **Termos de uso (RF-62):** como a política, abertos pela abertura e pelos ajustes. O texto fica nos arquivos de tradução, e o `docs/TERMOS.md` sai dele.
+- **Denúncia (RF-63):** o painel com os canais das autoridades, o e-mail do projeto em mono, numa caixa com o rótulo "e-mail", e "Copiar o e-mail"; na segurança do contato, também "Copiar o ID", para a denúncia. Com a fonte do celular grande, o painel rola. Copiar fecha o painel e mostra o recado. O app não abre o e-mail nem o navegador: quem denuncia escreve de onde quiser, fora do Cifra.
 - **Avisos:** dados perdidos e outro aparelho, que levam ao onboarding.
 - **Notificações:** o aviso fixo do serviço ("Pronto para avisar de mensagem nova.", canal de importância mínima) e "Nova mensagem"; o ícone é o quadrado do wordmark, em branco, com o fósforo de destaque.
 - **Ícone do app:** o wordmark inteiro (o quadrado fósforo e "cifra" em Geist Mono) sobre o fundo escuro; no ícone adaptável do Android, dentro da área que nenhuma máscara corta, com uma versão de uma cor só para os ícones com o tema do sistema. Não há símbolo próprio enquanto não existir um logo.
@@ -695,6 +699,7 @@ Cada fase só começa quando o portão anterior é cumprido.
 - **Doações:** em Monero, no endereço `86QtU9BtiGzRdwNZo5yd9eTbH4EHVd8xd1Cr2DpHLeBJe7Kqiz4JrzzDjq9F79XuTcGuFGi1TnouYX7deAkS7Zr4K1Hmxak` (RF-60).
 - **Permissões:** notificações, biometria, internet (só para o SOCKS do Orbot, no próprio aparelho) e o serviço em primeiro plano dos avisos. As outras ficam bloqueadas no manifesto, inclusive agenda, fotos, arquivos, sobreposição e vibração.
 - **Política de privacidade:** `docs/PRIVACIDADE.md`, em português e em inglês, com o mesmo texto do app (RF-61). O endereço público dela é o desse arquivo no repositório.
+- **Termos de uso:** `docs/TERMOS.md`, em português e em inglês, com o mesmo texto do app (RF-62). A seção de proteção de crianças é a página de padrões que a Play pede aos apps de conversa anônima.
 
 ## Testes e verificação
 
@@ -719,7 +724,7 @@ Os 12 passaram no emulador, com o APK de release. O resultado de cada um, o que 
 
 ## Decisões pendentes e riscos
 
-Cinco decisões ainda abertas e setenta e um riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
+Cinco decisões ainda abertas e setenta e dois riscos com mitigação. O maior risco técnico é implementar X3DH e Double Ratchet por conta própria.
 
 ### Decisões pendentes
 
@@ -801,6 +806,7 @@ Cinco decisões ainda abertas e setenta e um riscos com mitigação. O maior ris
 | Alguém divulgar fora do app um endereço de doação falso | o app assinado e o código mostram o endereço certo (RF-60) |
 | O botão de doação pode fazer a Play recusar o app ou tirá-lo da loja: a política de pagamentos dela proíbe botão ou link para pagar fora da cobrança da Play, e a única exceção de doação é a de quem tem isenção de imposto | se ela recusar ou pedir a retirada, o pacote da loja passa a sair sem o botão, e o APK de fora da loja continua com ele |
 | A Play pode tratar o ID como conta e exigir um jeito de pedir a exclusão pela web, sem o app; o relay não sabe de quem é um ID sem a assinatura dele | a política explica o pânico, que apaga do relay o cartão e a caixa, a restauração com as 12 palavras em outro aparelho para quem perdeu o celular, e os prazos sem uso (90 dias; 14 para as mensagens). O relay não apaga um ID a pedido, sem a prova, para ninguém apagar o de outra pessoa |
+| A Play exige moderação nos apps com conteúdo das pessoas (termos aceitos, denúncia e ação contra abuso) e trata o Cifra como app de conversa anônima, com padrões de proteção de crianças. O projeto não lê as mensagens, e o servidor não sabe de quem é cada ID | termos com o que é proibido, aceitos na abertura (RF-62), bloqueio (RF-08) e a denúncia (RF-63), que manda os crimes direto às autoridades; o projeto encaminha à SaferNet ou à Polícia Federal o que receber sobre abuso de crianças. O servidor não tira IDs. Se a Play pedir mais, rever |
 | Mais de 25 mil mensagens seguidas perdidas numa cadeia do Double Ratchet (meses de caixa sem leitura, como a de uma conversa oculta com o cofre fechado, e um contato que escreve muito) fazem as seguintes não abrirem até uma sessão nova | o teto é o do Signal; um reinício de sessão automático fica para a fase 2 |
 | Um pacote forjado em nome de um contato faz o app derivar até 25 mil chaves (50 mil com passo DH) em cada sessão do contato antes de recusar: num computador, até uns 90 ms por sessão | quem forja precisa do ID da pessoa e do de um contato dela; os depósitos numa caixa têm taxa no relay inteiro; prova de trabalho na fase 2 |
 | Desbloquear durante uma tentativa de conexão do vigia espera a tentativa acabar: com o Tor lento ou sem internet, até 60 s para a conexão abrir e até 60 s pela resposta do relay | o prazo para abrir limita a espera; cancelar a tentativa do vigia no desbloqueio fica para depois |

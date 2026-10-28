@@ -14,7 +14,9 @@
     "continuar": "Continuar",
     "restaurar": "Restaurar com palavras",
     "rodape": "código aberto · X25519 · double ratchet",
-    "apagado": "tudo apagado."
+    "apagado": "tudo apagado.",
+    "aceite": "Ao usar o Cifra, você aceita os termos de uso.",
+    "termos": "termos de uso"
   },
   "identidade": {
     "nenhuma": "nenhuma identidade",
@@ -138,6 +140,16 @@
     "copiar": "Copiar endereço",
     "copiado": "endereço copiado"
   },
+  "denuncia": {
+    "titulo": "Denunciar abuso",
+    "tituloDoContato": "Denunciar {{nome}}",
+    "descricao": "Crimes vão direto às autoridades. Abuso de crianças: Disque 100 ou new.safernet.org.br/denuncie, sem se identificar. Outros crimes: delegacia online do seu estado. Para falar com o projeto, use o e-mail abaixo.",
+    "descricaoDoContato": "Crimes vão direto às autoridades, com o ID desta pessoa. Abuso de crianças: Disque 100 ou new.safernet.org.br/denuncie, sem se identificar. Outros crimes: delegacia online do seu estado. Para falar com o projeto, use o e-mail abaixo.",
+    "rotulo": "e-mail",
+    "copiarEmail": "Copiar o e-mail",
+    "copiarId": "Copiar o ID",
+    "emailCopiado": "e-mail copiado"
+  },
   "conversa": {
     "mensagem": "Mensagem",
     "enviar": "Enviar",
@@ -194,6 +206,7 @@
     "apelido": "Apelido",
     "bloquear": "Bloquear",
     "desbloquear": "Desbloquear",
+    "denunciar": "Denunciar",
     "painelApelido": {
       "titulo": "Apelido",
       "descricao": "Só aparece neste celular. A outra pessoa não fica sabendo.",
@@ -609,6 +622,61 @@
       "mudancas": {
         "titulo": "Mudanças",
         "versao": "Quando esta política mudar, a versão nova vem junto com o app, com a data no topo. As anteriores ficam no histórico do repositório do Cifra."
+      }
+    }
+  },
+  "termos": {
+    "titulo": "Termos de uso",
+    "documento": "Termos de uso do Cifra",
+    "atualizada": "atualizados em 28/10/2026",
+    "secoes": {
+      "resumo": {
+        "titulo": "Em resumo",
+        "uso": "O Cifra é um app de mensagens cifradas de ponta a ponta. Ao usar o Cifra, você aceita estes termos. Se não concordar, não use o app.",
+        "regra": "Não use o Cifra para cometer crimes nem para fazer mal a outras pessoas. Abuso ou exploração sexual de crianças e adolescentes não é tolerado de forma nenhuma."
+      },
+      "quem": {
+        "titulo": "Quem publica o Cifra",
+        "publica": "O Cifra é publicado por Gabriel Cirilo Erani, que opera o servidor oficial e responde por estes termos. Para falar com o projeto, escreva para appcifra@proton.me."
+      },
+      "proibido": {
+        "titulo": "O que não é permitido",
+        "crimes": "Usar o Cifra para crimes, como abuso ou exploração sexual de crianças e adolescentes, ameaça, extorsão, perseguição, golpe ou fraude.",
+        "intimas": "Mandar imagens íntimas de alguém sem o consentimento da pessoa.",
+        "programas": "Espalhar vírus ou programas maliciosos.",
+        "assedio": "Assediar quem bloqueou você ou pediu para parar, mandar mensagens em massa para quem não quer receber e se passar por outra pessoa para enganar."
+      },
+      "criancas": {
+        "titulo": "Proteção de crianças e adolescentes",
+        "regra": "É proibido usar o Cifra para abuso ou exploração sexual de crianças e adolescentes. Isso inclui aliciar, chantagear ou ameaçar um menor de idade e mandar ou pedir qualquer imagem, vídeo ou desenho de abuso sexual de menores.",
+        "fazer": "Se isso acontecer com você ou chegar até você, bloqueie o ID e denuncie direto às autoridades, sem se identificar: no Disque 100 ou na SaferNet Brasil, em new.safernet.org.br/denuncie. Se uma criança está em perigo agora, chame a polícia pelo 190.",
+        "imagens": "Não mande ao projeto imagens de abuso de crianças: denuncie direto às autoridades.",
+        "projeto": "Se o projeto receber uma denúncia de abuso ou exploração sexual de crianças e adolescentes, ele a encaminha à SaferNet Brasil ou à Polícia Federal."
+      },
+      "denunciar": {
+        "titulo": "Como denunciar",
+        "app": "No app, abra a segurança do contato ou do pedido de conversa, tocando no nome no alto da conversa, e toque em Denunciar: aparecem os canais das autoridades, e dá para copiar o ID da pessoa. Em Ajustes > Denunciar abuso, estão os mesmos canais.",
+        "autoridades": "Crimes são denunciados direto às autoridades. Abuso de crianças: Disque 100 ou SaferNet Brasil, em new.safernet.org.br/denuncie, sem se identificar. Outros crimes: boletim de ocorrência na delegacia online do seu estado.",
+        "projeto": "Para falar com o projeto, escreva para appcifra@proton.me. O projeto não consegue ler as mensagens: só sabe o que vier no e-mail.",
+        "bloquear": "Para não receber mais as mensagens de alguém, bloqueie o ID na segurança do contato. A pessoa não fica sabendo."
+      },
+      "projeto": {
+        "titulo": "O que o projeto faz",
+        "cifradas": "As mensagens são cifradas no celular de quem manda e só abrem no celular de quem recebe. O projeto não lê nem apaga mensagens de ninguém, e o servidor não sabe de quem é cada ID. Por isso, o projeto não tira IDs do servidor.",
+        "autoridades": "Se uma autoridade pedir dados, o servidor só tem o que a política de privacidade descreve."
+      },
+      "voce": {
+        "titulo": "A sua parte",
+        "responde": "Você responde pelo que manda pelo Cifra. Guarde as suas palavras de recuperação: sem elas, ninguém recupera a sua identidade, nem o projeto."
+      },
+      "garantia": {
+        "titulo": "Sem garantia",
+        "software": "O Cifra é software livre, sob a licença GPLv3, e é oferecido como está, sem garantia de nenhum tipo. O servidor oficial pode ficar fora do ar, e o app pode ter falhas.",
+        "revisao": "O código do Cifra é aberto e ainda não passou por uma auditoria de segurança independente."
+      },
+      "mudancas": {
+        "titulo": "Mudanças",
+        "versao": "Quando estes termos mudarem, a versão nova vem junto com o app, com a data no topo. As anteriores ficam no histórico do repositório do Cifra."
       }
     }
   }

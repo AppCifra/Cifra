@@ -14,7 +14,9 @@
     "continuar": "Continue",
     "restaurar": "Restore with words",
     "rodape": "open source · X25519 · double ratchet",
-    "apagado": "everything erased."
+    "apagado": "everything erased.",
+    "aceite": "By using Cifra, you accept the terms of use.",
+    "termos": "terms of use"
   },
   "identidade": {
     "nenhuma": "no identity",
@@ -138,6 +140,16 @@
     "copiar": "Copy address",
     "copiado": "address copied"
   },
+  "denuncia": {
+    "titulo": "Report abuse",
+    "tituloDoContato": "Report {{nome}}",
+    "descricao": "Crimes go straight to the authorities. In Brazil, child abuse: Disque 100 or new.safernet.org.br/denuncie, anonymously; other crimes: your state's online police station. Elsewhere, your local police. To reach the project, use the e-mail below.",
+    "descricaoDoContato": "Crimes go straight to the authorities, with this person's ID. In Brazil, child abuse: Disque 100 or new.safernet.org.br/denuncie, anonymously; other crimes: your state's online police station. Elsewhere, your local police. To reach the project, use the e-mail below.",
+    "rotulo": "e-mail",
+    "copiarEmail": "Copy the e-mail",
+    "copiarId": "Copy the ID",
+    "emailCopiado": "e-mail copied"
+  },
   "conversa": {
     "mensagem": "Message",
     "enviar": "Send",
@@ -194,6 +206,7 @@
     "apelido": "Nickname",
     "bloquear": "Block",
     "desbloquear": "Unblock",
+    "denunciar": "Report",
     "painelApelido": {
       "titulo": "Nickname",
       "descricao": "It only shows on this phone. The other person does not know.",
@@ -609,6 +622,61 @@
       "mudancas": {
         "titulo": "Changes",
         "versao": "When this policy changes, the new version comes with the app, with the date at the top. Earlier versions stay in the history of Cifra's repository."
+      }
+    }
+  },
+  "termos": {
+    "titulo": "Terms of use",
+    "documento": "Cifra terms of use",
+    "atualizada": "updated 10/28/2026",
+    "secoes": {
+      "resumo": {
+        "titulo": "In short",
+        "uso": "Cifra is an end-to-end encrypted messaging app. By using Cifra, you accept these terms. If you do not agree, do not use the app.",
+        "regra": "Do not use Cifra to commit crimes or to harm other people. Sexual abuse or exploitation of children and adolescents is not tolerated in any way."
+      },
+      "quem": {
+        "titulo": "Who publishes Cifra",
+        "publica": "Cifra is published by Gabriel Cirilo Erani, who runs the official server and is responsible for these terms. To reach the project, write to appcifra@proton.me."
+      },
+      "proibido": {
+        "titulo": "What is not allowed",
+        "crimes": "Using Cifra for crimes, such as sexual abuse or exploitation of children and adolescents, threats, extortion, stalking, scams or fraud.",
+        "intimas": "Sending intimate images of someone without their consent.",
+        "programas": "Spreading viruses or malicious software.",
+        "assedio": "Harassing someone who blocked you or asked you to stop, sending bulk messages to people who do not want them, and pretending to be someone else to deceive."
+      },
+      "criancas": {
+        "titulo": "Child safety",
+        "regra": "Using Cifra for sexual abuse or exploitation of children and adolescents is forbidden. This includes grooming, blackmailing or threatening a minor, and sending or asking for any image, video or drawing of child sexual abuse.",
+        "fazer": "If this happens to you or reaches you, block the ID and report it straight to the authorities. In Brazil, you can do it anonymously through Disque 100 or SaferNet Brasil, at new.safernet.org.br/denuncie. If a child is in danger right now, call the police.",
+        "imagens": "Do not send images of child abuse to the project: report them straight to the authorities.",
+        "projeto": "If the project receives a report of sexual abuse or exploitation of children and adolescents, it forwards it to SaferNet Brasil or the Brazilian Federal Police."
+      },
+      "denunciar": {
+        "titulo": "How to report",
+        "app": "In the app, open the security screen of the contact or of the chat request, by tapping the name at the top of the chat, and tap Report: the authorities' channels appear, and you can copy the person's ID. Settings > Report abuse shows the same channels.",
+        "autoridades": "Crimes are reported straight to the authorities. In Brazil, child abuse: Disque 100 or SaferNet Brasil, at new.safernet.org.br/denuncie, anonymously; other crimes: a police report at your state's online police station. Elsewhere, your local police.",
+        "projeto": "To reach the project, write to appcifra@proton.me. The project cannot read messages: it only knows what comes in the e-mail.",
+        "bloquear": "To stop receiving someone's messages, block the ID on the contact's security screen. The person is not told."
+      },
+      "projeto": {
+        "titulo": "What the project does",
+        "cifradas": "Messages are encrypted on the sender's phone and only open on the recipient's phone. The project does not read or delete anyone's messages, and the server does not know who each ID belongs to. So the project does not remove IDs from the server.",
+        "autoridades": "If an authority asks for data, the server only has what the privacy policy describes."
+      },
+      "voce": {
+        "titulo": "Your part",
+        "responde": "You are responsible for what you send through Cifra. Keep your recovery words: without them, nobody can recover your identity, not even the project."
+      },
+      "garantia": {
+        "titulo": "No warranty",
+        "software": "Cifra is free software, under the GPLv3 license, and is provided as is, without warranty of any kind. The official server may be down, and the app may have bugs.",
+        "revisao": "Cifra's code is open and has not had an independent security audit yet."
+      },
+      "mudancas": {
+        "titulo": "Changes",
+        "versao": "When these terms change, the new version comes with the app, with the date at the top. Earlier versions stay in the history of Cifra's repository."
       }
     }
   }

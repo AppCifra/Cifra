@@ -20,9 +20,9 @@ import { Ajustes } from './Ajustes.tsx';
 import { CodigoSecreto } from './CodigoSecreto.tsx';
 import { Conversa } from './Conversa.tsx';
 import { Conversas } from './Conversas.tsx';
+import { Documento } from './Documento.tsx';
 import { Encaminhar } from './Encaminhar.tsx';
 import { Pedidos } from './Pedidos.tsx';
-import { Politica } from './Politica.tsx';
 import { Seguranca } from './Seguranca.tsx';
 
 const chaveDe = (tela: TelaDoApp) => ('id' in tela ? `${tela.tipo}:${tela.id}` : tela.tipo);
@@ -89,7 +89,8 @@ export function Principal({
       case 'codigo':
         return <CodigoSecreto conversas={conversas} aoVoltar={voltarUma} />;
       case 'politica':
-        return <Politica aoVoltar={voltarUma} />;
+      case 'termos':
+        return <Documento documento={tela.tipo} aoVoltar={voltarUma} />;
       case 'pedidos':
         return <Pedidos conversas={conversas} aoVoltar={voltarUma} abrir={abrir} />;
       case 'conversa':

@@ -31,6 +31,13 @@ describe('pilha de telas', () => {
     expect(voltar(politica)).toEqual(ajustes);
   });
 
+  it('os termos de uso abrem por cima dos ajustes e voltam para eles (RF-62)', () => {
+    const ajustes = empilhar(PILHA_INICIAL, { tipo: 'ajustes' });
+    const termos = empilhar(ajustes, { tipo: 'termos' });
+    expect(termos.map((tela) => tela.tipo)).toEqual(['conversas', 'ajustes', 'termos']);
+    expect(voltar(termos)).toEqual(ajustes);
+  });
+
   it('um pedido recusado sai da pilha com a segurança dele', () => {
     const pilha = empilhar(
       empilhar(empilhar(PILHA_INICIAL, { tipo: 'pedidos' }), { tipo: 'conversa', id: ID }),

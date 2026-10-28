@@ -1,6 +1,7 @@
 // Onboarding: liga o fluxo (fluxo.ts) às telas. Gera e restaura com o núcleo; quando o fluxo
 // chega a `guardando`, chama `aoConcluir`, que grava a identidade e pede biometria ou senha. Na
-// restauração, o backup escolhido (RF-47) é aberto aqui, com as palavras, e vai junto.
+// restauração, o backup escolhido (RF-47) é aberto aqui, com as palavras, e vai junto. Os termos de
+// uso (RF-62) abrem por cima da abertura, que fica como estava embaixo; o voltar do Android fecha.
 import {
   abrirBackup,
   gerarIdentidade,
@@ -9,11 +10,13 @@ import {
   type Identidade,
   type IdentidadeNova,
 } from '@cifra/core';
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { escolherBackup } from '../adaptadores/backup.ts';
 import { cripto } from '../adaptadores/cripto.ts';
 import { idiomaDasPalavras } from '../i18n.ts';
 import { Abertura } from '../telas/Abertura.tsx';
+import { Documento } from '../telas/Documento.tsx';
 import { Palavras } from '../telas/Palavras.tsx';
 import { Restaurada } from '../telas/Restaurada.tsx';
 import { Restaurar } from '../telas/Restaurar.tsx';
@@ -28,6 +31,21 @@ interface PropsDoOnboarding {
 
 export function Onboarding({ aoConcluir, apagado = false }: PropsDoOnboarding) {
   const [estado, despachar] = useReducer(avancar, INICIO);
+  const [lendoTermos, setLendoTermos] = useState(false);
+  const fecharTermos = useCallback(() => {
+    setLendoTermos(false);
+  }, []);
+
+  useEffect(() => {
+    if (!lendoTermos) return;
+    const assinatura = BackHandler.addEventListener('hardwareBackPress', () => {
+      fecharTermos();
+      return true;
+    });
+    return () => {
+      assinatura.remove();
+    };
+  }, [lendoTermos, fecharTermos]);
 
   useEffect(() => {
     if (estado.tela !== 'guardando') return;
@@ -107,19 +125,34 @@ export function Onboarding({ aoConcluir, apagado = false }: PropsDoOnboarding) {
   switch (estado.tela) {
     case 'abertura':
       return (
-        <Abertura
-          nova={estado.nova}
-          aoGerar={() => {
-            despachar({ tipo: 'gerada', nova: gerarIdentidade(cripto, idiomaDasPalavras()) });
-          }}
-          aoContinuar={() => {
-            despachar({ tipo: 'continuar' });
-          }}
-          aoRestaurar={() => {
-            despachar({ tipo: 'irParaRestaurar' });
-          }}
-          apagado={apagado}
-        />
+        <>
+          <View
+            style={estilos.inteira}
+            importantForAccessibility={lendoTermos ? 'no-hide-descendants' : 'auto'}
+          >
+            <Abertura
+              nova={estado.nova}
+              aoGerar={() => {
+                despachar({ tipo: 'gerada', nova: gerarIdentidade(cripto, idiomaDasPalavras()) });
+              }}
+              aoContinuar={() => {
+                despachar({ tipo: 'continuar' });
+              }}
+              aoRestaurar={() => {
+                despachar({ tipo: 'irParaRestaurar' });
+              }}
+              aoLerTermos={() => {
+                setLendoTermos(true);
+              }}
+              apagado={apagado}
+            />
+          </View>
+          {lendoTermos && (
+            <View style={StyleSheet.absoluteFill}>
+              <Documento documento="termos" aoVoltar={fecharTermos} />
+            </View>
+          )}
+        </>
       );
     case 'palavras':
       return palavras(estado.nova, estado.confirmandoPulo, estado.naoGuardou, false);
@@ -147,3 +180,5 @@ export function Onboarding({ aoConcluir, apagado = false }: PropsDoOnboarding) {
         : restaurada(estado.identidade, false, true, estado.backup, false);
   }
 }
+
+const estilos = StyleSheet.create({ inteira: { flex: 1 } });

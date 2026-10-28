@@ -1,7 +1,8 @@
 // Abertura do onboarding, como no design: gerar a identidade no aparelho, sem pedir nenhum dado
 // pessoal (RF-01). Ao gerar, o cartão embaralha o ID por pouco mais de um segundo antes de mostrar
-// o de verdade; com movimento reduzido, mostra direto. Depois do pânico (RF-48), um recado diz que
-// tudo foi apagado.
+// o de verdade; com movimento reduzido, mostra direto. Embaixo, a frase de que usar o Cifra é
+// aceitar os termos de uso, que abrem ali mesmo (RF-62). Depois do pânico (RF-48), um recado diz
+// que tudo foi apagado.
 import type { IdentidadeNova } from '@cifra/core';
 import { formatarId } from '@cifra/protocol';
 import { useEffect, useState } from 'react';
@@ -22,6 +23,8 @@ interface PropsDaAbertura {
   readonly aoGerar: () => void;
   readonly aoContinuar: () => void;
   readonly aoRestaurar: () => void;
+  /** Abre os termos de uso por cima da abertura. */
+  readonly aoLerTermos: () => void;
   /** O pânico acabou de apagar tudo: o recado aparece uma vez. */
   readonly apagado?: boolean;
 }
@@ -38,6 +41,7 @@ export function Abertura({
   aoGerar,
   aoContinuar,
   aoRestaurar,
+  aoLerTermos,
   apagado = false,
 }: PropsDaAbertura) {
   const estilos = useEstilos();
@@ -81,6 +85,10 @@ export function Abertura({
     : gerando
       ? t('identidade.gerando')
       : t('identidade.nenhuma');
+  // "termos de uso" está dentro da frase, nos dois idiomas (o teste confere), e é o que se toca.
+  const aceite = t('abertura.aceite');
+  const termos = t('abertura.termos');
+  const inicio = aceite.indexOf(termos);
 
   return (
     <Tela
@@ -120,6 +128,13 @@ export function Abertura({
           desativado={gerando}
           aoTocar={aoRestaurar}
         />
+        <Text style={estilos.aceite}>
+          {inicio < 0 ? `${aceite} ` : aceite.slice(0, inicio)}
+          <Text accessibilityRole="link" onPress={aoLerTermos} style={estilos.termos}>
+            {termos}
+          </Text>
+          {inicio < 0 ? '' : aceite.slice(inicio + termos.length)}
+        </Text>
         <Text style={estilos.rodape}>{t('abertura.rodape')}</Text>
       </View>
     </Tela>
@@ -132,6 +147,8 @@ const useEstilos = criarEstilos((cores) => ({
   titulo: { ...tipos.destaque, color: cores.texto },
   descricao: { ...tipos.corpoGrande, color: cores.secundario },
   acoes: { gap: 14 },
+  aceite: { ...tipos.pequeno, textAlign: 'center', color: cores.secundario },
+  termos: { color: cores.texto, textDecorationLine: 'underline' },
   rodape: {
     ...tipos.rotulo,
     textTransform: 'none',

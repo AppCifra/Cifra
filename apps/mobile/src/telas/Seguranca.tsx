@@ -3,9 +3,9 @@
 // outro caminho, e o campo de colar compara os 60 dígitos com o que a outra pessoa mandou: só
 // quando batem, ele oferece marcar como verificado. Embaixo, o apelido (RF-09), que fica só neste
 // aparelho, o timer das mensagens temporárias (RF-25), os prints bloqueados na conversa para os
-// dois (RF-58), apagar a conversa só deste celular (RF-31) ou dos dois (RF-59) e o bloqueio
-// (RF-08). Ocultar e reexibir a conversa (RF-20) só funcionam com as ocultas abertas e com conexão;
-// com elas fechadas, o painel explica como abrir ou criar o código.
+// dois (RF-58), apagar a conversa só deste celular (RF-31) ou dos dois (RF-59), o denunciar (RF-63)
+// e o bloqueio (RF-08). Ocultar e reexibir a conversa (RF-20) só funcionam com as ocultas abertas e
+// com conexão; com elas fechadas, o painel explica como abrir ou criar o código.
 import { compararNumero, lerApelido } from '@cifra/core';
 import { TIMER_MAXIMO_EM_SEGUNDOS } from '@cifra/protocol';
 import { useState } from 'react';
@@ -15,6 +15,7 @@ import { Botao } from '../componentes/Botao.tsx';
 import { CampoDeTexto } from '../componentes/CampoDeTexto.tsx';
 import { IdenticonNaMoldura } from '../componentes/ItemDaConversa.tsx';
 import { Painel } from '../componentes/Painel.tsx';
+import { PainelDeDenuncia } from '../componentes/PainelDeDenuncia.tsx';
 import { PainelDoTimer } from '../componentes/PainelDoTimer.tsx';
 import { Recado, useRecado } from '../componentes/Recado.tsx';
 import {
@@ -46,7 +47,15 @@ export function Seguranca({ conversas, id, aoVoltar, aoSumir }: PropsDaSeguranca
   const margens = useSafeAreaInsets();
   const versao = useVersao(conversas);
   const [painel, setPainel] = useState<
-    'apelido' | 'bloquear' | 'timer' | 'apagar' | 'fechadas' | 'ocultar' | 'reexibir' | null
+    | 'apelido'
+    | 'bloquear'
+    | 'denunciar'
+    | 'timer'
+    | 'apagar'
+    | 'fechadas'
+    | 'ocultar'
+    | 'reexibir'
+    | null
   >(null);
   const [mudandoDeBanco, setMudandoDeBanco] = useState(false);
   const [apelido, setApelido] = useState('');
@@ -216,6 +225,12 @@ export function Seguranca({ conversas, id, aoVoltar, aoSumir }: PropsDaSeguranca
               }}
             />
           )}
+          <LinhaDeValor
+            rotulo={t('seguranca.denunciar')}
+            aoTocar={() => {
+              setPainel('denunciar');
+            }}
+          />
           {resumo.bloqueado ? (
             <LinhaDeValor
               rotulo={t('seguranca.desbloquear')}
@@ -287,6 +302,17 @@ export function Seguranca({ conversas, id, aoVoltar, aoSumir }: PropsDaSeguranca
           aoTocar={fechar}
         />
       </Painel>
+
+      <PainelDeDenuncia
+        conversas={conversas}
+        visivel={painel === 'denunciar'}
+        aoFechar={fechar}
+        contato={{ id: resumo.id, nome }}
+        aoCopiar={(copiado) => {
+          fechar();
+          mostrarRecado(t(copiado === 'id' ? 'ajustes.idCopiado' : 'denuncia.emailCopiado'));
+        }}
+      />
 
       <Painel
         visivel={painel === 'fechadas'}

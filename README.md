@@ -23,7 +23,7 @@ Mensageiro para Android em que a identidade é um par de chaves gerado no aparel
 
 O que o Cifra protege e contra quem está no [modelo de ameaça](docs/SPEC.md#modelo-de-ameaça). Os testes de aceite, com perícia pelo IPED, captura de rede e cópia do banco do relay, estão em [`docs/VERIFICACAO.md`](docs/VERIFICACAO.md).
 
-O que sai do celular, o que o servidor guarda e por quanto tempo estão na [política de privacidade](docs/PRIVACIDADE.md), a mesma do app.
+O que sai do celular, o que o servidor guarda e por quanto tempo estão na [política de privacidade](docs/PRIVACIDADE.md), a mesma do app. O que não é permitido e como denunciar estão nos [termos de uso](docs/TERMOS.md), também os mesmos do app.
 
 ## Para usar
 

@@ -41,18 +41,25 @@ const semLog: LoggerModule = {
   error: () => undefined,
 };
 
-/** Uma seção da política de privacidade (RF-61): o título e os parágrafos, na ordem dos textos. */
-export interface SecaoDaPolitica {
+/**
+ * Os documentos que o app mostra e que também saem em docs/: a política de privacidade (RF-61),
+ * em docs/PRIVACIDADE.md, e os termos de uso (RF-62), em docs/TERMOS.md.
+ */
+export type Documento = 'politica' | 'termos';
+
+export const DOCUMENTOS: readonly Documento[] = ['politica', 'termos'];
+
+/** Uma seção de um documento: o título e os parágrafos, na ordem dos textos. */
+export interface SecaoDoDocumento {
   readonly titulo: string;
   readonly paragrafos: readonly string[];
 }
 
-/**
- * A política de privacidade num idioma, seção por seção. É o texto da tela do app e o de
- * docs/PRIVACIDADE.md, que sai daqui.
- */
-export function secoesDaPolitica(idioma: Idioma): SecaoDaPolitica[] {
-  return Object.values(TRADUCOES[idioma].politica.secoes).map(({ titulo, ...paragrafos }) => ({
+/** Um documento num idioma, seção por seção. É o texto da tela do app e o do arquivo em docs/. */
+export function secoesDoDocumento(documento: Documento, idioma: Idioma): SecaoDoDocumento[] {
+  return Object.values<Record<string, string> & { titulo: string }>(
+    TRADUCOES[idioma][documento].secoes,
+  ).map(({ titulo, ...paragrafos }) => ({
     titulo,
     paragrafos: Object.values(paragrafos),
   }));

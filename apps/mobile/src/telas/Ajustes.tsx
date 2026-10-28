@@ -1,9 +1,9 @@
 // Os ajustes, como no design: o cartão do próprio ID, que copia (RF-45); a aparência (RF-39) e o
 // idioma (RF-49); a privacidade: o bloqueio sozinho (RF-40), as notificações cegas (RF-42), o
-// bloqueio de prints (RF-41), a confirmação de leitura (RF-17), o indicador de digitação (RF-18) e
-// a política de privacidade (RF-61); as mensagens temporárias (RF-50); os anexos (RF-57); o backup
-// (RF-46), que sai pelo "salvar como" do sistema; e o pânico (RF-48): segurar 1,6 s apaga tudo
-// deste celular.
+// bloqueio de prints (RF-41), a confirmação de leitura (RF-17), o indicador de digitação (RF-18), a
+// política de privacidade (RF-61), os termos de uso (RF-62) e o denunciar (RF-63); as mensagens
+// temporárias (RF-50); os anexos (RF-57); o backup (RF-46), que sai pelo "salvar como" do sistema;
+// e o pânico (RF-48): segurar 1,6 s apaga tudo deste celular.
 //
 // Tema, idioma e notificações valem com o app bloqueado e ficam nas preferências do Keystore; o
 // resto fica no banco cifrado.
@@ -17,6 +17,7 @@ import { expo } from '../../app.json';
 import { CartaoDeIdentidade } from '../componentes/CartaoDeIdentidade.tsx';
 import { ListaDeOpcoes, Segmentos } from '../componentes/Opcoes.tsx';
 import { Painel } from '../componentes/Painel.tsx';
+import { PainelDeDenuncia } from '../componentes/PainelDeDenuncia.tsx';
 import { PainelDoTimer } from '../componentes/PainelDoTimer.tsx';
 import { Recado, useRecado } from '../componentes/Recado.tsx';
 import { RotuloDeSecao } from '../componentes/RotuloDeSecao.tsx';
@@ -38,7 +39,7 @@ interface PropsDosAjustes {
   /** Ligar pede a permissão do sistema; devolve se ficaram ligadas. */
   readonly aoMudarNotificacoes: (ligar: boolean) => Promise<boolean>;
   readonly aoVoltar: () => void;
-  /** Abre outra tela por cima: o código secreto e a política de privacidade. */
+  /** Abre outra tela por cima: o código secreto, a política de privacidade e os termos de uso. */
   readonly abrir: (tela: TelaDoApp) => void;
   /** Pânico (RF-48): apaga tudo deste celular. */
   readonly aoApagarTudo: () => void;
@@ -62,7 +63,7 @@ export function Ajustes({
   const margens = useSafeAreaInsets();
   const versao = useVersao(conversas);
   const preferidas = useSyncExternalStore(preferencias.aoMudar, () => preferencias.atual);
-  const [painel, setPainel] = useState<'timer' | 'bloqueio' | null>(null);
+  const [painel, setPainel] = useState<'timer' | 'bloqueio' | 'denuncia' | null>(null);
   const [recado, mostrarRecado] = useRecado();
   const ajustes = useLeitura(() => conversas.agenda.ajustesDoTimer(), [versao]);
   const padrao = ajustes?.timerPadrao ?? 0;
@@ -193,6 +194,18 @@ export function Ajustes({
                 abrir({ tipo: 'politica' });
               }}
             />
+            <LinhaDeValor
+              rotulo={t('termos.titulo')}
+              aoTocar={() => {
+                abrir({ tipo: 'termos' });
+              }}
+            />
+            <LinhaDeValor
+              rotulo={t('denuncia.titulo')}
+              aoTocar={() => {
+                setPainel('denuncia');
+              }}
+            />
           </GrupoDeLinhas>
         </View>
 
@@ -281,6 +294,16 @@ export function Ajustes({
           }}
         />
       </Painel>
+
+      <PainelDeDenuncia
+        conversas={conversas}
+        visivel={painel === 'denuncia'}
+        aoFechar={fechar}
+        aoCopiar={() => {
+          fechar();
+          mostrarRecado(t('denuncia.emailCopiado'));
+        }}
+      />
 
       <Recado visivel={recado !== null} texto={recado ?? ''} embaixo={margens.bottom + 24} />
     </View>

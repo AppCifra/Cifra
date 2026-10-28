@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { QUANTIDADE_DE_PALAVRAS } from '../packages/core/src/identidade/palavras.ts';
-import { IDIOMAS, secoesDaPolitica, TRADUCOES, type Idioma } from '../packages/i18n/src/index.ts';
+import { IDIOMAS, TRADUCOES, type Idioma } from '../packages/i18n/src/index.ts';
 import {
   RETENCAO_DA_CAIXA_EM_DIAS,
   RETENCAO_DO_ANEXO_EM_DIAS,
@@ -8,6 +8,7 @@ import {
   RETENCAO_DO_PACOTE_EM_DIAS,
   TAXAS_DO_RELAY,
 } from '../packages/protocol/src/limites.ts';
+import { documentoEmMarkdown, emailsEm, paragrafosDo } from './documentos.ts';
 import { lerTexto } from './util.ts';
 
 // A política de privacidade (RF-61) fica nos textos do app, e o docs/PRIVACIDADE.md sai deles: o
@@ -23,30 +24,6 @@ function texto(idioma: Idioma, secao: string, paragrafo: string): string {
   const achado = secoesDe(idioma)[secao]?.[paragrafo];
   if (achado === undefined) throw new Error(`${idioma}: politica.secoes.${secao}.${paragrafo}`);
   return achado;
-}
-
-/** A âncora que o GitHub dá a um título: minúsculas, sem pontuação, hífen no lugar do espaço. */
-const ancora = (titulo: string) =>
-  titulo
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N} -]/gu, '')
-    .replaceAll(' ', '-');
-
-/** O docs/PRIVACIDADE.md: a política em português e, embaixo, em inglês. */
-function politicaEmMarkdown(): string {
-  const idiomas = IDIOMAS.map((idioma) => {
-    const { documento, atualizada } = TRADUCOES[idioma].politica;
-    return [
-      `# ${documento}`,
-      atualizada,
-      ...secoesDaPolitica(idioma).flatMap(({ titulo, paragrafos }) => [
-        `## ${titulo}`,
-        ...paragrafos,
-      ]),
-    ].join('\n\n');
-  });
-  const emIngles = `[${TRADUCOES.en.idiomas.en}](#${ancora(TRADUCOES.en.politica.documento)})`;
-  return `${emIngles}\n\n${idiomas.join('\n\n---\n\n')}\n`;
 }
 
 /** O prazo da área de transferência fica no adaptador do app, que só roda no aparelho. */
@@ -97,7 +74,7 @@ const NUMEROS: readonly Numero[] = [
 
 describe('política de privacidade (RF-61)', () => {
   it('o docs/PRIVACIDADE.md é o texto do app, nos dois idiomas', async () => {
-    await expect(politicaEmMarkdown()).toMatchFileSnapshot('../docs/PRIVACIDADE.md');
+    await expect(documentoEmMarkdown('politica')).toMatchFileSnapshot('../docs/PRIVACIDADE.md');
   });
 
   it('cada número da política é o do código, no parágrafo em que aparece', () => {
@@ -191,13 +168,9 @@ describe('política de privacidade (RF-61)', () => {
   });
 
   it('diz quem responde por ela, com um contato só, e não sobra marcador', () => {
-    const paragrafos = IDIOMAS.flatMap((idioma) =>
-      secoesDaPolitica(idioma).flatMap((secao) => secao.paragrafos),
-    );
+    const paragrafos = paragrafosDo('politica');
     expect(paragrafos.flatMap((paragrafo) => paragrafo.match(/\[[^\]]*\]/g) ?? [])).toEqual([]);
-    const contatos = new Set(
-      paragrafos.flatMap((paragrafo) => paragrafo.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g) ?? []),
-    );
+    const contatos = emailsEm(paragrafos);
     expect(contatos.size).toBe(1);
     for (const idioma of IDIOMAS) {
       for (const [secao, paragrafo] of [
